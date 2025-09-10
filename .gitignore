@@ -1,0 +1,23 @@
+# C++ files
+*.o
+
+# test sample files
+goldens/
+outputs/
+samples/
+
+# Catapult files
+Catapult/
+Catapult_*
+*.ccs
+*.pinfo
+work/
+table_*
+
+# python files
+__pycache__
+
+# misc
+*.log
+lib/
+*.lib
