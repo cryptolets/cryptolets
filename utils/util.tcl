@@ -164,6 +164,18 @@ proc run_syn {tech_type SYN} {
     }
 }
 
+proc branch_if_ccore_comb {kernel} {
+    set latency_cycles [solution get /DATUM/FIELDS/timing/COLUMNS/tm_latency_cycles/VALUE]
+    if {$latency_cycles == 0} {
+        set old_sol "[solution get /name].[solution get /VERSION]"
+        # for combinational
+        go libraries
+        solution design set $kernel -combinational
+        go architect
+        # solution remove -solution $old_sol -delete ;# commented because causes problems with loading proj
+    }
+}
+
 proc assert {condition {msg "assertion failed"}} {
     if {![uplevel 1 [list expr $condition]]} {
         error $msg
@@ -201,6 +213,8 @@ proc remove_broken_mul_libs { tech_type } {
         directive set "/.../*mgc_mul(1024,0,1024,0,1024,3)" -match glob -QUANTITY 0
         directive set "/.../*mgc_mul(1024,0,1024,0,1024,5)" -match glob -QUANTITY 0
 
+        # TODO: add for mgc_sqr
+
     } elseif {$tech_type eq "asicgf12"} {
         # same for reduced and non-reduced
         # 200 <= num < 300
@@ -212,11 +226,11 @@ proc remove_broken_mul_libs { tech_type } {
             directive set "/.../*mgc_mul(${i}??,*,2)" -match glob -QUANTITY 0
         }
 
-        # *mgc_sqr(1 2 6
-
         # 1000 <= num < 2000
         directive set "/.../*mgc_mul(1???,*,1)" -match glob -QUANTITY 0
         directive set "/.../*mgc_mul(1???,*,2)" -match glob -QUANTITY 0
+
+        # TODO: add for mgc_sqr
     }
 }
 

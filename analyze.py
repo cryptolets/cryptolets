@@ -321,49 +321,53 @@ if __name__ == "__main__":
     catapult_dir = f"{kernel_path}/Catapult/"
     all_metrics = []
 
-    for fn in os.listdir(catapult_dir):
-        if not fn.startswith("table_"):
-            continue
-        
-        fp = os.path.join(catapult_dir, fn)
-        table_info = parse_table_name(fn)
+    if os.path.isdir(catapult_dir):
+        for fn in os.listdir(catapult_dir):
+            if not fn.startswith("table_"):
+                continue
+            
+            fp = os.path.join(catapult_dir, fn)
+            table_info = parse_table_name(fn)
 
-        if not table_info["tech_type"].startswith(tech_type):
-            continue
+            if not table_info["tech_type"].startswith(tech_type):
+                continue
 
-        all_metrics += derive_all_attr(parse_table_csv(fp), table_info)
+            all_metrics += derive_all_attr(parse_table_csv(fp), table_info)
 
-    # filter and clean
-    all_metrics = filter_mp(all_metrics, mp)
-    all_metrics = drop_none_columns(all_metrics)
-    tot_ctime = get_tot(all_metrics, "ctime_raw")
-    all_metrics = drop_column(all_metrics, "ctime_raw")
-    only_top = [row for row in all_metrics if row["sol"].startswith("sol")]
-    num_runs = len(only_top)
+        # filter and clean
+        all_metrics = filter_mp(all_metrics, mp)
+        all_metrics = drop_none_columns(all_metrics)
+        tot_ctime = get_tot(all_metrics, "ctime_raw")
+        all_metrics = drop_column(all_metrics, "ctime_raw")
+        only_top = [row for row in all_metrics if row["sol"].startswith("sol")]
+        num_runs = len(only_top)
 
-    if not args.ccore:
-        all_metrics = only_top
+        if not args.ccore:
+            all_metrics = only_top
 
-    # pretty print
-    table_str = make_table_string(all_metrics)
-    print(table_str)
+        # pretty print
+        table_str = make_table_string(all_metrics)
+        print(table_str)
 
-    ctime_fmt = lambda t: f"{int(t)//3600}h {(int(t)%3600)//60}m {int(t)%60}s"
-    print("")
-    print(f"Total compile time = {ctime_fmt(tot_ctime)}")
-    print(f"Avg compile time = {ctime_fmt(tot_ctime / num_runs if num_runs > 0 else 0)}")
-    print(f"Num of runs = {num_runs}")
+        if num_runs > 0:
+            ctime_fmt = lambda t: f"{int(t)//3600}h {(int(t)%3600)//60}m {int(t)%60}s"
+            print("")
+            print(f"Total compile time = {ctime_fmt(tot_ctime)}")
+            print(f"Avg compile time = {ctime_fmt(tot_ctime / num_runs)}")
+            print(f"Num of runs = {num_runs}")
 
-    out_fn = f"{kernel}_{tech_type}" if not mp else f"{kernel}_{tech_type}_mp"
-    # output dirs
-    if args.out_txt:
-        outdir = "results/txt"
-        os.makedirs(outdir, exist_ok=True)
-        fname = f"{out_fn}.txt"
-        write_txt(all_metrics, os.path.join(outdir, fname))
+        out_fn = f"{kernel}_{tech_type}" if not mp else f"{kernel}_{tech_type}_mp"
+        # output dirs
+        if args.out_txt:
+            outdir = "results/txt"
+            os.makedirs(outdir, exist_ok=True)
+            fname = f"{out_fn}.txt"
+            write_txt(all_metrics, os.path.join(outdir, fname))
 
-    if args.out_csv:
-        outdir = "results/csv"
-        os.makedirs(outdir, exist_ok=True)
-        fname = f"{out_fn}.csv"
-        write_csv(all_metrics, os.path.join(outdir, fname))
+        if args.out_csv:
+            outdir = "results/csv"
+            os.makedirs(outdir, exist_ok=True)
+            fname = f"{out_fn}.csv"
+            write_csv(all_metrics, os.path.join(outdir, fname))
+    else:
+        print(f"No data")

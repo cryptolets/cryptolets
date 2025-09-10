@@ -27,6 +27,10 @@ declare -A GROUP_MAP=(
     [modadd]="catapult_lvl1.tcl"
     [modsub]="catapult_lvl1.tcl"
     [modmul_mont]="catapult_modmul.tcl"
+    [modmul_barrett]="catapult_modmul.tcl"
+
+    [point_add]="catapult_padd.tcl"
+    [point_add_cyclonemsm]="catapult_padd.tcl"
 )
 
 # Usage

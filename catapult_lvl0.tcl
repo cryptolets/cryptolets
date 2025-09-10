@@ -1,4 +1,3 @@
-# catapult_lvl0.tcl
 # Sweep script for bw group (add_f, sub_f, cmul_f)
 
 set lvl_dir "lvl0_primitives"
@@ -17,13 +16,13 @@ set target_iis {1}
 set target_freqs {300}
 
 # Control flags
-set SIM true ;# verify RTL
+set SIM false ;# verify RTL
 set SYN false
-set TEST true ;# test C++ code
+set TEST false ;# test C++ code
 set TEST_ONLY false ;# only test C++ code with osci, for quick initial testing
 set NUM_TEST_SAMPLES 1000
 set GEN_SAMPLES true ;# set off if custom samples
-set CCORE_TOP false
+set CCORE_TOP true ;# gives us better area/latency for combination units
 
 assert {!(($CCORE_TOP && $TEST) || $CCORE_TOP && $SIM)} "top cannot be ccore for sim or test"
 override_default_options ;# Reset tool options
@@ -65,6 +64,8 @@ foreach bitwidth $bitwidths {
     solution design set $kernel -top
     if {$CCORE_TOP} {
         solution design set $kernel -ccore 
+        directive set -CCORE_TYPE sequential
+        directive set -OUTPUT_REGISTERS false
     }
     go compile
 
@@ -82,6 +83,11 @@ foreach bitwidth $bitwidths {
 
     directive set -PIPELINE_INIT_INTERVAL $target_ii
     directive set -DESIGN_GOAL latency
+    go schedule
+    
+    if {$CCORE_TOP} {
+        branch_if_ccore_comb $kernel 
+    }
 
     go extract
     solution table export -file [file join $work_dir $table_name]
