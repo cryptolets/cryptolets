@@ -6,7 +6,7 @@ import os
 from pathlib import Path
 
 import sys
-sys.path.append(str(Path(__file__).resolve().parents[1]))
+sys.path.append(str(Path(__file__).resolve().parents[2]))
 from utils import CONST_Q_PRIME
 
 def cmul_f_ref(a, bitwidth):

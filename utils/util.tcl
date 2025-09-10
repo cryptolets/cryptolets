@@ -2,13 +2,13 @@
 # Common helper procs for Catapult
 
 # Ensure kernel/Catapult dir exists and cd into it
-proc enter_kernel_dir {sfd kernel} {
-    set kernel_dir [file join $sfd $kernel Catapult]
-    if {![file exists $kernel_dir]} {
-        file mkdir $kernel_dir
+proc enter_work_dir {kernel_dir} {
+    set work_dir [file join $kernel_dir Catapult]
+    if {![file exists $work_dir]} {
+        file mkdir $work_dir
     }
-    cd $kernel_dir
-    return $kernel_dir
+    cd $work_dir
+    return $work_dir
 }
 
 proc override_default_options {} {
@@ -126,7 +126,7 @@ proc run_osci_test {kernel_dir work_dir bitwidth NUM_TEST_SAMPLES TEST GEN_SAMPL
 
         # check if golden and output match
         if {[catch {exec diff -q $golden_fp $output_fp}]} {
-            puts "ERROR: Output mismatch for bitwidth=$bitwidth"
+            puts "ERROR: Verifying C++ with osci bitwidth=$bitwidth"
             exit 1
         } else {
             puts "PASS: Output matches golden for bitwidth=$bitwidth"
@@ -135,19 +135,19 @@ proc run_osci_test {kernel_dir work_dir bitwidth NUM_TEST_SAMPLES TEST GEN_SAMPL
 
 }
 
-proc run_scverify {kernel_dir bitwidth SIM} {
+proc run_scverify {kernel_dir work_dir bitwidth SIM} {
     if {$SIM} {
         puts "Sim: Running SCVerify for bitwidth=$bitwidth"
-        set sample_fp [file join $kernel_dir samples/samples_${bitwidth}.csv]
-        set output_fp [file join $kernel_dir outputs/output_${bitwidth}.csv]
-        set golden_fp [file join $kernel_dir goldens/golden_${bitwidth}.csv]
+        set sample_fp [file join $work_dir samples/samples_${bitwidth}.csv]
+        set output_fp [file join $work_dir outputs/output_${bitwidth}.csv]
+        set golden_fp [file join $work_dir goldens/golden_${bitwidth}.csv]
 
         flow package require /SCVerify
         flow package option set /SCVerify/INVOKE_ARGS "$sample_fp $output_fp"
         flow run /SCVerify/launch_make ./scverify/Verify_rtl_v_msim.mk {} SIMTOOL=msim sim
 
         if {[catch {exec diff -q $golden_fp $output_fp}]} {
-            puts "ERROR: Output mismatch for bitwidth=$bitwidth"
+            puts "ERROR: Verifying with SCVerify bitwidth=$bitwidth"
             exit 1
         } else {
             puts "PASS: Output matches golden for bitwidth=$bitwidth"
@@ -161,6 +161,12 @@ proc run_syn {tech_type SYN} {
             puts "Syn: Running FPGA Vivado synthesis"
             go synthesize
         }
+    }
+}
+
+proc assert {condition {msg "assertion failed"}} {
+    if {![uplevel 1 [list expr $condition]]} {
+        error $msg
     }
 }
 
