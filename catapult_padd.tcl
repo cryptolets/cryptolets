@@ -40,9 +40,9 @@ set kar_mul_depth_map {
 set PADD_TYPE PADD_NORMAL
 
 # Control flags
-set SIM true ;# verify RTL
+set SIM false ;# verify RTL
 set SYN false
-set TEST true ;# test C++ code
+set TEST false ;# test C++ code
 set TEST_ONLY false ;# only test C++ code with osci, for quick initial testing
 set NUM_TEST_SAMPLES 1000
 set GEN_SAMPLES true ;# set off if custom samples
@@ -167,7 +167,6 @@ foreach kar $kar_depths {
 
     set sq_f_sol [mul_op_run sq_f $bm $kar $mul_period $tech_type]
     solution table export -file [file join $work_dir $table_name]
-
 
     # cmul_f
     if {$q_type eq "fixedq"} {

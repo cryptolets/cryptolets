@@ -16,13 +16,13 @@ set target_iis {1}
 set target_freqs {300}
 
 # Control flags
-set SIM false ;# verify RTL
+set SIM true ;# verify RTL
 set SYN false
 set TEST false ;# test C++ code
 set TEST_ONLY false ;# only test C++ code with osci, for quick initial testing
 set NUM_TEST_SAMPLES 1000
 set GEN_SAMPLES true ;# set off if custom samples
-set CCORE_TOP true ;# gives us better area/latency for combination units
+set CCORE_TOP false ;# gives us better area/latency for combination units
 
 assert {!(($CCORE_TOP && $TEST) || $CCORE_TOP && $SIM)} "top cannot be ccore for sim or test"
 override_default_options ;# Reset tool options
