@@ -3,17 +3,17 @@ set -euo pipefail
 
 # List of all kernels to run in one go
 ALL_KERNELS=(
-  # add_f 
-  # sub_f 
-  # cmul_f
-  # modadd 
-  # modsub
-  # mul_f
-  # sq_f
-  # modmul_mont 
-  # point_add 
-  # point_double 
-  # padd_cyclonemsm
+    # add_f 
+    # sub_f 
+    # cmul_f
+    # modadd 
+    # modsub
+    # mul_f
+    # sq_f
+    # modmul_mont
+    # modmul_barrett
+    # point_add 
+    # point_add_cyclonemsm
 )
 
 # Map kernels to group Tcl scripts

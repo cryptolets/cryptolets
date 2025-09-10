@@ -15,7 +15,7 @@ proc override_default_options {} {
     options defaults
     options set /Input/CppStandard c++14
     options set /Input/TargetPlatform x86_64
-    options set Flows/Vivado/XILINX_VIVADO /eda/xilinx//Vivado/2023.1/
+    options set Flows/Vivado/XILINX_VIVADO /eda/xilinx//Vivado/2024.2/
     options set Flows/SCVerify/MAX_ERROR_CNT 1
 }
 

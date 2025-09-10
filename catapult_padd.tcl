@@ -10,14 +10,14 @@ set kernel_dir [file join $root_dir $lvl_dir $kernel]
 set work_dir [enter_work_dir $kernel_dir] ;# move to a lvl_dir/kernel/Catapult as working dir
 
 # Sweep parameters
-set bitwidths {256 384} ;# 64 128 256 384
-set tech_types {asic} ;# fpga asic asicgf12
+set bitwidths {256} ;# 64 128 256 384
+set tech_types {fpga} ;# fpga asic asicgf12
 set target_iis {1}
-set mul_types {sb} ;# mul_types: kar sb nor
-set target_freqs {300} ;# 300 600 1000
+set mul_types {kar} ;# mul_types: kar sb nor
+set target_freqs {250} ;# 300 600 1000
 set base_mul_depths_pow2 {64} ;# 128 64 32 16
-set base_mul_depths_nonpow2 {48} ;# 192 96 48 24
-set q_types {varq fixedq} ;#varq fixedq
+set base_mul_depths_nonpow2 {24} ;# 192 96 48 24
+set q_types {fixedq} ;#varq fixedq
 
 set kar_mul_depth_map {
     8 {8}
@@ -26,23 +26,24 @@ set kar_mul_depth_map {
     24 {24}
     32 {32 16}
     48 {48 24}
-    64 {64 32 16}
-    96 {96 48 24}
-    128 {128 64 32 16}
-    192 {192 96 48 24}
-    256 {256 128 64 32}
-    384 {384 192 96}
-    512 {512 256 128}
-    768 {768 384 192 96 48 23}
-    1024 {1024 512 256 128 64 32 16}
+    64 {64 32}
+    96 {96 48}
+    128 {128 64 32}
+    192 {192 96 48}
+    256 {256 128 64}
+    384 {384 192 96 48}
+    512 {512 256 128 64}
+    768 {768 384 192 96 48}
+    1024 {1024 512 256 128 64}
 }
 
+# PADD_NORMAL PADD_CYCLONEMSM
 set PADD_TYPE PADD_NORMAL
 
 # Control flags
-set SIM false ;# verify RTL
-set SYN false
-set TEST false ;# test C++ code
+set SIM true ;# verify RTL
+set SYN true ;
+set TEST true ;# test C++ code
 set TEST_ONLY false ;# only test C++ code with osci, for quick initial testing
 set NUM_TEST_SAMPLES 1000
 set GEN_SAMPLES true ;# set off if custom samples
@@ -164,9 +165,11 @@ foreach kar $kar_depths {
 
     set mul_f_sol [mul_op_run mul_f $bm $kar $mul_period $tech_type]
     solution table export -file [file join $work_dir $table_name]
-
-    set sq_f_sol [mul_op_run sq_f $bm $kar $mul_period $tech_type]
-    solution table export -file [file join $work_dir $table_name]
+    
+    if {$PADD_TYPE ne "PADD_CYCLONEMSM"} {
+        set sq_f_sol [mul_op_run sq_f $bm $kar $mul_period $tech_type]
+        solution table export -file [file join $work_dir $table_name]
+    }
 
     # cmul_f
     if {$q_type eq "fixedq"} {
@@ -221,8 +224,9 @@ foreach kar $kar_depths {
     }
 
     # For full padd design
-    if {$kernel ne "modmul_mont"} {
-        # modsq_mont
+    # modsq_mont
+    # PADD_CYCLONEMSM doesnt use modsq ops
+    if {$PADD_TYPE ne "PADD_CYCLONEMSM"} {
         set modsq_mont_sol_name "modsq_mont_bm${bm}_kar${kar}_qt${q_type}"
         if {[catch {project get /SOLUTION/$modsq_mont_sol_name.v* -match glob} err]} {
             go new
@@ -253,60 +257,66 @@ foreach kar $kar_depths {
             set l [project get /SOLUTION/$modsq_mont_sol_name.v*/VERSION -match glob]
             set modsq_mont_sol "${modsq_mont_sol_name}.[lindex $l [expr [llength $l] - 1]]"
         }
-
-        proc mod_ops_run { mod_op q_type mod_ops_period } {
-            set modop_sol_name "${mod_op}_qt${q_type}"
-            if {[catch {project get /SOLUTION/$modop_sol_name.v* -match glob} err]} {
-                go new
-                set_clock $mod_ops_period
-                solution design set "${mod_op}_core" -top -ccore -combinational
-                solution rename $modop_sol_name
-                go extract
-                return "[solution get /name].[solution get /VERSION]"
-            } else {
-                # get latest version name
-                set l [project get /SOLUTION/$modop_sol_name.v*/VERSION -match glob]
-                return "${modop_sol_name}.[lindex $l [expr [llength $l] - 1]]"
-            }
-        }
-
-        set modadd_sol [mod_ops_run modadd $q_type $mod_ops_period]
-        solution table export -file [file join $work_dir $table_name]
-        set modsub_sol [mod_ops_run modsub $q_type $mod_ops_period]
-        solution table export -file [file join $work_dir $table_name]
-        set moddouble_sol [mod_ops_run moddouble $q_type $mod_ops_period]
-        solution table export -file [file join $work_dir $table_name]
-
-        # padd
-        go new
-        set_clock $period_ns
-        solution design set $kernel -top
-        solution design set modmul_mont_core -ccore
-        solution design set modsq_mont_core -ccore
-        solution design set modadd_core -ccore
-        solution design set modsub_core -ccore
-        solution design set moddouble_core -ccore
-        solution rename $sol_name
-        go analyze
-        solution library add "\[CCORE\] $mul_f_sol"
-        solution library add "\[CCORE\] $sq_f_sol"
-        if {$q_type eq "fixedq"} {
-            solution library add "\[CCORE\] $cmul_f_sol"
-        }
-        solution library add "\[CCORE\] $modmul_mont_sol"
-        solution library add "\[CCORE\] $modmul_mont_sol"
-        solution library add "\[CCORE\] $modsq_mont_sol"
-        solution library add "\[CCORE\] $modadd_sol"
-        solution library add "\[CCORE\] $modsub_sol"
-        solution library add "\[CCORE\] $moddouble_sol"
-        go libraries
-        directive set /$kernel/modmul_mont_core -MAP_TO_MODULE "\[CCORE\] $modmul_mont_sol"
-        directive set /$kernel/modsq_mont_core -MAP_TO_MODULE "\[CCORE\] $modsq_mont_sol"
-        directive set /$kernel/modadd_core -MAP_TO_MODULE "\[CCORE\] $modadd_sol"
-        directive set /$kernel/modsub_core -MAP_TO_MODULE "\[CCORE\] $modsub_sol"
-        directive set /$kernel/moddouble_core -MAP_TO_MODULE "\[CCORE\] $moddouble_sol"
-        go extract
     }
+
+    proc mod_ops_run { mod_op q_type mod_ops_period } {
+        set modop_sol_name "${mod_op}_qt${q_type}"
+        if {[catch {project get /SOLUTION/$modop_sol_name.v* -match glob} err]} {
+            go new
+            set_clock $mod_ops_period
+            solution design set "${mod_op}_core" -top -ccore -combinational
+            solution rename $modop_sol_name
+            go extract
+            return "[solution get /name].[solution get /VERSION]"
+        } else {
+            # get latest version name
+            set l [project get /SOLUTION/$modop_sol_name.v*/VERSION -match glob]
+            return "${modop_sol_name}.[lindex $l [expr [llength $l] - 1]]"
+        }
+    }
+
+    set modadd_sol [mod_ops_run modadd $q_type $mod_ops_period]
+    solution table export -file [file join $work_dir $table_name]
+    set modsub_sol [mod_ops_run modsub $q_type $mod_ops_period]
+    solution table export -file [file join $work_dir $table_name]
+    set moddouble_sol [mod_ops_run moddouble $q_type $mod_ops_period]
+    solution table export -file [file join $work_dir $table_name]
+
+    # padd
+    go new
+    set_clock $period_ns
+    solution design set $kernel -top
+    solution design set modmul_mont_core -ccore
+    if {$PADD_TYPE ne "PADD_CYCLONEMSM"} {
+        solution design set modsq_mont_core -ccore
+    }
+    solution design set modadd_core -ccore
+    solution design set modsub_core -ccore
+    solution design set moddouble_core -ccore
+    solution rename $sol_name
+    go analyze
+    solution library add "\[CCORE\] $mul_f_sol"
+    if {$PADD_TYPE ne "PADD_CYCLONEMSM"} {
+        solution library add "\[CCORE\] $sq_f_sol"
+        solution library add "\[CCORE\] $modsq_mont_sol"
+    }
+    if {$q_type eq "fixedq"} {
+        solution library add "\[CCORE\] $cmul_f_sol"
+    }
+    solution library add "\[CCORE\] $modmul_mont_sol"
+    solution library add "\[CCORE\] $modmul_mont_sol"
+    solution library add "\[CCORE\] $modadd_sol"
+    solution library add "\[CCORE\] $modsub_sol"
+    solution library add "\[CCORE\] $moddouble_sol"
+    go libraries
+    directive set /$kernel/modmul_mont_core -MAP_TO_MODULE "\[CCORE\] $modmul_mont_sol"
+    if {$PADD_TYPE ne "PADD_CYCLONEMSM"} {
+        directive set /$kernel/modsq_mont_core -MAP_TO_MODULE "\[CCORE\] $modsq_mont_sol"
+    }
+    directive set /$kernel/modadd_core -MAP_TO_MODULE "\[CCORE\] $modadd_sol"
+    directive set /$kernel/modsub_core -MAP_TO_MODULE "\[CCORE\] $modsub_sol"
+    directive set /$kernel/moddouble_core -MAP_TO_MODULE "\[CCORE\] $moddouble_sol"
+    go extract
 
     solution table export -file [file join $work_dir $table_name]
     run_scverify $kernel_dir $work_dir $bitwidth $SIM
