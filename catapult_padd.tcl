@@ -11,7 +11,7 @@ set work_dir [enter_work_dir $kernel_dir] ;# move to a lvl_dir/kernel/Catapult a
 
 # Sweep parameters
 set bitwidths {256} ;# 64 128 256 384
-set tech_types {fpga} ;# fpga asic asicgf12
+set tech_types {asic} ;# fpga asic asicgf12
 set target_iis {1}
 set mul_types {kar} ;# mul_types: kar sb nor
 set target_freqs {250} ;# 300 600 1000
