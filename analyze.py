@@ -196,7 +196,7 @@ def derive_all_attr(parsed_raw_attrs, table_info):
 
         row = {
             "sol": sol,
-            "target_period": all_info["target_period"],
+            "target_period": round(period, 2) if period else all_info["target_period"],
             "target_freq": round(1000/period, 2) if period else None,
             "bitwidth": all_info['bitwidth'],
             "q_type": all_info['q_type'],

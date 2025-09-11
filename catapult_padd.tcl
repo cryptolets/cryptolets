@@ -13,11 +13,11 @@ set work_dir [enter_work_dir $kernel_dir] ;# move to a lvl_dir/kernel/Catapult a
 set bitwidths {256} ;# 64 128 256 384
 set tech_types {asic} ;# fpga asic asicgf12
 set target_iis {1}
-set mul_types {kar} ;# mul_types: kar sb nor
+set mul_types {sb} ;# mul_types: kar sb nor
 set target_periods {3} ;# in ns
 set base_mul_depths_pow2 {64} ;# 128 64 32 16
 set base_mul_depths_nonpow2 {24} ;# 192 96 48 24
-set q_types {fixedq} ;#varq fixedq
+set q_types {varq} ;#varq fixedq
 
 set kar_mul_depth_map {
     8 {8}
@@ -41,9 +41,9 @@ set kar_mul_depth_map {
 set PADD_TYPE PADD_NORMAL
 
 # Control flags
-set SIM true ;# verify RTL
-set SYN true ;
-set TEST true ;# test C++ code
+set SIM false ;# verify RTL
+set SYN false ;
+set TEST false ;# test C++ code
 set TEST_ONLY false ;# only test C++ code with osci, for quick initial testing
 set NUM_TEST_SAMPLES 1000
 set GEN_SAMPLES true ;# set off if custom samples
@@ -283,7 +283,7 @@ foreach kar $kar_depths {
 
     # padd
     go new
-    set_clock $period_ns
+    set_clock $period
     solution design set $kernel -top
     solution design set modmul_mont_core -ccore
     if {$PADD_TYPE ne "PADD_CYCLONEMSM"} {

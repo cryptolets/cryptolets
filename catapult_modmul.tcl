@@ -181,7 +181,7 @@ foreach kar $kar_depths {
     set modmul_mont_sol_name $sol_name
     go new
 
-    set_clock $period_ns
+    set_clock $period
     solution design set modmul_mont_core -top
     if {$CCORE_TOP} {
         solution design set modmul_mont_core -ccore

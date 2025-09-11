@@ -62,13 +62,13 @@ proc open_or_create_solution {sol_name} {
 }
 
 # Clock constraints
-proc set_clock {period_ns} {
-    set clk_high_time [expr {$period_ns / 2}]
-    set clk_uncertainty [expr {$period_ns * 0}]
+proc set_clock {period} {
+    set clk_high_time [expr {$period / 2}]
+    set clk_uncertainty [expr {$period * 0}]
 
     directive set -CLOCKS [
         list clk [list \
-            -CLOCK_PERIOD $period_ns \
+            -CLOCK_PERIOD $period \
             -CLOCK_UNCERTAINTY $clk_uncertainty \
             -CLOCK_HIGH_TIME $clk_high_time \
         ]
