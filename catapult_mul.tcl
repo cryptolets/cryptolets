@@ -10,10 +10,10 @@ set kernel_dir [file join $root_dir $lvl_dir $kernel]
 set work_dir [enter_work_dir $kernel_dir] ;# move to a lvl_dir/kernel/Catapult as working dir
 
 # Sweep parameters
-set bitwidths {128} ;# 8 12 16 24 32 48 64 96 128 192 256 384 512 768 1024
+set bitwidths {256} ;# 8 12 16 24 32 48 64 96 128 192 256 384 512 768 1024
 set tech_types {asic} ;# asic fpga asicgf12
-set target_iis {1} ;# 1 2 4 8
-set mul_types {nor sb kar} ;# kar sb 
+set target_iis {1 2} ;# 1 2 4 8
+set mul_types {sb} ;# kar sb 
 set target_freqs {300} ;# 300 600 800
 set base_mul_depths_pow2 {64} ;# 128 64 32 16
 set base_mul_depths_nonpow2 {48} ;# 192 96 48 24
@@ -75,6 +75,7 @@ foreach bm $base_mul_depths {
 foreach kar $kar_depths {
     set sol_name "sol_bm${bm}_kar${kar}"
     set table_name "table_bw${bitwidth}_tt${tech_type}_ii${target_ii}_mt${mul_type}_f${freq}MHz.csv"
+    set CCORE_TOP [expr {$CCORE_TOP && $target_ii <= 1}]
 
     open_or_create_solution $sol_name
     puts "  -> Solution: $sol_name (bitwidth=$bitwidth, bm=$bm, kar=$kar)"

@@ -40,11 +40,11 @@ set kar_mul_depth_map {
 # Control flags
 set SIM false ;# verify RTL
 set SYN false
-set TEST false ;# test C++ code
+set TEST true ;# test C++ code
 set TEST_ONLY false ;# only test C++ code with osci, for quick initial testing
 set NUM_TEST_SAMPLES 1000
 set GEN_SAMPLES true ;# set off if custom samples
-set CCORE_TOP true ;# gives us better area/latency for combination units
+set CCORE_TOP false ;# gives us better area/latency for combination units
 
 assert {!(($CCORE_TOP && $TEST) || $CCORE_TOP && $SIM)} "top cannot be ccore for sim or test"
 override_default_options ;# Reset tool options
@@ -81,6 +81,7 @@ foreach bm $base_mul_depths {
 foreach kar $kar_depths {
     set sol_name "sol_bm${bm}_kar${kar}_qt${q_type}"
     set table_name "table_bw${bitwidth}_tt${tech_type}_ii${target_ii}_mt${mul_type}_f${freq}MHz.csv"
+    set CCORE_TOP [expr {$CCORE_TOP && $target_ii <= 1}]
 
     open_or_create_solution $sol_name
     puts "  -> Solution: $sol_name (bitwidth=$bitwidth, bm=$bm, kar=$kar, q_type=$q_type)"
@@ -182,7 +183,10 @@ foreach kar $kar_depths {
     go new
 
     set_clock $period_ns
-    solution design set modmul_mont_core -top -ccore
+    solution design set modmul_mont_core -top
+    if {$CCORE_TOP} {
+        solution design set modmul_mont_core -ccore
+    }
     solution design set mul_f -ccore
     if {$q_type eq "fixedq"} {
         solution design set cmul_f -ccore

@@ -38,11 +38,14 @@ foreach freq $target_freqs {
 foreach target_ii $target_iis {
 foreach bitwidth $bitwidths {
     set proj_name "Catapult_${bitwidth}_${tech_type}_ii${target_ii}_${freq}MHz"
+    set table_name "table_bw${bitwidth}_tt${tech_type}_ii${target_ii}_f${freq}MHz.csv"
+    set sol_name "sol"
+    set CCORE_TOP [expr {$CCORE_TOP && $target_ii <= 1}]
+
     open_or_create_proj $proj_name $work_dir
     puts "\n=== Starting project $proj_name ==="
 
     set sol_name "sol"
-    set table_name "table_bw${bitwidth}_tt${tech_type}_ii${target_ii}_f${freq}MHz.csv"
     open_or_create_solution $sol_name
     puts "  -> Solution: $sol_name (bitwidth=$bitwidth)"
 

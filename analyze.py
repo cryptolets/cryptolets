@@ -218,7 +218,15 @@ def derive_all_attr(parsed_raw_attrs, table_info):
             row["dsp"] = to_float(a.get("dsp"))
             row["bram"] = to_float(a.get("bram"))
 
-        results.append(row)
+        has_metrics = False
+        for attr_k in ATTR_TO_COL_NAME:
+            if (attr_k in row and attr_k != "ctime" and row[attr_k] is not None):
+                has_metrics = True
+                break
+
+        if has_metrics:
+            results.append(row)
+
     return results
 
 def drop_none_columns(data):
