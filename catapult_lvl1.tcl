@@ -13,7 +13,7 @@ set work_dir [enter_work_dir $kernel_dir] ;# move to a lvl_dir/kernel/Catapult a
 set bitwidths {128}
 set tech_types {asic} ;# asic fpga asicgf12
 set target_iis {1}
-set target_freqs {300}
+set target_periods {3} ;# in ns
 set q_types {varq} ;# varq fixedq
 
 # Control flags
@@ -37,11 +37,11 @@ foreach q_type $q_types {
     lappend include_dirs [file join $lvl_dir $kernel include]
     set include_flags [build_include_flags $root_dir $include_dirs]
 
-foreach freq $target_freqs {
+foreach period $target_periods {
 foreach target_ii $target_iis {
 foreach bitwidth $bitwidths {
-    set proj_name "Catapult_${bitwidth}_${tech_type}_ii${target_ii}_${q_type}_${freq}MHz"
-    set table_name "table_bw${bitwidth}_tt${tech_type}_ii${target_ii}_qt${q_type}_f${freq}MHz.csv"
+    set proj_name "Catapult_${bitwidth}_${tech_type}_ii${target_ii}_${q_type}_p${period}ns"
+    set table_name "table_bw${bitwidth}_tt${tech_type}_ii${target_ii}_qt${q_type}_p${period}ns.csv"
     set sol_name "sol_qt${q_type}"
     set CCORE_TOP [expr {$CCORE_TOP && $target_ii <= 1}]
 
@@ -84,8 +84,7 @@ foreach bitwidth $bitwidths {
     set_tech_lib $tech_type $root_dir
     go libraries
 
-    set period_ns [expr {1000.0 / $freq}]
-    set_clock $period_ns
+    set_clock $period
     go assembly
 
     directive set -PIPELINE_INIT_INTERVAL $target_ii

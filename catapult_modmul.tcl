@@ -14,7 +14,7 @@ set bitwidths {256} ;# 64 128 256 384
 set tech_types {asic} ;# fpga asic asicgf12
 set target_iis {1}
 set mul_types {sb} ;# mul_types: kar sb nor
-set target_freqs {300} ;# 300 600 1000
+set target_periods {3} ;# in ns
 set base_mul_depths_pow2 {64} ;# 128 64 32 16
 set base_mul_depths_nonpow2 {48} ;# 192 96 48 24
 set q_types {varq} ;#varq fixedq
@@ -40,11 +40,11 @@ set kar_mul_depth_map {
 # Control flags
 set SIM false ;# verify RTL
 set SYN false
-set TEST true ;# test C++ code
+set TEST false ;# test C++ code
 set TEST_ONLY false ;# only test C++ code with osci, for quick initial testing
 set NUM_TEST_SAMPLES 1000
 set GEN_SAMPLES true ;# set off if custom samples
-set CCORE_TOP false ;# gives us better area/latency for combination units
+set CCORE_TOP true ;# gives us better area/latency for combination units
 
 assert {!(($CCORE_TOP && $TEST) || $CCORE_TOP && $SIM)} "top cannot be ccore for sim or test"
 override_default_options ;# Reset tool options
@@ -65,10 +65,10 @@ foreach q_type $q_types {
     set include_flags [build_include_flags $root_dir $include_dirs]
     
 foreach mul_type $mul_types {
-foreach freq $target_freqs {
+foreach period $target_periods {
 foreach target_ii $target_iis {
 foreach bitwidth $bitwidths {
-	set proj_name "Catapult_${bitwidth}_${tech_type}_ii${target_ii}_${mul_type}_${freq}MHz"
+	set proj_name "Catapult_${bitwidth}_${tech_type}_ii${target_ii}_${mul_type}_p${period}ns"
     open_or_create_proj $proj_name $work_dir
     puts "\n=== Starting project $proj_name ==="
 
@@ -80,7 +80,7 @@ foreach bm $base_mul_depths {
 
 foreach kar $kar_depths {
     set sol_name "sol_bm${bm}_kar${kar}_qt${q_type}"
-    set table_name "table_bw${bitwidth}_tt${tech_type}_ii${target_ii}_mt${mul_type}_f${freq}MHz.csv"
+    set table_name "table_bw${bitwidth}_tt${tech_type}_ii${target_ii}_mt${mul_type}_p${period}ns.csv"
     set CCORE_TOP [expr {$CCORE_TOP && $target_ii <= 1}]
 
     open_or_create_solution $sol_name
@@ -131,8 +131,7 @@ foreach kar $kar_depths {
 
     # I think it should be safe to use diff clock periods, 
     # since this is what ccore points does
-    set period_ns [expr {1000.0 / $freq}]
-    set mul_period [expr $period_ns * 0.95]
+    set mul_period [expr $period * 0.95]
 
     proc mul_op_run { mul_op bm kar mul_period tech_type} {
         set mul_op_sol_name "${mul_op}_bm${bm}_kar${kar}"

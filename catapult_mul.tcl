@@ -14,7 +14,7 @@ set bitwidths {256} ;# 8 12 16 24 32 48 64 96 128 192 256 384 512 768 1024
 set tech_types {asic} ;# asic fpga asicgf12
 set target_iis {1 2} ;# 1 2 4 8
 set mul_types {sb} ;# kar sb 
-set target_freqs {300} ;# 300 600 800
+set target_periods {3} ;# in ns
 set base_mul_depths_pow2 {64} ;# 128 64 32 16
 set base_mul_depths_nonpow2 {48} ;# 192 96 48 24
 
@@ -59,10 +59,10 @@ foreach tech_type $tech_types {
     set include_flags [build_include_flags $root_dir $include_dirs]
 
 foreach mul_type $mul_types {
-foreach freq $target_freqs {
+foreach period $target_periods {
 foreach target_ii $target_iis {
 foreach bitwidth $bitwidths {   
-    set proj_name "Catapult_${bitwidth}_${tech_type}_ii${target_ii}_${mul_type}_${freq}MHz"
+    set proj_name "Catapult_${bitwidth}_${tech_type}_ii${target_ii}_${mul_type}_f${period}ns"
     open_or_create_proj $proj_name $work_dir
     puts "\n=== Starting project $proj_name ==="
 
@@ -74,7 +74,7 @@ foreach bm $base_mul_depths {
 
 foreach kar $kar_depths {
     set sol_name "sol_bm${bm}_kar${kar}"
-    set table_name "table_bw${bitwidth}_tt${tech_type}_ii${target_ii}_mt${mul_type}_f${freq}MHz.csv"
+    set table_name "table_bw${bitwidth}_tt${tech_type}_ii${target_ii}_mt${mul_type}_p${period}ns.csv"
     set CCORE_TOP [expr {$CCORE_TOP && $target_ii <= 1}]
 
     open_or_create_solution $sol_name
@@ -117,8 +117,7 @@ foreach kar $kar_depths {
     set_tech_lib $tech_type $root_dir ;# set libraries
     go libraries
 
-    set period_ns [expr {(1000.0 / $freq) * 1}]
-    set_clock $period_ns
+    set_clock $period
     go assembly
 
     directive set -PIPELINE_INIT_INTERVAL $target_ii

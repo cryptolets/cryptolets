@@ -133,10 +133,10 @@ def parse_sol_name(sol_name):
 
 
 def parse_table_name(table_name):
-    # bw   ->  "table_bw${bitwidth}_${tech_type}_ii${target_ii}_f${freq}MHz.csv"
-    # mod  ->  "table_bw${bitwidth}_${tech_type}_ii${target_ii}_qt${q_type}_f${freq}MHz.csv"
-    # mul  ->  "table_bw${bitwidth}_${tech_type}_ii${target_ii}_mt${mul_type}_f${freq}MHz.csv"
-    # padd ->  "table_bw${bitwidth}_${tech_type}_ii${target_ii}_mt${mul_type}_f${freq}MHz.csv"
+    # bw   ->  "table_bw${bitwidth}_${tech_type}_ii${target_ii}_f${period}ns.csv"
+    # mod  ->  "table_bw${bitwidth}_${tech_type}_ii${target_ii}_qt${q_type}_f${period}ns.csv"
+    # mul  ->  "table_bw${bitwidth}_${tech_type}_ii${target_ii}_mt${mul_type}_f${period}ns.csv"
+    # padd ->  "table_bw${bitwidth}_${tech_type}_ii${target_ii}_mt${mul_type}_f${period}ns.csv"
 
     # mp -> starts with "table_mp_" instead of "table_
     name = table_name.replace(".csv", "")
@@ -149,6 +149,8 @@ def parse_table_name(table_name):
         "target_ii": None,
         "q_type": None,
         "mul_type": None,
+        "target_freq": None,
+        "target_period": None
     }
 
     for p in parts:
@@ -163,7 +165,9 @@ def parse_table_name(table_name):
         elif p.startswith("tt"):
             info["tech_type"] = p[2:]
         elif p.startswith("f"):
-            info["target_freq"] = int(p[1:].replace("MHz", ""))
+            info["target_freq"] = float(p[1:].replace("MHz", ""))
+        elif p.startswith("p"):
+            info["target_period"] = float(p[1:].replace("ns", ""))
 
     return info
 
@@ -180,7 +184,7 @@ def derive_all_attr(parsed_raw_attrs, table_info):
         sol_info = parse_sol_name(sol)
         all_info = {**table_info, **sol_info}
 
-        period = period if period else 1000/all_info["target_freq"]
+        period = period if period else all_info["target_period"]
         latency = None
         if period and slack:
             if cycles > 0:
@@ -192,7 +196,8 @@ def derive_all_attr(parsed_raw_attrs, table_info):
 
         row = {
             "sol": sol,
-            "target_freq": math.ceil(1000/period) if period else None,
+            "target_period": all_info["target_period"],
+            "target_freq": round(1000/period, 2) if period else None,
             "bitwidth": all_info['bitwidth'],
             "q_type": all_info['q_type'],
             "mt": all_info['mul_type'],
@@ -319,6 +324,7 @@ if __name__ == "__main__":
     parser.add_argument("-o", "--out-txt", action="store_true", help="Write TXT output")
     parser.add_argument("-c", "--out-csv", action="store_true", help="Write CSV output")
     parser.add_argument("--ccore", action="store_true", help="Include Catapult ccore solutions (default: only top-level sols)")
+    parser.add_argument("--freq", action="store_true", help="show freq metrics")
     args = parser.parse_args()
 
     kernel = os.path.basename(os.path.normpath(args.kernel))
@@ -347,11 +353,16 @@ if __name__ == "__main__":
         all_metrics = drop_none_columns(all_metrics)
         tot_ctime = get_tot(all_metrics, "ctime_raw")
         all_metrics = drop_column(all_metrics, "ctime_raw")
+
+        if not args.freq:
+            all_metrics = drop_column(all_metrics, "target_freq")
+
         only_top = [row for row in all_metrics if row["sol"].startswith("sol")]
         num_runs = len(only_top)
 
         if not args.ccore:
             all_metrics = only_top
+
 
         # pretty print
         table_str = make_table_string(all_metrics)

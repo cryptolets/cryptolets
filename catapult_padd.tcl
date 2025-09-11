@@ -14,7 +14,7 @@ set bitwidths {256} ;# 64 128 256 384
 set tech_types {asic} ;# fpga asic asicgf12
 set target_iis {1}
 set mul_types {kar} ;# mul_types: kar sb nor
-set target_freqs {250} ;# 300 600 1000
+set target_periods {3} ;# in ns
 set base_mul_depths_pow2 {64} ;# 128 64 32 16
 set base_mul_depths_nonpow2 {24} ;# 192 96 48 24
 set q_types {fixedq} ;#varq fixedq
@@ -69,10 +69,10 @@ foreach q_type $q_types {
     set include_flags [build_include_flags $root_dir $include_dirs]
     
 foreach mul_type $mul_types {
-foreach freq $target_freqs {
+foreach period $target_periods {
 foreach target_ii $target_iis {
 foreach bitwidth $bitwidths {
-	set proj_name "Catapult_${bitwidth}_${tech_type}_ii${target_ii}_${mul_type}_${freq}MHz"
+	set proj_name "Catapult_${bitwidth}_${tech_type}_ii${target_ii}_${mul_type}_p${period}ns"
     open_or_create_proj $proj_name $work_dir
     puts "\n=== Starting project $proj_name ==="
 
@@ -84,7 +84,7 @@ foreach bm $base_mul_depths {
 
 foreach kar $kar_depths {
     set sol_name "sol_bm${bm}_kar${kar}_qt${q_type}"
-    set table_name "table_bw${bitwidth}_tt${tech_type}_ii${target_ii}_mt${mul_type}_f${freq}MHz.csv"
+    set table_name "table_bw${bitwidth}_tt${tech_type}_ii${target_ii}_mt${mul_type}_p${period}ns.csv"
 
     open_or_create_solution $sol_name
     puts "  -> Solution: $sol_name (bitwidth=$bitwidth, bm=$bm, kar=$kar, q_type=$q_type)"
@@ -138,8 +138,7 @@ foreach kar $kar_depths {
 
     # I think it should be safe to use diff clock periods, since this is 
     # what ccore_points does, 
-    set period_ns [expr {1000.0 / $freq}]
-    set mod_ops_period [expr $period_ns * 0.95]
+    set mod_ops_period [expr $period * 0.95]
     set mul_period [expr $mod_ops_period * 0.95]
 
     proc mul_op_run { mul_op bm kar mul_period tech_type} {
