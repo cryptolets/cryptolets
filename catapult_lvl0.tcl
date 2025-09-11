@@ -37,7 +37,8 @@ foreach tech_type $tech_types {
 foreach period $target_periods {
 foreach target_ii $target_iis {
 foreach bitwidth $bitwidths {
-    set proj_name "Catapult_${bitwidth}_${tech_type}_ii${target_ii}_p${period}ns"
+    set period_str [string map {. _} $period]
+    set proj_name "Catapult_${bitwidth}_${tech_type}_ii${target_ii}_p${period_str}ns"
     set table_name "table_bw${bitwidth}_tt${tech_type}_ii${target_ii}_p${period}ns.csv"
     set sol_name "sol"
     set CCORE_TOP [expr {$CCORE_TOP && $target_ii <= 1}]

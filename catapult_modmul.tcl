@@ -14,7 +14,7 @@ set bitwidths {256} ;# 64 128 256 384
 set tech_types {asic} ;# fpga asic asicgf12
 set target_iis {1}
 set mul_types {sb} ;# mul_types: kar sb nor
-set target_periods {3} ;# in ns
+set target_periods {3.33} ;# in ns
 set base_mul_depths_pow2 {64} ;# 128 64 32 16
 set base_mul_depths_nonpow2 {48} ;# 192 96 48 24
 set q_types {varq} ;#varq fixedq
@@ -68,7 +68,8 @@ foreach mul_type $mul_types {
 foreach period $target_periods {
 foreach target_ii $target_iis {
 foreach bitwidth $bitwidths {
-	set proj_name "Catapult_${bitwidth}_${tech_type}_ii${target_ii}_${mul_type}_p${period}ns"
+    set period_str [string map {. _} $period]
+	set proj_name "Catapult_${bitwidth}_${tech_type}_ii${target_ii}_${mul_type}_p${period_str}ns"
     open_or_create_proj $proj_name $work_dir
     puts "\n=== Starting project $proj_name ==="
 

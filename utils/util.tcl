@@ -186,7 +186,7 @@ proc remove_broken_mul_libs { tech_type } {
     # Make sure mgc_mul's with blank MinClkPrd are not used
 
     # Don't use mgc_mul or mgc_sqr > 64b, up till 2999b
-    for {set i 5} {$i <= 9} {incr i 1} {
+    for {set i 7} {$i <= 9} {incr i 1} {
         directive set "/.../*mgc_mul(${i}?,*)" -match glob -QUANTITY 0
         directive set "/.../*mgc_mul(${i}?,*)" -match glob -QUANTITY 0
         directive set "/.../*mgc_sqr(${i}?,*)" -match glob -QUANTITY 0

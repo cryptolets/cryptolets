@@ -62,7 +62,8 @@ foreach mul_type $mul_types {
 foreach period $target_periods {
 foreach target_ii $target_iis {
 foreach bitwidth $bitwidths {   
-    set proj_name "Catapult_${bitwidth}_${tech_type}_ii${target_ii}_${mul_type}_f${period}ns"
+    set period_str [string map {. _} $period]
+    set proj_name "Catapult_${bitwidth}_${tech_type}_ii${target_ii}_${mul_type}_f${period_str}ns"
     open_or_create_proj $proj_name $work_dir
     puts "\n=== Starting project $proj_name ==="
 
