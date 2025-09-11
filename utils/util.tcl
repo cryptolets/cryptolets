@@ -184,54 +184,75 @@ proc assert {condition {msg "assertion failed"}} {
 
 proc remove_broken_mul_libs { tech_type } {
     # Make sure mgc_mul's with blank MinClkPrd are not used
-    # 3-digit numbers >=201
-    if {$tech_type eq "asic"} {
-        for {set i 2} {$i <= 9} {incr i 1} {
-            directive set "/.../*mgc_mul(${i}??,*,1)" -match glob -QUANTITY 0
-            directive set "/.../*mgc_mul(${i}??,*,2)" -match glob -QUANTITY 0
-            directive set "/.../*mgc_mul(${i}??,*,6)" -match glob -QUANTITY 0
-        }
 
-        # 1000 <= num < 2000
-        directive set "/.../*mgc_mul(1???,*,1)" -match glob -QUANTITY 0
-        directive set "/.../*mgc_mul(1???,*,2)" -match glob -QUANTITY 0
-        directive set "/.../*mgc_mul(1???,*,6)" -match glob -QUANTITY 0
-
-        # for mul + reduction where output bw = in bw
-        directive set "/.../*mgc_mul(256,0,256,0,256,3)" -match glob -QUANTITY 0
-        directive set "/.../*mgc_mul(256,0,256,0,256,6)" -match glob -QUANTITY -1
-
-        directive set "/.../*mgc_mul(384,0,384,0,384,3)" -match glob -QUANTITY 0
-        directive set "/.../*mgc_mul(384,0,384,0,384,5)" -match glob -QUANTITY 0
-
-        directive set "/.../*mgc_mul(512,0,512,0,512,3)" -match glob -QUANTITY 0
-        directive set "/.../*mgc_mul(512,0,512,0,512,5)" -match glob -QUANTITY 0
-
-        directive set "/.../*mgc_mul(768,0,768,0,768,3)" -match glob -QUANTITY 0
-        directive set "/.../*mgc_mul(768,0,768,0,768,5)" -match glob -QUANTITY 0
-
-        directive set "/.../*mgc_mul(1024,0,1024,0,1024,3)" -match glob -QUANTITY 0
-        directive set "/.../*mgc_mul(1024,0,1024,0,1024,5)" -match glob -QUANTITY 0
-
-        # TODO: add for mgc_sqr
-
-    } elseif {$tech_type eq "asicgf12"} {
-        # same for reduced and non-reduced
-        # 200 <= num < 300
-        directive set "/.../*mgc_mul(2??,*,1)" -match glob -QUANTITY 0
-
-        # 300 <= num < 1000
-        for {set i 3} {$i <= 9} {incr i 1} {
-            directive set "/.../*mgc_mul(${i}??,*,1)" -match glob -QUANTITY 0
-            directive set "/.../*mgc_mul(${i}??,*,2)" -match glob -QUANTITY 0
-        }
-
-        # 1000 <= num < 2000
-        directive set "/.../*mgc_mul(1???,*,1)" -match glob -QUANTITY 0
-        directive set "/.../*mgc_mul(1???,*,2)" -match glob -QUANTITY 0
-
-        # TODO: add for mgc_sqr
+    # Don't use mgc_mul or mgc_sqr > 64b, up till 2999b
+    for {set i 5} {$i <= 9} {incr i 1} {
+        directive set "/.../*mgc_mul(${i}?,*)" -match glob -QUANTITY 0
+        directive set "/.../*mgc_mul(${i}?,*)" -match glob -QUANTITY 0
+        directive set "/.../*mgc_sqr(${i}?,*)" -match glob -QUANTITY 0
+        directive set "/.../*mgc_sqr(${i}?,*)" -match glob -QUANTITY 0
     }
+
+    for {set i 1} {$i <= 9} {incr i 1} {
+        directive set "/.../*mgc_mul(${i}??,*)" -match glob -QUANTITY 0
+        directive set "/.../*mgc_mul(${i}??,*)" -match glob -QUANTITY 0
+        directive set "/.../*mgc_sqr(${i}??,*)" -match glob -QUANTITY 0
+        directive set "/.../*mgc_sqr(${i}??,*)" -match glob -QUANTITY 0
+    }
+
+    directive set "/.../*mgc_mul(1???,*)" -match glob -QUANTITY 0
+    directive set "/.../*mgc_mul(2???,*)" -match glob -QUANTITY 0
+    directive set "/.../*mgc_sqr(1???,*)" -match glob -QUANTITY 0
+    directive set "/.../*mgc_sqr(2???,*)" -match glob -QUANTITY 0
+
+    # 3-digit numbers >=201
+    # if {$tech_type eq "asic"} {
+    #     for {set i 2} {$i <= 9} {incr i 1} {
+    #         directive set "/.../*mgc_mul(${i}??,*,1)" -match glob -QUANTITY 0
+    #         directive set "/.../*mgc_mul(${i}??,*,2)" -match glob -QUANTITY 0
+    #         directive set "/.../*mgc_mul(${i}??,*,6)" -match glob -QUANTITY 0
+    #     }
+
+    #     # 1000 <= num < 2000
+    #     directive set "/.../*mgc_mul(1???,*,1)" -match glob -QUANTITY 0
+    #     directive set "/.../*mgc_mul(1???,*,2)" -match glob -QUANTITY 0
+    #     directive set "/.../*mgc_mul(1???,*,6)" -match glob -QUANTITY 0
+
+    #     # for mul + reduction where output bw = in bw
+    #     directive set "/.../*mgc_mul(256,0,256,0,256,3)" -match glob -QUANTITY 0
+    #     directive set "/.../*mgc_mul(256,0,256,0,256,6)" -match glob -QUANTITY -1
+
+    #     directive set "/.../*mgc_mul(384,0,384,0,384,3)" -match glob -QUANTITY 0
+    #     directive set "/.../*mgc_mul(384,0,384,0,384,5)" -match glob -QUANTITY 0
+
+    #     directive set "/.../*mgc_mul(512,0,512,0,512,3)" -match glob -QUANTITY 0
+    #     directive set "/.../*mgc_mul(512,0,512,0,512,5)" -match glob -QUANTITY 0
+
+    #     directive set "/.../*mgc_mul(768,0,768,0,768,3)" -match glob -QUANTITY 0
+    #     directive set "/.../*mgc_mul(768,0,768,0,768,5)" -match glob -QUANTITY 0
+
+    #     directive set "/.../*mgc_mul(1024,0,1024,0,1024,3)" -match glob -QUANTITY 0
+    #     directive set "/.../*mgc_mul(1024,0,1024,0,1024,5)" -match glob -QUANTITY 0
+
+    #     # TODO: add for mgc_sqr
+
+    # } elseif {$tech_type eq "asicgf12"} {
+    #     # same for reduced and non-reduced
+    #     # 200 <= num < 300
+    #     directive set "/.../*mgc_mul(2??,*,1)" -match glob -QUANTITY 0
+
+    #     # 300 <= num < 1000
+    #     for {set i 3} {$i <= 9} {incr i 1} {
+    #         directive set "/.../*mgc_mul(${i}??,*,1)" -match glob -QUANTITY 0
+    #         directive set "/.../*mgc_mul(${i}??,*,2)" -match glob -QUANTITY 0
+    #     }
+
+    #     # 1000 <= num < 2000
+    #     directive set "/.../*mgc_mul(1???,*,1)" -match glob -QUANTITY 0
+    #     directive set "/.../*mgc_mul(1???,*,2)" -match glob -QUANTITY 0
+
+    #     # TODO: add for mgc_sqr
+    # }
 }
 
 # proc create_lib_f {kernel_dir lib_name} {
