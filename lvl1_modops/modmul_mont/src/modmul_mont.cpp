@@ -16,9 +16,9 @@ wide_t modmul_mont_core(const wide_t x, const wide_t y, const wide_t q, const wi
 
     wide_2x_t mq = mul_f(m_red, q);
     wide_2x_1_t t_mq = t + mq;
-    wide_t u = t_mq >> BITWIDTH;
+    wide_1_t u = t_mq >> BITWIDTH;
     wide_signed_t diff = u - q;
-    return (!diff[BITWIDTH]) ? (wide_t)diff : u;
+    return (!diff[BITWIDTH]) ? (wide_t)diff : (wide_t)u;
 }
 
 wide_t modsq_mont_core(const wide_t x, const wide_t q, const wide_t q_prime) {
@@ -34,9 +34,9 @@ wide_t modsq_mont_core(const wide_t x, const wide_t q, const wide_t q_prime) {
 
     wide_2x_t mq = mul_f(m_red, q);
     wide_2x_1_t t_mq = t + mq;
-    wide_t u = t_mq >> BITWIDTH;
+    wide_1_t u = t_mq >> BITWIDTH;
     wide_signed_t diff = u - q;
-    return (!diff[BITWIDTH]) ? (wide_t)diff : u;
+    return (!diff[BITWIDTH]) ? (wide_t)diff : (wide_t)u;
 }
 
 #else // PREC_MULTI
