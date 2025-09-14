@@ -7,14 +7,14 @@ from pathlib import Path
 
 import sys
 sys.path.append(str(Path(__file__).resolve().parents[2]))
-from utils import CONST_Q, CONST_Q_PRIME
+from utils.field_helpers import get_field_const, to_mont, from_mont
 
 def modmul_mont_ref(a, b, q, R):
     return (a * b * R) % q
 
-def generate_samples(bitwidth, total_samples, seed=42):
-    q = CONST_Q[bitwidth]
-    q_prime = CONST_Q_PRIME[bitwidth]
+def generate_samples(bitwidth, total_samples, curve_type, seed=42):
+    q = get_field_const(curve_type, "q")
+    q_prime = get_field_const(curve_type, "q_prime")
     
     max_val = ((1 << bitwidth) - 1) % q
     mid_val = (max_val // 2) % q
@@ -52,8 +52,8 @@ def write_csv_files(samples, bitwidth):
     samples_mont = []
     
     for a, b, q, q_prime in samples:
-        a_mont = (a * R) % q
-        b_mont = (b * R) % q
+        a_mont = to_mont(a, q)
+        b_mont = to_mont(b, q)
         samples_mont.append((a_mont, b_mont, q, q_prime))
 
     samples_file = samples_dir / f"samples_{bitwidth}.csv"
@@ -71,11 +71,14 @@ def write_csv_files(samples, bitwidth):
             writer.writerow([modmul_mont_ref(a, b, q, R)])
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Generate samples and golden output for given bitwidth.")
+    parser = argparse.ArgumentParser(description="Generate samples and golden output for given bitwidth and curve.")
     parser.add_argument("--bw", type=int, required=True, help="Bitwidth of inputs.")
     parser.add_argument("--n", type=int, default=10, help="Total number of samples (including edge cases).")
+    parser.add_argument("--curve_type", type=str, default="RAND_CURVE", help="Curve type (e.g., BN128, SECP256K1, BLS12_381).")
+
     args = parser.parse_args()
 
-    samples = generate_samples(args.bw, args.n)
+    samples = generate_samples(args.bw, args.n, args.curve_type)
     write_csv_files(samples, args.bw)
     print(f"Generated samples/samples_{args.bw}.csv and goldens/golden_{args.bw}.csv")
+

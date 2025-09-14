@@ -13,7 +13,7 @@ wide_t modadd_core(const wide_t a, const wide_t b, const wide_t q) {
 }
 
 wide_t moddouble_core(const wide_t a, const wide_t q) {
-    wide_1_t adder_out = a << 1;
+    wide_1_t adder_out = wide_1_t(a) << 1;
     wide_signed_t reduced_out = adder_out - q;
 
     // Use reduced_out only if non-negative

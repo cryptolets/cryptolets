@@ -1,0 +1,56 @@
+{
+  "BN128": {
+    "q": "30644e72e131a029b85045b68181585d97816a916871ca8d3c208c16d87cfd47",
+    "q_prime": "357a22b791888c6bd8afcbd01833da809ede7d651eca6ac987d20782e4866389",
+    "mu": "54a47462623a04a7ab074a5868073013ae965e1767cd4c086f3aed8a19bf90e5",
+    "bitwidth": 254
+  },
+  "SECP256K1": {
+    "q": "fffffffffffffffffffffffffffffffffffffffffffffffffffffffefffffc2f",
+    "q_prime": "c9bd1905155383999c46c2c295f2b761bcb223fedc24a059d838091dd2253531",
+    "mu": "100000000000000000000000000000000000000000000000000000001000003d1",
+    "bitwidth": 256
+  },
+  "BLS12_377": {
+    "q": "1ae3a4617c510eac63b05c06ca1493b1a22d9f300f5138f1ef3622fba094800170b5d44300000008508c00000000001",
+    "q_prime": "1a5205feec82e3d22f80141806a3cec5b245b86cced7a1335ed1347970debffd1e94577a00000008508bfffffffffff",
+    "mu": "261508d0cc4060e976c3ca0582ef4f73bbad0de6776b1a06af2d488d85a6d02d0ed687789c42a591f9fd58c5e4daffc",
+    "bitwidth": 377
+  },
+  "BLS12_381": {
+    "q": "1a0111ea397fe69a4b1ba7b6434bacd764774b84f38512bf6730d2a0f6b0f6241eabfffeb153ffffb9feffffffffaaab",
+    "q_prime": "eb06106feaafc9468b316fee268cf5819ecca0e8eb2db4c16ef2ef0c8e30b48286adb92d9d113e889f3fffcfffcfffd",
+    "mu": "2760d74bcf32791738a0406c331e9ae8a46e09d07fda82a52f7d1dc780a19de74e65c59e8163c701ec4f881fd59646e8",
+    "bitwidth": 381
+  },
+  "CURVE25519": {
+    "q": "7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffed",
+    "q_prime": "2f286bca1af286bca1af286bca1af286bca1af286bca1af286bca1af286bca1b",
+    "mu": "8000000000000000000000000000000000000000000000000000000000000013",
+    "bitwidth": 255
+  },
+  "CURVE448": {
+    "q": "fffffffffffffffffffffffffffffffffffffffffffffffffffffffeffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+    "q_prime": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000000000000000000000000000000000000000000000000001",
+    "mu": "10000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000002",
+    "bitwidth": 448
+  },
+  "ED25519": {
+    "q": "7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffed",
+    "q_prime": "2f286bca1af286bca1af286bca1af286bca1af286bca1af286bca1af286bca1b",
+    "mu": "8000000000000000000000000000000000000000000000000000000000000013",
+    "bitwidth": 255
+  },
+  "ED448": {
+    "q": "fffffffffffffffffffffffffffffffffffffffffffffffffffffffeffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+    "q_prime": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000000000000000000000000000000000000000000000000001",
+    "mu": "10000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000002",
+    "bitwidth": 448
+  },
+  "RAND_CURVE": {
+    "q": "faaf4542e6aefc7b",
+    "q_prime": "5724c4a6ff627d4d",
+    "mu": "1056d94d97d511737",
+    "bitwidth": 64
+  }
+}

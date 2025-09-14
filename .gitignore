@@ -16,6 +16,7 @@ table_*
 
 # python files
 __pycache__
+.venv
 
 # misc
 *.log

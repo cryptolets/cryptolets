@@ -7,32 +7,13 @@ from pathlib import Path
 
 import sys
 sys.path.append(str(Path(__file__).resolve().parents[2]))
-from utils import CONST_Q, CONST_Q_PRIME
+from utils.field_helpers import (
+    modadd, modsub, modmul, modsq, 
+    EC_point_J, ShortWeierstrass,
+    get_field_const, to_mont, from_mont
+)
 
-# bn128
-Q = 0x30644e72e131a029b85045b68181585d97816a916871ca8d3c208c16d87cfd47
-Q_PRIME = 0xf57a22b791888c6bd8afcbd01833da809ede7d651eca6ac987d20782e4866389
-
-class EC_point_J:
-    def __init__(self, X=0, Y=0, Z=0):
-        self.X = X
-        self.Y = Y
-        self.Z = Z
-
-def modadd(a, b, q):
-    return (a + b) % q
-
-def moddouble(a, q):
-    return (a + a) % q
-
-def modsub(a, b, q):
-    return (a - b) % q
-
-def modsq(a, q):
-    return (a * a) % q
-
-def modmul(a, b, q):
-    return (a * b) % q
+random.seed(42)
 
 def point_add_ref(P0, P1, q):
     result = EC_point_J()
@@ -104,76 +85,68 @@ def point_add_ref(P0, P1, q):
             result.Z = Z3
     return result
 
-def generate_samples(bitwidth, total_samples, seed=42):
-    # q = Q
-    # q_prime = Q_PRIME
-    q = CONST_Q[bitwidth]
-    q_prime = CONST_Q_PRIME[bitwidth]
 
-    samples = []
+def write_csv_files(curve_type, total_samples):
+    q = get_field_const(curve_type, "q")
+    q_prime = get_field_const(curve_type, "q_prime")
+    bitwidth = get_field_const(curve_type, "bitwidth")
 
-    # Remaining random samples, distributed across sub-bitwidth ranges
-    num_random = max(total_samples - len(samples), 0)
-    if num_random > 0:
-        random.seed(seed)
-        sub_bitwidths = list(range(1, bitwidth + 1))
-        for i in range(num_random):
-            sub_bw = sub_bitwidths[i % len(sub_bitwidths)]
-            sub_max = (1 << sub_bw) - 1
-            X1 = random.randint(0, sub_max) % q
-            Y1 = random.randint(0, sub_max) % q
-            Z1 = random.randint(0, sub_max) % q
-            X2 = random.randint(0, sub_max) % q
-            Y2 = random.randint(0, sub_max) % q
-            Z2 = random.randint(0, sub_max) % q
-            samples.append((X1, Y1, Z1, X2, Y2, Z2, q, q_prime))
+    E = ShortWeierstrass(q, a=2, b=3)
 
-    return samples
-
-def write_csv_files(samples, bitwidth):
     samples_dir = Path("samples")
     goldens_dir = Path("goldens")
     samples_dir.mkdir(exist_ok=True)
     goldens_dir.mkdir(exist_ok=True)
 
-    R = pow(2, bitwidth)
     samples_mont = []
-    
-    for X1, Y1, Z1, X2, Y2, Z2, q, q_prime in samples:
-        X1_mont = (X1 * R) % q
-        Y1_mont = (Y1 * R) % q
-        Z1_mont = (Z1 * R) % q
-        X2_mont = (X2 * R) % q
-        Y2_mont = (Y2 * R) % q
-        Z2_mont = (Z2 * R) % q
-        samples_mont.append((X1_mont, Y1_mont, Z1_mont, X2_mont, Y2_mont, Z2_mont, q, q_prime))
+    goldens_mont = []
 
+    for _ in range(total_samples):
+        P1 = E.random_point()
+        P2 = E.random_point()
+
+        P1_jac = E.aff_to_jac(P1)
+        P2_jac = E.aff_to_jac(P2)
+
+        # Convert whole tuples to Montgomery
+        P1_mont = to_mont(P1_jac.as_tuple(), q)
+        P2_mont = to_mont(P2_jac.as_tuple(), q)
+
+        samples_mont.append((*P1_mont, *P2_mont, q, q_prime))
+
+        golden_jac = point_add_ref(P1_jac, P2_jac, q)
+        ref_aff = E.add(P1, P2) # use affine point add for reference (sanity check)
+        golden_aff = E.jac_to_aff(golden_jac)
+        assert (ref_aff.x, ref_aff.y) == (golden_aff.x, golden_aff.y)
+
+        # another sanity check, to see if all points are on curve
+        assert E.is_on_curve(P1) and E.is_on_curve(P2) and E.is_on_curve(golden_aff)
+
+        golden_jac_mont = to_mont(golden_jac.as_tuple(), q)
+        goldens_mont.append(golden_jac_mont)
+
+    # Write samples
     samples_file = samples_dir / f"samples_{bitwidth}.csv"
     with samples_file.open("w", newline="") as f:
         writer = csv.writer(f)
         writer.writerow(["X1", "Y1", "Z1", "X2", "Y2", "Z2", "q_sample", "q_prime_sample"])
         writer.writerows(samples_mont)
 
+    # Write goldens
     golden_file = goldens_dir / f"golden_{bitwidth}.csv"
-
-    with golden_file.open("w", newline=os.linesep) as f:
+    with golden_file.open("w", newline="") as f:
         writer = csv.writer(f, lineterminator=os.linesep)
-        writer.writerow(["X3","Y3","Z3"])
-        for X1, Y1, Z1, X2, Y2, Z2, q, q_prime in samples:
-            P0 = EC_point_J(X1, Y1, Z1)
-            P1 = EC_point_J(X2, Y2, Z2)
-            res = point_add_ref(P0, P1, q)
-            res.X_mont = (res.X * R) % q
-            res.Y_mont = (res.Y * R) % q
-            res.Z_mont = (res.Z * R) % q
-            writer.writerow([res.X_mont, res.Y_mont, res.Z_mont])
+        writer.writerow(["X3", "Y3", "Z3"])
+        writer.writerows(goldens_mont)
+
+    return bitwidth
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Generate samples and golden output for given bitwidth.")
     parser.add_argument("--bw", type=int, required=True, help="Bitwidth of inputs.")
     parser.add_argument("--n", type=int, default=10, help="Total number of samples (including edge cases).")
+    parser.add_argument("--curve_type", type=str, default="RAND_CURVE", help="Curve type (e.g., BN128, SECP256K1, BLS12_381).")
     args = parser.parse_args()
 
-    samples = generate_samples(args.bw, args.n)
-    write_csv_files(samples, args.bw)
-    print(f"Generated samples/samples_{args.bw}.csv and goldens/golden_{args.bw}.csv")
+    bitwidth = write_csv_files(args.curve_type, args.n)
+    print(f"Generated samples/samples_{bitwidth}.csv and goldens/golden_{bitwidth}.csv")

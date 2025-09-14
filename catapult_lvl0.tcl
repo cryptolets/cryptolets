@@ -13,7 +13,7 @@ set work_dir [enter_work_dir $kernel_dir] ;# move to a lvl_dir/kernel/Catapult a
 set bitwidths {32}
 set tech_types {asic} ;# asic fpga asicgf12
 set target_iis {1}
-set target_periods {3 2.5} ;# in ns
+set target_periods {3} ;# in ns
 
 # Control flags
 set SIM false ;# verify RTL
@@ -73,7 +73,7 @@ foreach bitwidth $bitwidths {
     }
     go compile
 
-    run_osci_test $kernel_dir $work_dir $bitwidth $NUM_TEST_SAMPLES $TEST $GEN_SAMPLES
+    run_osci_test $kernel_dir $work_dir $root_dir $bitwidth $NUM_TEST_SAMPLES $TEST $GEN_SAMPLES
     if {$TEST_ONLY} {
         continue
     }

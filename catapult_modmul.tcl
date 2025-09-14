@@ -10,14 +10,34 @@ set kernel_dir [file join $root_dir $lvl_dir $kernel]
 set work_dir [enter_work_dir $kernel_dir] ;# move to a lvl_dir/kernel/Catapult as working dir
 
 # Sweep parameters
-set bitwidths {256} ;# 64 128 256 384
+set bitwidths {256 384 521} ;# 64 128 256 384
 set tech_types {asic} ;# fpga asic asicgf12
 set target_iis {1}
 set mul_types {sb} ;# mul_types: kar sb nor
-set target_periods {3.33} ;# in ns
-set base_mul_depths_pow2 {64} ;# 128 64 32 16
-set base_mul_depths_nonpow2 {48} ;# 192 96 48 24
+set target_periods {2} ;# in ns
 set q_types {varq} ;#varq fixedq
+
+# Note: non-RAND_CURVE curves override bitwidth sweeps
+set curve_types {RAND_CURVE}
+
+set base_mul_depth_map {
+    48 {48}
+    64 {64}
+    96 {48}
+    128 {64}
+    192 {48}
+    254 {63}
+    255 {63}
+    256 {64}
+    381 {47}
+    384 {48}
+    377 {47}
+    448 {56}
+    512 {64}
+    521 {65}
+    768 {48}
+    1024 {64}
+}
 
 set kar_mul_depth_map {
     8 {8}
@@ -50,6 +70,12 @@ assert {!(($CCORE_TOP && $TEST) || $CCORE_TOP && $SIM)} "top cannot be ccore for
 override_default_options ;# Reset tool options
 
 foreach tech_type $tech_types {
+foreach curve_type $curve_types {
+    # override bitwidth sweep for specific curves
+    if {$curve_type ne "RAND_CURVE"} {
+        set bitwidths [list [get_field_const $curve_type bitwidth $root_dir]]
+    }
+
 foreach q_type $q_types {
     set include_dirs {
         utils/include
@@ -69,38 +95,37 @@ foreach period $target_periods {
 foreach target_ii $target_iis {
 foreach bitwidth $bitwidths {
     set period_str [string map {. _} $period]
-	set proj_name "Catapult_${bitwidth}_${tech_type}_ii${target_ii}_${mul_type}_p${period_str}ns"
+    set sweep_key "bw${bitwidth}_tt${tech_type}_ii${target_ii}_mt${mul_type}_p${period_str}ns_ct${curve_type}"
+	set proj_name "Catapult_${sweep_key}"
+
+    run_gen_field_const $bitwidth $curve_type $root_dir
     open_or_create_proj $proj_name $work_dir
     puts "\n=== Starting project $proj_name ==="
 
-    # different base_mul_depths for pow2 bitwidths and bitwidths like, 96,192,384,etc.
-    set base_mul_depths [handle_base_mul_depths $mul_type $bitwidth $base_mul_depths_pow2 $base_mul_depths_nonpow2]
+    set base_mul_depths [dict get $base_mul_depth_map $bitwidth]
 
 foreach bm $base_mul_depths {
     set kar_depths [handle_kar_depths $mul_type $bitwidth $kar_mul_depth_map]
 
 foreach kar $kar_depths {
     set sol_name "sol_bm${bm}_kar${kar}_qt${q_type}"
-    set table_name "table_bw${bitwidth}_tt${tech_type}_ii${target_ii}_mt${mul_type}_p${period}ns.csv"
+    set table_name "table_$sweep_key.csv"
     set CCORE_TOP [expr {$CCORE_TOP && $target_ii <= 1}]
 
     open_or_create_solution $sol_name
     puts "  -> Solution: $sol_name (bitwidth=$bitwidth, bm=$bm, kar=$kar, q_type=$q_type)"
 
     # Compiler flags
-    set q_val [expr {$q_type eq "fixedq" ? "FIXED_Q" : "VAR_Q"}]
-    set mul_val [expr {
-        $mul_type eq "kar" ? "MUL_KARATSUBA" :
-        ($mul_type eq "sb" ? "MUL_SCHOOLBOOK" : "MUL_NORMAL")
-    }]
-
     set flags ""
     append flags " -DBITWIDTH=$bitwidth"
-    append flags " -DQ_TYPE=$q_val"
-    append flags " -DMUL_TYPE=$mul_val"
+    append flags " -DQ_TYPE=[get_q_val $q_type]"
+    append flags " -DMUL_TYPE=[get_mul_val $mul_type]"
     append flags " -DKAR_BASE_MUL_WIDTH=$kar"
     append flags " -DBASE_MUL_WIDTH=$bm"
-
+    append flags " -DCURVE_TYPE=$curve_type"
+    append flags " -DQ_HEX=\\\"[get_field_const $curve_type q $root_dir]\\\""
+    append flags " -DQ_PRIME_HEX=\\\"[get_field_const $curve_type q_prime $root_dir]\\\""
+    append flags " -DMU_HEX=\\\"[get_field_const $curve_type mu $root_dir]\\\""
     options set /Input/CompilerFlags "$include_flags $flags"
 
     # Add kernel + dependencies
@@ -118,10 +143,9 @@ foreach kar $kar_depths {
     solution design set $kernel -top
 
     go compile
-    run_osci_test $kernel_dir $work_dir $bitwidth $NUM_TEST_SAMPLES $TEST $GEN_SAMPLES
-    if {$TEST_ONLY} {
-        continue
-    }
+    run_osci_test $kernel_dir $work_dir $root_dir $bitwidth \
+                    $NUM_TEST_SAMPLES $TEST $GEN_SAMPLES $curve_type
+    if {$TEST_ONLY} { continue }
 
     directive set -OPT_CONST_MULTS full
     directive set -PIPELINE_INIT_INTERVAL $target_ii
@@ -132,7 +156,7 @@ foreach kar $kar_depths {
 
     # I think it should be safe to use diff clock periods, 
     # since this is what ccore points does
-    set mul_period [expr $period * 0.95]
+    set mul_period [expr $period * 1]
 
     proc mul_op_run { mul_op bm kar mul_period tech_type} {
         set mul_op_sol_name "${mul_op}_bm${bm}_kar${kar}"
@@ -155,11 +179,13 @@ foreach kar $kar_depths {
         }
     }
 
-    set mul_f_sol [mul_op_run mul_f $bm $kar $mul_period $tech_type]
-    solution table export -file [file join $work_dir $table_name]
+    if {$mul_type ne "nor"} {
+        set mul_f_sol [mul_op_run mul_f $bm $kar $mul_period $tech_type]
+        solution table export -file [file join $work_dir $table_name]
 
-    # set sq_f_sol [mul_op_run sq_f $bm $kar $mul_period $tech_type]
-    # solution table export -file [file join $work_dir $table_name]
+        # set sq_f_sol [mul_op_run sq_f $bm $kar $mul_period $tech_type]
+        # solution table export -file [file join $work_dir $table_name]
+    }
 
     # cmul_f
     if {$q_type eq "fixedq"} {
@@ -184,26 +210,21 @@ foreach kar $kar_depths {
 
     set_clock $period
     solution design set modmul_mont_core -top
-    if {$CCORE_TOP} {
-        solution design set modmul_mont_core -ccore
-    }
-    solution design set mul_f -ccore
-    if {$q_type eq "fixedq"} {
-        solution design set cmul_f -ccore
-    }
+    if {$CCORE_TOP} { solution design set modmul_mont_core -ccore }
+    if {$mul_type ne "nor"} { solution design set mul_f -ccore }
+    if {$q_type eq "fixedq"} { solution design set cmul_f -ccore }
     solution rename $modmul_mont_sol_name
     go analyze
 
-    solution library add "\[CCORE\] $mul_f_sol"
-    if {$q_type eq "fixedq"} {
-        solution library add "\[CCORE\] $cmul_f_sol"
-    }
+    if {$mul_type ne "nor"} { solution library add "\[CCORE\] $mul_f_sol" }
+    if {$q_type eq "fixedq"} { solution library add "\[CCORE\] $cmul_f_sol" }
     go libraries
     
-    directive set /modmul_mont_core/mul_f -MAP_TO_MODULE "\[CCORE\] $mul_f_sol"
-    if {$q_type eq "fixedq"} {
-        directive set /modmul_mont_core/cmul_f -MAP_TO_MODULE "\[CCORE\] $cmul_f_sol"
-    }
+    if {$mul_type ne "nor"} { directive set /modmul_mont_core/mul_f -MAP_TO_MODULE "\[CCORE\] $mul_f_sol" }
+    if {$q_type eq "fixedq"} { directive set /modmul_mont_core/cmul_f -MAP_TO_MODULE "\[CCORE\] $cmul_f_sol" }
+    go architect
+
+    remove_broken_mul_libs $tech_type
 
     go extract
     solution table export -file [file join $work_dir $table_name]
@@ -213,4 +234,4 @@ foreach kar $kar_depths {
 }}}
 	project save
 
-}}}}}
+}}}}}}

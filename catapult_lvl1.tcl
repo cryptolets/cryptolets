@@ -10,11 +10,14 @@ set kernel_dir [file join $root_dir $lvl_dir $kernel]
 set work_dir [enter_work_dir $kernel_dir] ;# move to a lvl_dir/kernel/Catapult as working dir
 
 # Sweep parameters
-set bitwidths {128}
+set bitwidths {64 128}
 set tech_types {asic} ;# asic fpga asicgf12
 set target_iis {1}
 set target_periods {3} ;# in ns
 set q_types {varq} ;# varq fixedq
+
+# Note: non-RAND_CURVE curves override bitwidth sweeps
+set curve_types {RAND_CURVE}
 
 # Control flags
 set SIM false ;# verify RTL
@@ -29,6 +32,12 @@ assert {!(($CCORE_TOP && $TEST) || $CCORE_TOP && $SIM)} "top cannot be ccore for
 override_default_options ;# Reset tool options
 
 foreach tech_type $tech_types {
+foreach curve_type $curve_types {
+    # override bitwidth sweep for specific curves
+    if {$curve_type ne "RAND_CURVE"} {
+        set bitwidths [list [get_field_const $curve_type bitwidth $root_dir]]
+    }
+    
 foreach q_type $q_types {
     set include_dirs {
         utils/include
@@ -41,11 +50,13 @@ foreach period $target_periods {
 foreach target_ii $target_iis {
 foreach bitwidth $bitwidths {
     set period_str [string map {. _} $period]
-    set proj_name "Catapult_${bitwidth}_${tech_type}_ii${target_ii}_${q_type}_p${period_str}ns"
-    set table_name "table_bw${bitwidth}_tt${tech_type}_ii${target_ii}_qt${q_type}_p${period}ns.csv"
+    set sweep_key "bw${bitwidth}_tt${tech_type}_ii${target_ii}_qt${q_type}_p${period}ns_ct${curve_type}"
+    set proj_name "Catapult_${sweep_key}"
+    set table_name "table_$sweep_key.csv"
     set sol_name "sol_qt${q_type}"
     set CCORE_TOP [expr {$CCORE_TOP && $target_ii <= 1}]
-
+    
+    run_gen_field_const $bitwidth $curve_type $root_dir
     open_or_create_proj $proj_name $work_dir
     puts "\n=== Starting project $proj_name ==="
 
@@ -58,6 +69,11 @@ foreach bitwidth $bitwidths {
     set flags ""
     append flags " -DBITWIDTH=$bitwidth"
     append flags " -DQ_TYPE=$q_val"
+    append flags " -DCURVE_TYPE=$curve_type"
+    append flags " -DQ_HEX=\\\"[get_field_const $curve_type q $root_dir]\\\""
+    append flags " -DQ_PRIME_HEX=\\\"[get_field_const $curve_type q_prime $root_dir]\\\""
+    append flags " -DMU_HEX=\\\"[get_field_const $curve_type mu $root_dir]\\\""
+
 
     options set /Input/CompilerFlags "$include_flags $flags"
 
@@ -77,10 +93,9 @@ foreach bitwidth $bitwidths {
 
     go compile
 
-    run_osci_test $kernel_dir $work_dir $bitwidth $NUM_TEST_SAMPLES $TEST $GEN_SAMPLES
-    if {$TEST_ONLY} {
-        continue
-    }
+    run_osci_test $kernel_dir $work_dir $root_dir $bitwidth \
+                    $NUM_TEST_SAMPLES $TEST $GEN_SAMPLES $curve_type
+    if {$TEST_ONLY} { continue }
 
     set_tech_lib $tech_type $root_dir
     go libraries
@@ -92,9 +107,7 @@ foreach bitwidth $bitwidths {
     directive set -DESIGN_GOAL latency
     go schedule
 
-    if {$CCORE_TOP} {
-        branch_if_ccore_comb $kernel 
-    }
+    if {$CCORE_TOP} { branch_if_ccore_comb $kernel }
     
     go extract
 
@@ -102,4 +115,4 @@ foreach bitwidth $bitwidths {
     run_syn $tech_type $SYN
     solution table export -file [file join $work_dir $table_name]
     project save
-}}}}}
+}}}}}}

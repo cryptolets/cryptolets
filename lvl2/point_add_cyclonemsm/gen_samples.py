@@ -7,35 +7,12 @@ from pathlib import Path
 
 import sys
 sys.path.append(str(Path(__file__).resolve().parents[2]))
-from utils import CONST_Q, CONST_Q_PRIME
+from utils.field_helpers import (
+    modadd, modsub, modmul, moddouble
+    EC_point_EP, EC_point_EA,
+    get_field_const, to_mont, from_mont
+)
 
-class EC_point_EP:
-    def __init__(self, X=0, Y=0, Z=0, T=0):
-        self.X = X
-        self.Y = Y
-        self.Z = Z
-        self.T = T
-
-class EC_point_EA:
-    def __init__(self, x=0, y=0, u=0):
-        self.x = x
-        self.y = y
-        self.u = u
-
-def modadd(a, b, q):
-    return (a + b) % q
-
-def moddouble(a, q):
-    return (a + a) % q
-
-def modsub(a, b, q):
-    return (a - b) % q
-
-def modsq(a, q):
-    return (a * a) % q
-
-def modmul(a, b, q):
-    return (a * b) % q
 
 def point_add_cyclonemsm_ref(P0, P1, q):
     R = EC_point_EP()

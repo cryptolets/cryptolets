@@ -168,6 +168,8 @@ def parse_table_name(table_name):
             info["target_freq"] = float(p[1:].replace("MHz", ""))
         elif p.startswith("p"):
             info["target_period"] = float(p[1:].replace("ns", ""))
+        elif p.startswith("ct"):
+            info["curve_type"] = name.split("_ct")[-1]
 
     return info
 
@@ -185,6 +187,7 @@ def derive_all_attr(parsed_raw_attrs, table_info):
         all_info = {**table_info, **sol_info}
 
         period = period if period else all_info["target_period"]
+        minclkprd = period-slack if (period and slack) else None
         latency = None
         if period and slack:
             if cycles > 0:
@@ -196,6 +199,7 @@ def derive_all_attr(parsed_raw_attrs, table_info):
 
         row = {
             "sol": sol,
+            "curve_type": all_info["curve_type"],
             "target_period": round(period, 2) if period else all_info["target_period"],
             "target_freq": round(1000/period, 2) if period else None,
             "bitwidth": all_info['bitwidth'],
@@ -207,7 +211,8 @@ def derive_all_attr(parsed_raw_attrs, table_info):
             "wbw": all_info['bitwidth'] // all_info['limbs'] if all_info['limbs'] else None,
             "ctime_raw": ctime_raw,
             "ctime": f"{int(ctime_raw) // 60}m {int(ctime_raw) % 60}s",
-            "fmax": round(1000/(period-slack), 2) if (period and slack and period != slack) else None,
+            "minclkprd": round(minclkprd, 2) if minclkprd else None,
+            "fmax": round(1000/minclkprd, 2) if (minclkprd and minclkprd != 0) else None,
             "cycles": cycles,
             "latency": latency,
             "ii": ii,
@@ -335,6 +340,7 @@ if __name__ == "__main__":
     catapult_dir = f"{kernel_path}/Catapult/"
     all_metrics = []
 
+    print(catapult_dir)
     if os.path.isdir(catapult_dir):
         for fn in os.listdir(catapult_dir):
             if not fn.startswith("table_"):
@@ -354,8 +360,12 @@ if __name__ == "__main__":
         tot_ctime = get_tot(all_metrics, "ctime_raw")
         all_metrics = drop_column(all_metrics, "ctime_raw")
 
-        if not args.freq:
+        if args.freq:
+            all_metrics = drop_column(all_metrics, "target_period")
+            all_metrics = drop_column(all_metrics, "minclkprd")
+        else:
             all_metrics = drop_column(all_metrics, "target_freq")
+            all_metrics = drop_column(all_metrics, "fmax")
 
         only_top = [row for row in all_metrics if row["sol"].startswith("sol")]
         num_runs = len(only_top)

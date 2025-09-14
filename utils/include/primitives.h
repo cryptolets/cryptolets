@@ -53,7 +53,12 @@ typedef struct {
 // --- Fixed modulus values (for const-Q optimizations) ---
 #if Q_TYPE == FIXED_Q
 static const wide_t Q = ac::bit_fill_hex<wide_t>(Q_HEX);
+
+// Montgomery constant
 static const wide_t Q_PRIME = ac::bit_fill_hex<wide_t>(Q_PRIME_HEX);
+
+// Barrett constant
+static const wide_2x_t MU = ac::bit_fill_hex<wide_2x_t>(MU_HEX);
 #endif
 
 #endif // _PRIMITIVES_H_

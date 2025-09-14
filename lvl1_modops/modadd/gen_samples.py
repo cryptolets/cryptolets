@@ -7,13 +7,13 @@ from pathlib import Path
 
 import sys
 sys.path.append(str(Path(__file__).resolve().parents[2]))
-from utils import CONST_Q
+from utils.field_helpers import get_field_const
 
 def modadd_ref(a, b, q):
     return (a + b) % q
 
-def generate_samples(bitwidth, total_samples, seed=42):
-    q = CONST_Q[bitwidth]
+def generate_samples(bitwidth, total_samples, curve_type, seed=42):
+    q = get_field_const(curve_type, "q")
     
     max_val = ((1 << bitwidth) - 1) % q
     mid_val = (max_val // 2) % q
@@ -64,8 +64,9 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Generate samples and golden output for given bitwidth.")
     parser.add_argument("--bw", type=int, required=True, help="Bitwidth of inputs.")
     parser.add_argument("--n", type=int, default=10, help="Total number of samples (including edge cases).")
+    parser.add_argument("--curve_type", type=str, default="RAND_CURVE", required=True, help="Curve type (e.g., BN128, SECP256K1, BLS12_381).")
     args = parser.parse_args()
 
-    samples = generate_samples(args.bw, args.n)
+    samples = generate_samples(args.bw, args.n, args.curve_type)
     write_csv_files(samples, args.bw)
     print(f"Generated samples/samples_{args.bw}.csv and goldens/golden_{args.bw}.csv")
