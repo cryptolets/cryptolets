@@ -131,10 +131,16 @@ class ShortWeierstrass:
         return EC_point_A(x3, y3)
 
     def aff_to_jac(self, P: EC_point_A):
-        """Convert affine to Jacobian."""
+        """Convert affine (x, y) to Jacobian (X, Y, Z) with random Z != 0."""
         if P is None:
             return EC_point_J(1, 1, 0)  # infinity
-        return EC_point_J(P.x % self.q, P.y % self.q, 1)
+
+        x, y = P.x % self.q, P.y % self.q
+        Z = random.randrange(1, self.q)  # pick random nonzero Z
+
+        X = (x * pow(Z, 2, self.q)) % self.q
+        Y = (y * pow(Z, 3, self.q)) % self.q
+        return EC_point_J(X, Y, Z)
 
     def jac_to_aff(self, Pj: EC_point_J):
         """Convert Jacobian to affine (EC_point_A)."""

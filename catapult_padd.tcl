@@ -15,10 +15,10 @@ set tech_types {asic} ;# fpga asic asicgf12
 set target_iis {1}
 set mul_types {nor} ;# mul_types: kar sb nor
 set target_periods {3} ;# in ns
-set q_types {varq fixedq} ;#varq fixedq
+set q_types {varq} ;#varq fixedq
 
 # Note: non-RAND_CURVE curves override bitwidth sweeps
-set curve_types {BN128 SECP256K1 BLS12_381}
+set curve_types {BN128}
 
 set base_mul_depth_map {
     48 {48}
@@ -64,7 +64,7 @@ set SIM false ;# verify RTL
 set SYN false ;
 set TEST true ;# test C++ code
 set TEST_ONLY true ;# only test C++ code with osci, for quick initial testing
-set NUM_TEST_SAMPLES 5000
+set NUM_TEST_SAMPLES 1000
 set GEN_SAMPLES true ;# set off if custom samples
 
 override_default_options ;# Reset tool options

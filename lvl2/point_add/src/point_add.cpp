@@ -1,5 +1,7 @@
 #include "point_add.h"
 
+// Short Weierstrass Curve
+
 EC_point_J point_add_core(
     EC_point_J P0, 
     EC_point_J P1,
