@@ -245,3 +245,73 @@ proc remove_broken_mul_libs { tech_type } {
 #     solution netlist -library -replace $lib_fp
 #     return $lib_fp
 # }
+
+# Replace compile commands with compile_ultra in DC synthesis files
+proc replace_compile_with_ultra {file_path} {
+    # Check if file exists
+    if {![file exists $file_path]} {
+        puts "Error: File '$file_path' does not exist"
+        return 0
+    }
+    
+    # Get the directory and filename
+    set file_dir [file dirname $file_path]
+    set file_name [file tail $file_path]
+    
+    # Split filename into name and extension for backup naming
+    set file_root [file rootname $file_name]
+    set file_ext [file extension $file_name]
+    set backup_name "${file_root}_original${file_ext}"
+    set backup_path [file join $file_dir $backup_name]
+    
+    # Create backup copy
+    if {[catch {file copy $file_path $backup_path} err]} {
+        puts "Error creating backup: $err"
+        return 0
+    }
+    puts "Created backup: $backup_path"
+    
+    # Read the file content
+    if {[catch {
+        set fp [open $file_path r]
+        set content [read $fp]
+        close $fp
+    } err]} {
+        puts "Error reading file: $err"
+        return 0
+    }
+    
+    # Define the regex pattern to match the compile block
+    # Simpler pattern that matches the if-else compile block
+    set compile_pattern {if\s*\{[^\}]*compatibility_version[^\}]*\}\s*\{[^\}]*compile\s+-map_effort[^\}]*\}\s*else\s*\{[^\}]*compile\s+-map_effort[^\}]*\}}
+    
+    set new_text "compile_ultra"
+    
+    # Perform the replacement using regex
+    set replacement_count [regsub $compile_pattern $content $new_text new_content]
+    
+    # Check if replacement was made
+    if {$replacement_count == 0} {
+        puts "Warning: No replacement was made. The target pattern was not found."
+        return 0
+    } elseif {$replacement_count == 1} {
+        puts "Info: compile_ultra replacement was made."
+    } else {
+        puts "Info: Unexpected replacements ($replacement_count) were made."
+        exit
+    }
+    
+    # Write the modified content back to the file
+    if {[catch {
+        set fp [open $file_path w]
+        puts -nonewline $fp $new_content
+        close $fp
+    } err]} {
+        puts "Error writing file: $err"
+        return 0
+    }
+    
+    puts "Successfully replaced compile commands with compile_ultra in $file_path"
+    return 1
+}
+
