@@ -86,10 +86,10 @@ def point_add_ref(P0, P1, q):
     return result
 
 
-def write_csv_files(curve_type, total_samples, samples_path=None, golden_path=None):
-    q = get_field_const(curve_type, "q")
-    q_prime = get_field_const(curve_type, "q_prime")
-    bitwidth = get_field_const(curve_type, "bitwidth")
+def write_csv_files(curve_type, total_samples, json_file, samples_path=None, golden_path=None):
+    q = get_field_const(curve_type, "q", json_file)
+    q_prime = get_field_const(curve_type, "q_prime", json_file)
+    bitwidth = get_field_const(curve_type, "bitwidth", json_file)
 
     E = ShortWeierstrass(q, a=2, b=3)
 
@@ -149,6 +149,7 @@ if __name__ == "__main__":
     parser.add_argument("--curve_type", type=str, default="RAND_CURVE", help="Curve type (e.g., BN128, SECP256K1, BLS12_381).")
     parser.add_argument("--samples-file", type=str, help="Optional path for samples CSV file.")
     parser.add_argument("--golden-file", type=str, help="Optional path for golden CSV file.")
+    parser.add_argument("--json-file", type=str, help="json file to get field constant from.")
     args = parser.parse_args()
 
-    write_csv_files(args.curve_type, args.n, args.samples_file, args.golden_file)
+    write_csv_files(args.curve_type, args.n, args.json_file, args.samples_file, args.golden_file)
