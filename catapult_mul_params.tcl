@@ -1,8 +1,8 @@
 # Sweep parameters
-set BITWIDTHS {32 64 128 256} ;# 8 12 16 24 32 48 64 96 128 192 256 384 512 768 1024
+set BITWIDTHS {256 384} ;# 8 12 16 24 32 48 64 96 128 192 256 384 512 768 1024
 set TECH_TYPES {gf12} ;# 45nm gf12 saed32 fpga
 set TARGET_IIS {1}
-set MUL_TYPES {kar} ;# kar sb nor
+set MUL_TYPES {sb kar} ;# kar sb nor
 set TARGET_PERIODS {3} ;# in ns
 
 set base_mul_depth_map {
@@ -40,8 +40,11 @@ set kar_mul_depth_map {
     96 {96 48 24}
     128 {128 64 32 16}
     192 {192 96 48 24}
-    256 {256 128 64 32}
-    384 {384 192 96}
+    254 {254 127 63}
+    256 {256 128 64}
+    377 {377 1888 94 47}
+    381 {381 190 95 47}
+    384 {384 192 96 48}
     512 {512 256 128}
     521 {521 260 130 65}
     768 {768 384 192 96 48 23}

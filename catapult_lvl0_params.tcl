@@ -1,8 +1,8 @@
 # Sweep parameters
-set BITWIDTHS {48 64}
-set TECH_TYPES {gf12} ;# 45nm gf12 saed32 fpga
-set TARGET_IIS {1}
-set TARGET_PERIODS {3} ;# in ns
+set BITWIDTHS {256 384}
+set TECH_TYPES {gf12 45nm} ;# 45nm gf12 saed32 fpga
+set TARGET_IIS {1 2}
+set TARGET_PERIODS {3 2.5} ;# in ns
 
 # DO NOT CHANGE UNLESS DEVELEOPMENT
 # defines for order of params before project split (at the level we parallelize)

@@ -1,5 +1,5 @@
 # Sweep parameters
-set BITWIDTHS {32 64}
+set BITWIDTHS {256 384}
 set TECH_TYPES {gf12} ;# 45nm gf12 saed32 fpga
 set TARGET_IIS {1}
 set TARGET_PERIODS {3} ;# in ns

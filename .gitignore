@@ -23,3 +23,5 @@ __pycache__
 lib/
 *.lib
 logs/
+
+OLD_*
