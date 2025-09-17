@@ -15,20 +15,38 @@ proc override_default_options {} {
     options defaults
     options set /Input/CppStandard c++14
     options set /Input/TargetPlatform x86_64
-    options set Flows/Vivado/XILINX_VIVADO /eda/xilinx//Vivado/2024.2/
     options set Flows/SCVerify/MAX_ERROR_CNT 1
 }
 
 proc set_tech_lib {tech_type root_dir} {
+    solution library remove *
     if {$tech_type eq "asic"} {
         solution library add nangate-45nm_beh \
             -- -rtlsyntool OasysRTL -vendor Nangate -technology 045nm
     } elseif {$tech_type eq "asicgf12"} {
-        solution library remove *
+        set custom_dc_script_path [file normalize "$root_dir/dc_custom_scripts"]
+        options set Flows/DesignCompiler/CustomScriptDirPath "$custom_dc_script_path"
+        options set ComponentLibs/TechLibSearchPath "/ip/arm/gf12/sc7p5mcpp84_base_slvt_c14/r1p0/db" -append
+
         solution library add sc7p5mcpp84_12lp_base_slvt_c14_tt_nominal_max_0p90v_25c_dc \
             -file "$root_dir/../gf12/sc7p5mcpp84_12lp_base_slvt_c14_tt_nominal_max_0p90v_25c_dc_smooth.lib" \
             -- -rtlsyntool DesignCompiler -vendor GlobalFoundries -technology 012nm
+
+    } elseif {$tech_type eq "saed32"} {
+        # add custom dc script path
+        set custom_dc_script_path [file normalize "$root_dir/dc_custom_scripts"]
+        options set Flows/DesignCompiler/CustomScriptDirPath "$custom_dc_script_path"
+        options set ComponentLibs/TechLibSearchPath "/ip/synopsys/saed32/v02_2024/" -append
+        options set ComponentLibs/TechLibSearchPath "/ip/synopsys/saed32/v02_2024/tech/tf" -append
+        options set ComponentLibs/TechLibSearchPath "/ip/synopsys/saed32/v02_2024/lib/stdcell_lvt/lef" -append
+        options set ComponentLibs/TechLibSearchPath "/ip/synopsys/saed32/v02_2024/lib/stdcell_lvt/db_nldm" -append
+        options set ComponentLibs/TechLibSearchPath "/ip/synopsys/saed32/v02_2024/lib/stdcell_lvt/db_ccs" -append
+
+        solution library add saed32lvt_tt0p78v125c_beh \
+            -- -rtlsyntool DesignCompiler -vendor SAED32 -technology {lvt tt0p78v125c}        
     } else {
+        options set Flows/Vivado/XILINX_VIVADO /eda/xilinx//Vivado/2024.2/
+        
         solution library add mgc_Xilinx-VIRTEX-uplus-1_beh \
             -- -rtlsyntool Vivado -manufacturer Xilinx \
             -family VIRTEX-uplus -speed -1 \
@@ -105,20 +123,23 @@ proc run_gen_field_const {bitwidth curve_type root_dir} {
 proc run_osci_test {kernel_dir work_dir root_dir bitwidth NUM_TEST_SAMPLES TEST GEN_SAMPLES {curve_type ""}} {
     # generate samples csv file and run initial C++ tests
     if {$TEST} {
-        set outputs_dir [file join $work_dir outputs]
+        set proj_dir [project get /PROJECT_DIR]
+        set outputs_dir [file join $proj_dir outputs]
         if {![file isdirectory $outputs_dir]} {
             file mkdir $outputs_dir
         }
 
-        set sample_fp [file join $work_dir samples/samples_${bitwidth}.csv]
+        set sample_fp [file join $proj_dir samples/samples_${bitwidth}.csv]
         set output_fp [file join $outputs_dir output_${bitwidth}.csv]
-        set golden_fp [file join $work_dir goldens/golden_${bitwidth}.csv]
+        set golden_fp [file join $proj_dir goldens/golden_${bitwidth}.csv]
 
         if {$GEN_SAMPLES} {
             set py_exec [file join $root_dir .venv/bin/ python]
             set cmd [list $py_exec [file join $kernel_dir gen_samples.py] \
               --bw $bitwidth \
-              --n $NUM_TEST_SAMPLES]
+              --n $NUM_TEST_SAMPLES \
+              --samples-file $sample_fp \
+              --golden-file $golden_fp]
 
             if {$curve_type ne ""} {
                 lappend cmd --curve_type $curve_type
@@ -145,9 +166,10 @@ proc run_osci_test {kernel_dir work_dir root_dir bitwidth NUM_TEST_SAMPLES TEST 
 proc run_scverify {kernel_dir work_dir bitwidth SIM} {
     if {$SIM} {
         puts "Sim: Running SCVerify for bitwidth=$bitwidth"
-        set sample_fp [file join $work_dir samples/samples_${bitwidth}.csv]
-        set output_fp [file join $work_dir outputs/output_${bitwidth}.csv]
-        set golden_fp [file join $work_dir goldens/golden_${bitwidth}.csv]
+        set proj_dir [project get /PROJECT_DIR]
+        set sample_fp [file join $proj_dir samples/samples_${bitwidth}.csv]
+        set output_fp [file join $proj_dir outputs/output_${bitwidth}.csv]
+        set golden_fp [file join $proj_dir goldens/golden_${bitwidth}.csv]
 
         flow package require /SCVerify
         flow package option set /SCVerify/INVOKE_ARGS "$sample_fp $output_fp"
@@ -162,11 +184,24 @@ proc run_scverify {kernel_dir work_dir bitwidth SIM} {
     }
 }
 
-proc run_syn {tech_type SYN} {
+proc run_syn {tech_type SYN root_dir {RTL_FILE "rtl"}} {
     if {$SYN} {
         if {$tech_type eq "fpga"} {
             puts "Syn: Running FPGA Vivado synthesis"
             go synthesize
+        } elseif {$tech_type eq "saed32"} {
+            puts "Syn: Running Design Compiler for saed32"
+            
+            # Replace compile commands with compile_ultra in the DC synthesis file
+            # Get the full path to the generated DC file
+            set dc_file_path [file join [solution get /SOLUTION_DIR] "${RTL_FILE}.v.dc"]
+            if {[file exists $dc_file_path]} {
+                replace_compile_with_ultra $dc_file_path
+            } else {
+                puts "Warning: DC file not found at $dc_file_path"
+                return
+            }
+            flow run /DesignCompiler/dc_shell ./$RTL_FILE.v.dc
         }
     }
 }

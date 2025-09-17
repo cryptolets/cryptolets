@@ -50,6 +50,9 @@ ATTR_TO_COL_NAME = {
     ]
 }
 
+ASIC_TECH_TYPES = ["asic", "asicgf12", "saed32"]
+FPGA_TECH_TYPES = ["fpga"]
+
 def parse_table_csv(csv_fn):
     flows = []
     was_sep_row = False
@@ -199,7 +202,8 @@ def derive_all_attr(parsed_raw_attrs, table_info):
 
         row = {
             "sol": sol,
-            "curve_type": all_info["curve_type"],
+            "tech_type": all_info.get("tech_type", None),
+            "curve_type": all_info.get("curve_type", None),
             "target_period": round(period, 2) if period else all_info["target_period"],
             "target_freq": round(1000/period, 2) if period else None,
             "bitwidth": all_info['bitwidth'],
@@ -219,10 +223,10 @@ def derive_all_attr(parsed_raw_attrs, table_info):
             "area": area,
         }
 
-        if all_info['tech_type'] in ("asic", "asicgf12"):
+        if all_info['tech_type'] in ASIC_TECH_TYPES:
             row["reg"] = to_float(a.get("reg"))
             row["memory"] = to_float(a.get("memory"))
-        elif all_info['tech_type'] == "fpga":
+        elif all_info['tech_type'] in FPGA_TECH_TYPES:
             row["lut"] = to_float(a.get("lut"))
             row["ff"] = to_float(a.get("ff"))
             row["dsp"] = to_float(a.get("dsp"))
@@ -318,6 +322,22 @@ def write_txt(data, filename="out.txt"):
         f.write(table_str + "\n")
     print(f"TXT written to {filename}")
 
+def sort_key(row):
+    # extract .v{n} at end of sol name
+    vnum = int(row["sol"].split(".")[-1][1:])
+
+    return (
+        vnum,
+        row.get("tech_type") or "",
+        row.get("curve_type") or "",
+        row.get("target_period") or float("inf"),
+        row.get("ii") or float("inf"),
+        row.get("q_type") or "",
+        row.get("mt") or "",
+        row.get("bm") or float("inf"),
+        row.get("kar") or float("inf"),
+        row.get("bitwidth") or float("inf"),
+    )
 
 if __name__ == "__main__":
     import argparse
@@ -328,6 +348,7 @@ if __name__ == "__main__":
     parser.add_argument("-a", "--asic", action="store_true", help="Target ASIC (default: FPGA)")
     parser.add_argument("-o", "--out-txt", action="store_true", help="Write TXT output")
     parser.add_argument("-c", "--out-csv", action="store_true", help="Write CSV output")
+    parser.add_argument("-t", "--tech-type", action="store_true", help="Show tech type")
     parser.add_argument("--ccore", action="store_true", help="Include Catapult ccore solutions (default: only top-level sols)")
     parser.add_argument("--freq", action="store_true", help="show freq metrics")
     args = parser.parse_args()
@@ -340,7 +361,6 @@ if __name__ == "__main__":
     catapult_dir = f"{kernel_path}/Catapult/"
     all_metrics = []
 
-    print(catapult_dir)
     if os.path.isdir(catapult_dir):
         for fn in os.listdir(catapult_dir):
             if not fn.startswith("table_"):
@@ -349,13 +369,14 @@ if __name__ == "__main__":
             fp = os.path.join(catapult_dir, fn)
             table_info = parse_table_name(fn)
 
-            if not table_info["tech_type"].startswith(tech_type):
+            if not table_info["tech_type"] in ASIC_TECH_TYPES:
                 continue
 
             all_metrics += derive_all_attr(parse_table_csv(fp), table_info)
 
         # filter and clean
         all_metrics = filter_mp(all_metrics, mp)
+        all_metrics = sorted(all_metrics, key=sort_key)
         all_metrics = drop_none_columns(all_metrics)
         tot_ctime = get_tot(all_metrics, "ctime_raw")
         all_metrics = drop_column(all_metrics, "ctime_raw")
@@ -367,12 +388,14 @@ if __name__ == "__main__":
             all_metrics = drop_column(all_metrics, "target_freq")
             all_metrics = drop_column(all_metrics, "fmax")
 
+        if not args.tech_type:
+            all_metrics = drop_column(all_metrics, "tech_type")
+
         only_top = [row for row in all_metrics if row["sol"].startswith("sol")]
         num_runs = len(only_top)
 
         if not args.ccore:
             all_metrics = only_top
-
 
         # pretty print
         table_str = make_table_string(all_metrics)

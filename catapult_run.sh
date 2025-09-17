@@ -16,26 +16,26 @@ ALL_KERNELS=(
     # point_add_cyclonemsm
 )
 
-# Map kernels to group Tcl scripts
+# Map kernels to group name
 declare -A GROUP_MAP=(
-    [add_f]="catapult_lvl0.tcl"
-    [sub_f]="catapult_lvl0.tcl"
-    [cmul_f]="catapult_lvl0.tcl"
-    [mul_f]="catapult_mul.tcl"
-    [sq_f]="catapult_mul.tcl"
+    [add_f]="lvl0"
+    [sub_f]="lvl0"
+    [cmul_f]="lvl0"
+    [mul_f]="mul"
+    [sq_f]="mul"
 
-    [modadd]="catapult_lvl1.tcl"
-    [modsub]="catapult_lvl1.tcl"
-    [modmul_mont]="catapult_modmul.tcl"
-    [modmul_barrett]="catapult_modmul.tcl"
+    [modadd]="lvl1"
+    [modsub]="lvl1"
+    [modmul_mont]="modmul"
+    [modmul_barrett]="modmul"
 
-    [point_add]="catapult_padd.tcl"
-    [point_add_cyclonemsm]="catapult_padd.tcl"
+    [point_add]="padd"
+    [point_add_cyclonemsm]="padd"
 )
 
 # Usage
 if [ $# -lt 1 ]; then
-    echo "Available kernels: ${ALL_KERNELS[*]}"
+    echo "Usage: bash catapult_run.sh <kernel_name>"
     exit 1
 fi
 
@@ -46,13 +46,16 @@ else
 fi
 
 for kernel in "${kernels[@]}"; do
-    script=${GROUP_MAP[$kernel]:-}
+    group_name=${GROUP_MAP[$kernel]:-}
 
-    if [ -z "$script" ]; then
+    if [ -z "$group_name" ]; then
         echo "Error: Unknown kernel '$kernel'" >&2
         usage
     fi
 
-    echo "=== Running Catapult for kernel=$kernel (script=$script) ==="
-    catapult -shell -eval "set kernel $kernel; source $script; exit"
+    CORE_CATAPULT_SCRIPT="catapult_${group_name}_core.tcl"
+    PARAMS_TCL_SCRIPT="catapult_${group_name}_params.tcl"
+
+    echo "=== Running Catapult for kernel=$kernel (script=$CORE_CATAPULT_SCRIPT) ==="
+    bash run_catapult_parallel.sh $CORE_CATAPULT_SCRIPT $PARAMS_TCL_SCRIPT $kernel
 done

@@ -10,10 +10,10 @@ set kernel_dir [file join $root_dir $lvl_dir $kernel]
 set work_dir [enter_work_dir $kernel_dir] ;# move to a lvl_dir/kernel/Catapult as working dir
 
 # Sweep parameters
-set bitwidths {521} ;# 8 12 16 24 32 48 64 96 128 192 256 384 512 768 1024
-set tech_types {asic} ;# asic fpga asicgf12
+set bitwidths {64} ;# 8 12 16 24 32 48 64 96 128 192 256 384 512 768 1024
+set tech_types {saed32} ;# asic fpga asicgf12 saed32
 set target_iis {1} ;# 1 2 4 8
-set mul_types {kar} ;# kar sb 
+set mul_types {nor} ;# kar sb 
 set target_periods {3} ;# in ns
 
 set base_mul_depth_map {
@@ -56,9 +56,9 @@ set kar_mul_depth_map {
 
 # Control flags
 set SIM false ;# verify RTL
-set SYN false
-set TEST true ;# test C++ code
-set TEST_ONLY true ;# only test C++ code with osci, for quick initial testing
+set SYN true
+set TEST false ;# test C++ code
+set TEST_ONLY false ;# only test C++ code with osci, for quick initial testing
 set NUM_TEST_SAMPLES 1000
 set GEN_SAMPLES true ;# set off if custom samples
 set CCORE_TOP false ;# gives us better area/latency for combination units
@@ -81,7 +81,8 @@ foreach period $target_periods {
 foreach target_ii $target_iis {
 foreach bitwidth $bitwidths {   
     set period_str [string map {. _} $period]
-    set proj_name "Catapult_${bitwidth}_${tech_type}_ii${target_ii}_${mul_type}_p${period_str}ns"
+    set sweep_key "bw${bitwidth}_tt${tech_type}_ii${target_ii}_mt${mul_type}_p${period_str}ns"
+    set proj_name "Catapult_${sweep_key}"
     open_or_create_proj $proj_name $work_dir
     puts "\n=== Starting project $proj_name ==="
 
@@ -92,7 +93,7 @@ foreach bm $base_mul_depths {
 
 foreach kar $kar_depths {
     set sol_name "sol_bm${bm}_kar${kar}"
-    set table_name "table_bw${bitwidth}_tt${tech_type}_ii${target_ii}_mt${mul_type}_p${period}ns.csv"
+    set table_name "table_${sweep_key}.csv"
     set CCORE_TOP [expr {$CCORE_TOP && $target_ii <= 1}]
 
     open_or_create_solution $sol_name
@@ -153,7 +154,7 @@ foreach kar $kar_depths {
     go extract
     solution table export -file [file join $work_dir $table_name]
     run_scverify $kernel_dir $work_dir $bitwidth $SIM
-    run_syn $tech_type $SYN
+    run_syn $tech_type $SYN $root_dir
     solution table export -file [file join $work_dir $table_name]
 }}}
     project save

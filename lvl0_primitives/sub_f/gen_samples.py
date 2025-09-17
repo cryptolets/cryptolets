@@ -35,31 +35,36 @@ def generate_samples(bitwidth, total_samples, seed=42):
 
     return samples
 
-def write_csv_files(samples, bitwidth):
-    samples_dir = Path("samples")
-    goldens_dir = Path("goldens")
-    samples_dir.mkdir(exist_ok=True)
-    goldens_dir.mkdir(exist_ok=True)
+def write_csv_files(samples, bitwidth, samples_path=None, golden_path=None):
+    # default paths
+    samples_file = Path(samples_path) if samples_path else Path("samples") / f"samples_{bitwidth}.csv"
+    golden_file  = Path(golden_path)  if golden_path  else Path("goldens") / f"golden_{bitwidth}.csv"
 
-    samples_file = samples_dir / f"samples_{bitwidth}.csv"
+    # make sure dirs exist
+    samples_file.parent.mkdir(parents=True, exist_ok=True)
+    golden_file.parent.mkdir(parents=True, exist_ok=True)
+
     with samples_file.open("w", newline="") as f:
         writer = csv.writer(f)
         writer.writerow(["a_sample", "b_sample"])
         writer.writerows(samples)
 
-    golden_file = goldens_dir / f"golden_{bitwidth}.csv"
-    with golden_file.open("w", newline=os.linesep) as f:
+    with golden_file.open("w", newline="") as f:
         writer = csv.writer(f, lineterminator=os.linesep)
         writer.writerow(["o_sample"])
         for a, b in samples:
             writer.writerow([sub_f_ref(a, b)])
 
+    print(f"Generated {samples_file} and {golden_file}")
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Generate samples and golden output for given bitwidth.")
     parser.add_argument("--bw", type=int, required=True, help="Bitwidth of inputs.")
     parser.add_argument("--n", type=int, default=10, help="Total number of samples (including edge cases).")
+    parser.add_argument("--samples-file", type=str, help="Optional path for samples CSV file.")
+    parser.add_argument("--golden-file", type=str, help="Optional path for golden CSV file.")
     args = parser.parse_args()
 
     samples = generate_samples(args.bw, args.n)
-    write_csv_files(samples, args.bw)
-    print(f"Generated samples/samples_{args.bw}.csv and goldens/golden_{args.bw}.csv")
+    write_csv_files(samples, args.bw, args.samples_file, args.golden_file)

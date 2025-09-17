@@ -48,9 +48,9 @@
     "bitwidth": 448
   },
   "RAND_CURVE": {
-    "q": "faaf4542e6aefc7b",
-    "q_prime": "5724c4a6ff627d4d",
-    "mu": "1056d94d97d511737",
-    "bitwidth": 64
+    "q": "f7dffaf94e2da8c21fa10507f588ae0bee48bfdf33a58c8a13ec7fec59ef1645bd85300fbb046e43554d04b029d0d6af",
+    "q_prime": "e6e40c6c6dfbc4ab9b2129ad774dfcaa90c5b87bd58640637e88306489813c02d74237bcef5fe5fc692cc2137c41bfb1",
+    "mu": "108643351d7fb299cb5781cb9c7e24c65a362b4758005e45c7f27bf1cf68af83cfe09a96bc7e2b57af66dc93481a97521",
+    "bitwidth": 384
   }
 }

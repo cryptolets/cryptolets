@@ -1,5 +1,7 @@
 #include "point_add_cyclonemsm.h"
 
+// CycloneMSM Implementation
+
 EC_point_EP point_add_cyclonemsm_core(
     EC_point_EP P0, 
     EC_point_EA P1,

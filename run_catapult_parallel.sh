@@ -10,6 +10,13 @@
 # 3. Waits for a slot to free up before starting the next job
 # 4. Tracks completion and provides detailed progress reporting
 
+CORE_CATAPULT_SCRIPT=$1
+PARAMS_TCL_SCRIPT=$2
+KERNEL_NAME=$3
+
+source utils/parallel_helpers.sh
+load_tcl_sweep_params $PARAMS_TCL_SCRIPT # load params from tcl config file
+
 # Core allocation configuration - MODIFY THESE VALUES AS NEEDED
 TOTAL_CORES=40          # Total available cores (K)
 CORES_PER_PROCESS=4     # Cores used per process (M)
@@ -30,105 +37,13 @@ START_TIME_HUMAN=$(date '+%Y-%m-%d %H:%M:%S')
 echo "Synthesis started at: $START_TIME_HUMAN"
 echo ""
 
-# Configuration parameters
-BITWIDTHS="64 192 256"
-TARGET_IIS="1"
-TARGET_CLOCKS="1 1.5 2"
-MUL_TYPES="sb kar nor"
-
-# Get the script directory
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-
-# Function to format elapsed time
-format_duration() {
-    local seconds=$1
-    local hours=$((seconds / 3600))
-    local minutes=$(((seconds % 3600) / 60))
-    local secs=$((seconds % 60))
-    
-    if [ $hours -gt 0 ]; then
-        printf "%02d:%02d:%02d" $hours $minutes $secs
-    else
-        printf "%02d:%02d" $minutes $secs
-    fi
-}
-
-# Function to wait for a slot to become available
-wait_for_slot() {
-    while [ ${#active_pids[@]} -ge $MAX_PARALLEL ]; do
-        # echo "Waiting for slot (${#active_pids[@]}/$MAX_PARALLEL processes running)..."
-        
-        # Check which processes have finished
-        local new_pids=()
-        for pid in "${active_pids[@]}"; do
-            if [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null; then
-                # Process still running
-                new_pids+=("$pid")
-            else
-                # Process finished
-                if [ -n "$pid" ]; then
-                    wait "$pid"
-                    local exit_code=$?
-                    local end_time=$(date +%s)
-                    local process_duration=$((end_time - process_start_times[$pid]))
-                    local duration_str=$(format_duration $process_duration)
-                    
-                    if [ $exit_code -eq 0 ]; then
-                        echo "Process $pid completed successfully in $duration_str"
-                        ((completed_count++))
-                    else
-                        echo "Process $pid failed in $duration_str (exit code: $exit_code)"
-                        ((failed_count++))
-                    fi
-                    
-                    # Clean up timing data
-                    unset process_start_times[$pid]
-                    
-                    ((running_count--))
-                    echo "Slot freed (${#new_pids[@]}/$MAX_PARALLEL processes running)"
-                fi
-            fi
-        done
-        active_pids=("${new_pids[@]}")
-        
-        # If still at max capacity, sleep briefly
-        if [ ${#active_pids[@]} -ge $MAX_PARALLEL ]; then
-            sleep 1
-        fi
-    done
-}
-
-# Function to run a single configuration
-run_config() {
-    local mul_type=$1
-    local clk=$2
-    local target_ii=$3
-    local bitwidth=$4
-    
-    echo "Starting: mul_type=$mul_type, clk=${clk}ns, ii=$target_ii, bitwidth=${bitwidth}bit"
-    
-    # Set environment variables for the configuration
-    export MUL_TYPE="$mul_type"
-    export CLK="$clk"
-    export TARGET_II="$target_ii"
-    export BITWIDTH="$bitwidth"
-    export DC_CORES="$CORES_PER_PROCESS"  # Pass cores info to Catapult
-    
-    # Create a unique log file for this configuration
-    local log_file="$SCRIPT_DIR/logs/catapult_${mul_type}_${clk}ns_ii${target_ii}_${bitwidth}bit.log"
-    
-    # Run Catapult with the single configuration script
-    catapult -shell -f "$SCRIPT_DIR/catapult_mul_single_config.tcl" > "$log_file" 2>&1
-    
-    # Note: exit code will be checked by wait_for_slot function
-}
-
-# Create logs directory if it doesn't exist
-mkdir -p "$SCRIPT_DIR/logs"
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)" # Get the script directory
+mkdir -p "$ROOT_DIR/logs" # Create logs directory if it doesn't exist
 
 # Initialize counters and tracking arrays
 declare -a active_pids=()
 declare -A process_start_times=()  # Associative array to track start times by PID
+
 total_configs=0
 completed_count=0
 failed_count=0
@@ -138,97 +53,71 @@ echo "Starting controlled parallel Catapult synthesis..."
 echo "Configurations to run:"
 
 # Count total configurations and display them
-for mul_type in $MUL_TYPES; do
-    for clk in $TARGET_CLOCKS; do
-        for target_ii in $TARGET_IIS; do
-            for bitwidth in $BITWIDTHS; do
-                echo "  - $mul_type, ${clk}ns, II=$target_ii, ${bitwidth}bit"
-                ((total_configs++))
-            done
-        done
-    done
-done
+sweep_recurse 0 count_configs
 
 echo "Total configurations: $total_configs"
 echo "Will run with max $MAX_PARALLEL parallel processes"
 echo ""
 
-# Launch configurations with controlled parallelism
-config_num=0
-for mul_type in $MUL_TYPES; do
-    for clk in $TARGET_CLOCKS; do
-        for target_ii in $TARGET_IIS; do
-            for bitwidth in $BITWIDTHS; do
-                ((config_num++))
-                
-                # Wait for an available slot
-                wait_for_slot
-                
-                # Launch the configuration in background
-                run_config "$mul_type" "$clk" "$target_ii" "$bitwidth" &
-                new_pid=$!
-                
-                # Verify we got a valid PID
-                if [ -n "$new_pid" ]; then
-                    active_pids+=("$new_pid")
-                    process_start_times[$new_pid]=$(date +%s)  # Record start time
-                    ((running_count++))
-                    
-                    current_time=$(date '+%H:%M:%S')
-                    echo "[$current_time] Launched config $config_num/$total_configs (PID: $new_pid)"
-                    echo "Currently running: ${#active_pids[@]}/$MAX_PARALLEL processes"
-                else
-                    echo "ERROR: Failed to launch config $config_num/$total_configs"
-                    ((failed_count++))
-                fi
-                echo ""
-            done
-        done
+# Function to run a single configuration
+run_config() {
+    local print_line="Starting:"
+    local log_suffix=""
+    export KERNEL_NAME=$KERNEL_NAME
+
+    for k in "${SWEEPS_PROJ_ORDER[@]}"; do
+        local key="${k::-1}" # remove trailing 's'
+        local val="${SWEEP_STATE[$k]}"
+        export "${key}"="$val" # export for core catapult script
+
+        # build log file name
+        print_line+=" $key=$val"
+        log_suffix+="${key^^}_${val}_"
     done
-done
+    local log_file="$ROOT_DIR/logs/catapult_${log_suffix%_}.log"
+    
+    echo "$print_line"
+    catapult -shell -f "$ROOT_DIR/$CORE_CATAPULT_SCRIPT" > "$log_file" 2>&1
+
+    # Note: exit code will be checked by wait_for_slot function
+}
+
+# Launch configurations with controlled parallelism
+launch_config() {
+  ((config_num++))
+
+  # Wait for an available slot
+  wait_for_slot
+
+  # Build args in the defined order
+  local args=()
+  for k in "${SWEEPS_PROJ_ORDER[@]}"; do
+    args+=("${SWEEP_STATE[$k]}")
+  done
+
+  # Launch command in background
+  run_config "${args[@]}" &
+  new_pid=$!
+
+  if [ -n "$new_pid" ]; then
+    active_pids+=("$new_pid")
+    process_start_times[$new_pid]=$(date +%s)
+    ((running_count++))
+
+    current_time=$(date '+%H:%M:%S')
+    echo "[$current_time] Launched config $config_num/$total_configs (PID: $new_pid)"
+    echo "Currently running: ${#active_pids[@]}/$MAX_PARALLEL processes"
+  else
+    echo "ERROR: Failed to launch config $config_num/$total_configs"
+    ((failed_count++))
+  fi
+  echo ""
+}
+
+sweep_recurse 0 launch_config
 
 echo "All configurations launched. Waiting for remaining processes to complete..."
-
-# Wait for all remaining processes to finish
-while [ ${#active_pids[@]} -gt 0 ]; do
-    # echo "Waiting for ${#active_pids[@]} remaining processes..."
-    
-    new_pids=()
-    for pid in "${active_pids[@]}"; do
-        if [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null; then
-            # Process still running
-            new_pids+=("$pid")
-        else
-            # Process finished
-            if [ -n "$pid" ]; then
-                wait "$pid"
-                exit_code=$?
-                end_time=$(date +%s)
-                process_duration=$((end_time - process_start_times[$pid]))
-                duration_str=$(format_duration $process_duration)
-                
-                if [ $exit_code -eq 0 ]; then
-                    echo "Process $pid completed successfully in $duration_str"
-                    ((completed_count++))
-                else
-                    echo "Process $pid failed in $duration_str (exit code: $exit_code)"
-                    ((failed_count++))
-                fi
-                
-                # Clean up timing data
-                unset process_start_times[$pid]
-                
-                ((running_count--))
-            fi
-        fi
-    done
-    active_pids=("${new_pids[@]}")
-    
-    # Sleep briefly if there are still processes running
-    if [ ${#active_pids[@]} -gt 0 ]; then
-        sleep 2
-    fi
-done
+wait_for_finish # Wait for all remaining processes to finish
 
 # Calculate total execution time
 END_TIME=$(date +%s)
@@ -265,8 +154,8 @@ echo "  Max parallel processes: $MAX_PARALLEL"
 echo "  Peak core usage: $((MAX_PARALLEL * CORES_PER_PROCESS)) cores"
 echo ""
 
-# Show log files location
-echo "Log files are available in: $SCRIPT_DIR/logs/"
-echo "Use 'ls -la logs/' to see individual log files"
+# # Show log files location
+# echo "Log files are available in: $ROOT_DIR/logs/"
+# echo "Use 'ls -la logs/' to see individual log files"
 
 exit $failed_count
