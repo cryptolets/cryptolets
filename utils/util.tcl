@@ -20,10 +20,10 @@ proc override_default_options {} {
 
 proc set_tech_lib {tech_type root_dir} {
     solution library remove *
-    if {$tech_type eq "asic"} {
+    if {$tech_type eq "45nm"} {
         solution library add nangate-45nm_beh \
             -- -rtlsyntool OasysRTL -vendor Nangate -technology 045nm
-    } elseif {$tech_type eq "asicgf12"} {
+    } elseif {$tech_type eq "gf12"} {
         set custom_dc_script_path [file normalize "$root_dir/dc_custom_scripts"]
         options set Flows/DesignCompiler/CustomScriptDirPath "$custom_dc_script_path"
         options set ComponentLibs/TechLibSearchPath "/ip/arm/gf12/sc7p5mcpp84_base_slvt_c14/r1p0/db" -append
@@ -112,10 +112,11 @@ proc handle_kar_depths {mul_type bitwidth kar_mul_depth_map} {
 
 proc run_gen_field_const {bitwidth curve_type root_dir} {
     if {$curve_type eq "RAND_CURVE"} {
+        set proj_dir [project get /PROJECT_DIR]
         set py_exec [file join $root_dir .venv/bin/ python]
         set py_file [file join $root_dir utils gen_field_const.py]
-        set json_file [file join $root_dir field_const.json]
-        set cmd [list $py_exec $py_file --bitwidth $bitwidth --json $json_file]
+        set json_file [file join $proj_dir field_const.json]
+        set cmd [list $py_exec $py_file --bitwidth $bitwidth --json-file $json_file]
         exec tcsh -c "$cmd"
     }
 }
@@ -142,7 +143,14 @@ proc run_osci_test {kernel_dir work_dir root_dir bitwidth NUM_TEST_SAMPLES TEST 
               --golden-file $golden_fp]
 
             if {$curve_type ne ""} {
+                if {$curve_type ne "RAND_CURVE"} {
+                    set json_file [file join $root_dir field_const.json]
+                } else {
+                    set json_file [file join $proj_dir field_const.json]
+                }
+
                 lappend cmd --curve_type $curve_type
+                lappend cmd --json-file $json_file
             }
 
             exec tcsh -c "$cmd"
@@ -224,9 +232,14 @@ proc assert {condition {msg "assertion failed"}} {
     }
 }
 
-proc get_field_const {curve const root_dir} {
-    set json_fp [file join $root_dir field_const.json]
-    return [exec python3 -c "import json;print(json.load(open('$json_fp'))\['$curve'\]\['$const'\])"]
+proc get_field_const {curve_type const root_dir} {    
+    if {$curve_type eq "RAND_CURVE"} {
+        set proj_dir [project get /PROJECT_DIR]
+        set json_fp [file join $proj_dir field_const.json]
+    } else {
+        set json_fp [file join $root_dir field_const.json]
+    }
+    return [exec python3 -c "import json;print(json.load(open('$json_fp'))\['$curve_type'\]\['$const'\])"]
 }
 
 proc get_q_val {q_type} {

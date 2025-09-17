@@ -1,12 +1,14 @@
 # Sweep parameters
-set BITWIDTHS {48 64}
+set BITWIDTHS {32 64}
 set TECH_TYPES {gf12} ;# 45nm gf12 saed32 fpga
 set TARGET_IIS {1}
 set TARGET_PERIODS {3} ;# in ns
+set Q_TYPES {varq fixedq} ;# in ns
+set CURVE_TYPES {RAND_CURVE BN128}
 
 # DO NOT CHANGE UNLESS DEVELEOPMENT
 # defines for order of params before project split (at the level we parallelize)
-set SWEEPS_PROJ_ORDER {TECH_TYPES TARGET_PERIODS TARGET_IIS BITWIDTHS}
+set SWEEPS_PROJ_ORDER {CURVE_TYPES Q_TYPES TECH_TYPES TARGET_PERIODS TARGET_IIS BITWIDTHS}
 
 # Control flags
 set SIM false ;# verify RTL

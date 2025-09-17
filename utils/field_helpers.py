@@ -4,8 +4,6 @@ import random
 import sys
 import json
 
-FIELD_JSON = str(Path(__file__).resolve().parents[1] / "field_const.json")
-
 # points
 class ECPointBase:
     def as_tuple(self):
@@ -39,8 +37,8 @@ class EC_point_EA(ECPointBase):
         self.u = u
 
 # functions
-def get_field_const(curve_type, const_name):
-    with open(FIELD_JSON, "r") as f:
+def get_field_const(curve_type, const_name, json_file):
+    with open(json_file, "r") as f:
         data = json.load(f)
         if const_name == "bitwidth":
             return int(data[curve_type][const_name])

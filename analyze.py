@@ -50,7 +50,7 @@ ATTR_TO_COL_NAME = {
     ]
 }
 
-ASIC_TECH_TYPES = ["asic", "asicgf12", "saed32"]
+ASIC_TECH_TYPES = ["45nm", "gf12", "saed32"]
 FPGA_TECH_TYPES = ["fpga"]
 
 def parse_table_csv(csv_fn):
@@ -104,9 +104,9 @@ def parse_table_csv(csv_fn):
 
 def parse_sol_name(sol_name):    
     # bw   ->  "sol"
-    # mod  ->  "sol_qt${q_type}"
+    # mod  ->  "sol"
     # mul  ->  "sol_bm${bm}_kar${kar}"
-    # padd ->  "sol_bm${bm}_kar${kar}_qt${q_type}"
+    # padd ->  "sol_bm${bm}_kar${kar}"
 
     # mp ->  starts with "sol_limbs${limbs}" instead of "sol"
 
@@ -187,7 +187,12 @@ def derive_all_attr(parsed_raw_attrs, table_info):
         slack = float(a.get("slack")) if a.get("slack") else None
         ii, area = to_float(a.get("ii")), to_float(a.get("area"))
         sol_info = parse_sol_name(sol)
-        all_info = {**table_info, **sol_info}
+        
+        all_info = {}
+        for k in set(table_info) | set(sol_info):
+            v1 = table_info.get(k)
+            v2 = sol_info.get(k)
+            all_info[k] = v2 if v2 is not None else v1
 
         period = period if period else all_info["target_period"]
         minclkprd = period-slack if (period and slack) else None
@@ -334,9 +339,9 @@ def sort_key(row):
         row.get("ii") or float("inf"),
         row.get("q_type") or "",
         row.get("mt") or "",
-        row.get("bm") or float("inf"),
-        row.get("kar") or float("inf"),
         row.get("bitwidth") or float("inf"),
+        -row.get("bm") if row.get("bm") else float("inf"),
+        -row.get("kar") if row.get("kar") else float("inf"),
     )
 
 if __name__ == "__main__":

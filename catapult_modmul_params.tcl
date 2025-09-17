@@ -1,9 +1,11 @@
 # Sweep parameters
-set BITWIDTHS {32 64 128 256} ;# 8 12 16 24 32 48 64 96 128 192 256 384 512 768 1024
-set TECH_TYPES {gf12} ;# 45nm gf12 saed32 fpga
+set BITWIDTHS {64} ;# 8 12 16 24 32 48 64 96 128 192 256 384 512 768 1024
+set TECH_TYPES {45nm gf12} ;# 45nm gf12 saed32 fpga
 set TARGET_IIS {1}
-set MUL_TYPES {kar} ;# kar sb nor
+set MUL_TYPES {sb} ;# kar sb nor
 set TARGET_PERIODS {3} ;# in ns
+set Q_TYPES {varq fixedq} ;# in ns
+set CURVE_TYPES {RAND_CURVE BN128}
 
 set base_mul_depth_map {
     8 {8}
@@ -50,7 +52,7 @@ set kar_mul_depth_map {
 
 # DO NOT CHANGE UNLESS DEVELEOPMENT
 # defines for order of params before project split (at the level we parallelize)
-set SWEEPS_PROJ_ORDER {TECH_TYPES MUL_TYPES TARGET_PERIODS TARGET_IIS BITWIDTHS}
+set SWEEPS_PROJ_ORDER {CURVE_TYPES Q_TYPES TECH_TYPES MUL_TYPES TARGET_PERIODS TARGET_IIS BITWIDTHS}
 
 # Control flags
 set SIM false ;# verify RTL

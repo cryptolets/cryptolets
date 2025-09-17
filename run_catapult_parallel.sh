@@ -13,6 +13,7 @@
 CORE_CATAPULT_SCRIPT=$1
 PARAMS_TCL_SCRIPT=$2
 KERNEL_NAME=$3
+DRY_RUN_ARG=$4
 
 source utils/parallel_helpers.sh
 load_tcl_sweep_params $PARAMS_TCL_SCRIPT # load params from tcl config file
@@ -38,7 +39,8 @@ echo "Synthesis started at: $START_TIME_HUMAN"
 echo ""
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)" # Get the script directory
-mkdir -p "$ROOT_DIR/logs" # Create logs directory if it doesn't exist
+LOGS_DIR="$ROOT_DIR/logs/$KERNEL_NAME"
+mkdir -p $LOGS_DIR # Create logs directory if it doesn't exist
 
 # Initialize counters and tracking arrays
 declare -a active_pids=()
@@ -74,10 +76,14 @@ run_config() {
         print_line+=" $key=$val"
         log_suffix+="${key^^}_${val}_"
     done
-    local log_file="$ROOT_DIR/logs/catapult_${log_suffix%_}.log"
+    local log_file="$LOGS_DIR/catapult_${log_suffix%_}.log"
     
     echo "$print_line"
-    catapult -shell -f "$ROOT_DIR/$CORE_CATAPULT_SCRIPT" > "$log_file" 2>&1
+    if [ "$DRY_RUN_ARG" = "--dry-run" ]; then 
+      echo "[DRY RUN] Would run: catapult -shell -f $ROOT_DIR/$CORE_CATAPULT_SCRIPT > $log_file 2>&1"
+    else
+      catapult -shell -f "$ROOT_DIR/$CORE_CATAPULT_SCRIPT" > "$log_file" 2>&1
+    fi
 
     # Note: exit code will be checked by wait_for_slot function
 }

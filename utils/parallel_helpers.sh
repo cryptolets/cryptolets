@@ -61,6 +61,17 @@ sweep_recurse() {
   local name=${SWEEPS_PROJ_ORDER[$depth]}
   eval "values=(\"\${${name}[@]}\")"
 
+  # override BITWIDTHS sweep for specific CURVE_TYPE (non-RAND_CURVE)
+  if [[ $name == "BITWIDTHS" ]] \
+    && [[ -v SWEEP_STATE[CURVE_TYPES] ]] \
+    && [[ ${SWEEP_STATE[CURVE_TYPES]} != "RAND_CURVE" ]]; then
+    
+    json_fp="${ROOT_DIR}/field_const.json"
+    curve_type=${SWEEP_STATE[CURVE_TYPES]}
+    bitwidth=$(python3 -c "import json;d=json.load(open('$json_fp'));print(d['$curve_type']['bitwidth'])")
+    values=("$bitwidth")
+  fi
+
   for v in "${values[@]}"; do
     SWEEP_STATE[$name]=$v
     sweep_recurse $((depth+1)) "$leaf_func"

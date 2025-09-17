@@ -29,21 +29,15 @@ def gen_random_field_const(bitwidth, seed=42):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--bitwidth", type=int, required=True, help="bitwidth")
-    parser.add_argument("--json", type=str, default=FIELD_JSON, help="Path to field_const.json file")
+    parser.add_argument("--json-file", type=str, required=True, help="Path to field_const.json file")
 
     args = parser.parse_args()
     consts = gen_random_field_const(args.bitwidth)
 
-    with open(args.json, "r") as f:
-        data = json.load(f)
+    with open(args.json_file, "w") as f:
+        json.dump({"RAND_CURVE": consts}, f, indent=2)
 
-    # Insert new
-    data["RAND_CURVE"] = consts
-
-    with open(args.json, "w") as f:
-        json.dump(data, f, indent=2)
-
-    print(f"Updated {args.json} with {args.bitwidth} constants")
+    print(f"Updated {args.json_file} with {args.bitwidth} constants")
 
 if __name__ == "__main__":
     main()

@@ -12,9 +12,9 @@ from utils.field_helpers import get_field_const, to_mont, from_mont
 def modmul_mont_ref(a, b, q, R):
     return (a * b * R) % q
 
-def generate_samples(bitwidth, total_samples, curve_type, seed=42):
-    q = get_field_const(curve_type, "q")
-    q_prime = get_field_const(curve_type, "q_prime")
+def generate_samples(bitwidth, total_samples, curve_type, json_file, seed=42):
+    q = get_field_const(curve_type, "q", json_file)
+    q_prime = get_field_const(curve_type, "q_prime", json_file)
     
     max_val = ((1 << bitwidth) - 1) % q
     mid_val = (max_val // 2) % q
@@ -42,43 +42,49 @@ def generate_samples(bitwidth, total_samples, curve_type, seed=42):
 
     return samples
 
-def write_csv_files(samples, bitwidth):
-    samples_dir = Path("samples")
-    goldens_dir = Path("goldens")
-    samples_dir.mkdir(exist_ok=True)
-    goldens_dir.mkdir(exist_ok=True)
-
+def write_csv_files(samples, bitwidth, samples_path=None, golden_path=None):
     R = pow(2, bitwidth)
+
     samples_mont = []
-    
     for a, b, q, q_prime in samples:
         a_mont = to_mont(a, q)
         b_mont = to_mont(b, q)
         samples_mont.append((a_mont, b_mont, q, q_prime))
 
-    samples_file = samples_dir / f"samples_{bitwidth}.csv"
+    # default paths
+    samples_file = Path(samples_path) if samples_path else Path("samples") / f"samples_{bitwidth}.csv"
+    golden_file  = Path(golden_path)  if golden_path  else Path("goldens") / f"golden_{bitwidth}.csv"
+
+    # make sure dirs exist
+    samples_file.parent.mkdir(parents=True, exist_ok=True)
+    golden_file.parent.mkdir(parents=True, exist_ok=True)
+
     with samples_file.open("w", newline="") as f:
         writer = csv.writer(f)
         writer.writerow(["a_sample", "b_sample", "q_sample", "q_prime_sample"])
         writer.writerows(samples_mont)
 
-    golden_file = goldens_dir / f"golden_{bitwidth}.csv"
-
-    with golden_file.open("w", newline=os.linesep) as f:
+    with golden_file.open("w", newline="") as f:
         writer = csv.writer(f, lineterminator=os.linesep)
         writer.writerow(["o_sample"])
         for a, b, q, q_prime in samples:
             writer.writerow([modmul_mont_ref(a, b, q, R)])
 
+    print(f"Generated {samples_file} and {golden_file}")
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Generate samples and golden output for given bitwidth and curve.")
     parser.add_argument("--bw", type=int, required=True, help="Bitwidth of inputs.")
     parser.add_argument("--n", type=int, default=10, help="Total number of samples (including edge cases).")
-    parser.add_argument("--curve_type", type=str, default="RAND_CURVE", help="Curve type (e.g., BN128, SECP256K1, BLS12_381).")
-
+    parser.add_argument("--curve_type", type=str, default="RAND_CURVE",
+                        help="Curve type (e.g., BN128, SECP256K1, BLS12_381).")
+    parser.add_argument("--samples-file", type=str, help="Optional path for samples CSV file.")
+    parser.add_argument("--golden-file", type=str, help="Optional path for golden CSV file.")
+    parser.add_argument("--json-file", type=str, help="json file to get field constant from.")
     args = parser.parse_args()
 
-    samples = generate_samples(args.bw, args.n, args.curve_type)
-    write_csv_files(samples, args.bw)
-    print(f"Generated samples/samples_{args.bw}.csv and goldens/golden_{args.bw}.csv")
+    samples = generate_samples(args.bw, args.n, args.curve_type, args.json_file)
+    write_csv_files(samples, args.bw, args.samples_file, args.golden_file)
+
 

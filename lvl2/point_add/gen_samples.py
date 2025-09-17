@@ -86,17 +86,20 @@ def point_add_ref(P0, P1, q):
     return result
 
 
-def write_csv_files(curve_type, total_samples):
+def write_csv_files(curve_type, total_samples, samples_path=None, golden_path=None):
     q = get_field_const(curve_type, "q")
     q_prime = get_field_const(curve_type, "q_prime")
     bitwidth = get_field_const(curve_type, "bitwidth")
 
     E = ShortWeierstrass(q, a=2, b=3)
 
-    samples_dir = Path("samples")
-    goldens_dir = Path("goldens")
-    samples_dir.mkdir(exist_ok=True)
-    goldens_dir.mkdir(exist_ok=True)
+    # default paths
+    samples_file = Path(samples_path) if samples_path else Path("samples") / f"samples_{bitwidth}.csv"
+    golden_file  = Path(golden_path)  if golden_path  else Path("goldens") / f"golden_{bitwidth}.csv"
+
+    # make sure dirs exist
+    samples_file.parent.mkdir(parents=True, exist_ok=True)
+    golden_file.parent.mkdir(parents=True, exist_ok=True)
 
     samples_mont = []
     goldens_mont = []
@@ -126,27 +129,26 @@ def write_csv_files(curve_type, total_samples):
         goldens_mont.append(golden_jac_mont)
 
     # Write samples
-    samples_file = samples_dir / f"samples_{bitwidth}.csv"
     with samples_file.open("w", newline="") as f:
         writer = csv.writer(f)
         writer.writerow(["X1", "Y1", "Z1", "X2", "Y2", "Z2", "q_sample", "q_prime_sample"])
         writer.writerows(samples_mont)
 
     # Write goldens
-    golden_file = goldens_dir / f"golden_{bitwidth}.csv"
     with golden_file.open("w", newline="") as f:
         writer = csv.writer(f, lineterminator=os.linesep)
         writer.writerow(["X3", "Y3", "Z3"])
         writer.writerows(goldens_mont)
 
-    return bitwidth
+    print(f"Generated {samples_file} and {golden_file}")
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Generate samples and golden output for given bitwidth.")
-    parser.add_argument("--bw", type=int, required=True, help="Bitwidth of inputs.")
-    parser.add_argument("--n", type=int, default=10, help="Total number of samples (including edge cases).")
+    parser = argparse.ArgumentParser(description="Generate samples and golden output for given curve/bitwidth.")
+    parser.add_argument("--bw", type=int, required=True, help="Bitwidth of inputs.")  # still present if needed
+    parser.add_argument("--n", type=int, default=10, help="Total number of samples.")
     parser.add_argument("--curve_type", type=str, default="RAND_CURVE", help="Curve type (e.g., BN128, SECP256K1, BLS12_381).")
+    parser.add_argument("--samples-file", type=str, help="Optional path for samples CSV file.")
+    parser.add_argument("--golden-file", type=str, help="Optional path for golden CSV file.")
     args = parser.parse_args()
 
-    bitwidth = write_csv_files(args.curve_type, args.n)
-    print(f"Generated samples/samples_{bitwidth}.csv and goldens/golden_{bitwidth}.csv")
+    write_csv_files(args.curve_type, args.n, args.samples_file, args.golden_file)

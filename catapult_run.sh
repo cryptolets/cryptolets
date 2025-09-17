@@ -1,7 +1,18 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# List of all kernels to run in one go
+DRY_RUN_ARG=""
+ARGS=()
+
+# Extract --dry-run from anywhere
+for arg in "$@"; do
+    if [[ "$arg" == "--dry-run" ]]; then
+        DRY_RUN_ARG="--dry-run"
+    else
+        ARGS+=("$arg")
+    fi
+done
+
 ALL_KERNELS=(
     # add_f 
     # sub_f 
@@ -16,7 +27,6 @@ ALL_KERNELS=(
     # point_add_cyclonemsm
 )
 
-# Map kernels to group name
 declare -A GROUP_MAP=(
     [add_f]="lvl0"
     [sub_f]="lvl0"
@@ -33,16 +43,19 @@ declare -A GROUP_MAP=(
     [point_add_cyclonemsm]="padd"
 )
 
-# Usage
-if [ $# -lt 1 ]; then
-    echo "Usage: bash catapult_run.sh <kernel_name>"
+usage() {
+    echo "Usage: bash catapult_run.sh [--dry-run] <kernel_name|all>"
     exit 1
+}
+
+if [ ${#ARGS[@]} -lt 1 ]; then
+    usage
 fi
 
-if [ "$1" = "all" ]; then
+if [ "${ARGS[0]}" = "all" ]; then
     kernels=("${ALL_KERNELS[@]}")
 else
-    kernels=(${1%/})
+    kernels=(${ARGS[0]%/})
 fi
 
 for kernel in "${kernels[@]}"; do
@@ -57,5 +70,5 @@ for kernel in "${kernels[@]}"; do
     PARAMS_TCL_SCRIPT="catapult_${group_name}_params.tcl"
 
     echo "=== Running Catapult for kernel=$kernel (script=$CORE_CATAPULT_SCRIPT) ==="
-    bash run_catapult_parallel.sh $CORE_CATAPULT_SCRIPT $PARAMS_TCL_SCRIPT $kernel
+    bash run_catapult_parallel.sh "$CORE_CATAPULT_SCRIPT" "$PARAMS_TCL_SCRIPT" "$kernel" "$DRY_RUN_ARG"
 done
