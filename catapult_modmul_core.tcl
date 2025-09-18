@@ -54,8 +54,10 @@ foreach bm $base_mul_depths {
         set table_name "table_$sweep_key.csv"
         set CCORE_TOP [expr {$CCORE_TOP && $target_ii <= 1}]
 
-        open_or_create_solution $sol_name
-        puts "  -> Solution: $sol_name (bitwidth=$bitwidth, bm=$bm, kar=$kar)"
+        set sol_name_test_only "${sol_name}_test_only"
+
+        open_or_create_solution $sol_name_test_only
+        puts "  -> Solution: $sol_name_test_only (bitwidth=$bitwidth, bm=$bm, kar=$kar)"
 
         # Compiler flags
         set flags ""
@@ -87,6 +89,7 @@ foreach bm $base_mul_depths {
         go compile
         run_osci_test $kernel_dir $work_dir $root_dir $bitwidth \
                         $NUM_TEST_SAMPLES $TEST $GEN_SAMPLES $curve_type
+
         if {$TEST_ONLY} { continue }
 
         directive set -OPT_CONST_MULTS full
@@ -113,6 +116,7 @@ foreach bm $base_mul_depths {
 
                 branch_if_ccore_comb $mul_op 
                 go extract
+                project save
 
                 return "[solution get /name].[solution get /VERSION]"
             } else {
@@ -140,6 +144,7 @@ foreach bm $base_mul_depths {
                 go schedule
                 branch_if_ccore_comb $cmul_sol_name 
                 go extract
+                project save
                 set cmul_f_sol "[solution get /name].[solution get /VERSION]"
                 solution table export -file [file join $work_dir $table_name]
             } else {
@@ -171,11 +176,18 @@ foreach bm $base_mul_depths {
         remove_broken_mul_libs $tech_type
 
         go extract
+        project save
         solution table export -file [file join $work_dir $table_name]
         run_scverify $kernel_dir $work_dir $bitwidth $SIM
         run_syn $tech_type $SYN $root_dir
         solution table export -file [file join $work_dir $table_name]
+
+        # solution remove -solution "${sol_name_test_only}.v1" -delete
+        # project save
+
     }
 }
 
 project save
+# solution remove -solution solution.v1 -delete
+# project save

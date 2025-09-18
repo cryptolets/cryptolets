@@ -291,6 +291,40 @@ def filter_mp(data, mp=False):
         # keep only non-MP rows (limbs is None)
         return [row for row in data if row.get("limbs") is None]
 
+def find_max_area_min_latency_by_q(data):
+    """
+    Returns designs with min area and min latency for each q_type (fixedq and varq).
+    Returns dict with keys 'fixedq' and 'varq', each containing 'min_area' and 'min_latency' designs.
+    """
+    results = {}
+    
+    for q_type in ["fixedq", "varq"]:
+        filtered = [row for row in data if row.get("q_type") == q_type]
+        
+        min_area_row = None
+        min_latency_row = None
+        min_area = float('inf')
+        min_latency = float('inf')
+        
+        for row in filtered:
+            area = row.get('area')
+            latency = row.get('latency')
+            
+            if area is not None and area < min_area:
+                min_area = area
+                min_area_row = row
+                
+            if latency is not None and latency < min_latency:
+                min_latency = latency
+                min_latency_row = row
+        
+        results[q_type] = {
+            'min_area': min_area_row,
+            'min_latency': min_latency_row
+        }
+    
+    return results
+
 def make_table_string(data):
     if not data:
         return "No data"
@@ -356,6 +390,8 @@ if __name__ == "__main__":
     parser.add_argument("-t", "--tech-type", action="store_true", help="Show tech type")
     parser.add_argument("--ccore", action="store_true", help="Include Catapult ccore solutions (default: only top-level sols)")
     parser.add_argument("--freq", action="store_true", help="show freq metrics")
+    parser.add_argument("--period", type=str, help="Filter results by clock period value")
+    parser.add_argument("--curve", type=str, help="Filter results by curve type")
     args = parser.parse_args()
 
     kernel = os.path.basename(os.path.normpath(args.kernel))
@@ -386,6 +422,18 @@ if __name__ == "__main__":
         tot_ctime = get_tot(all_metrics, "ctime_raw")
         all_metrics = drop_column(all_metrics, "ctime_raw")
 
+        # Filter by period as float if requested
+        if args.period:
+            try:
+                period_val = float(args.period)
+                all_metrics = [row for row in all_metrics if isinstance(row.get('target_period'), (float, int)) and abs(row.get('target_period') - period_val) < 1e-6]
+            except ValueError:
+                all_metrics = [row for row in all_metrics if str(row.get('target_period')) == args.period]
+
+        # Filter by curve type if requested
+        if args.curve:
+            all_metrics = [row for row in all_metrics if str(row.get('curve_type')) == args.curve]
+
         if args.freq:
             all_metrics = drop_column(all_metrics, "target_period")
             all_metrics = drop_column(all_metrics, "minclkprd")
@@ -405,6 +453,21 @@ if __name__ == "__main__":
         # pretty print
         table_str = make_table_string(all_metrics)
         print(table_str)
+
+        # Find and print designs with min area and min latency by q_type
+        area_latency_results = find_max_area_min_latency_by_q(all_metrics)
+        for q_type in ["fixedq", "varq"]:
+            print(f"\nDesign with minimum area ({q_type}):")
+            if area_latency_results[q_type]['min_area']:
+                print(make_table_string([area_latency_results[q_type]['min_area']]))
+            else:
+                print("None found.")
+            
+            print(f"\nDesign with minimum latency ({q_type}):")
+            if area_latency_results[q_type]['min_latency']:
+                print(make_table_string([area_latency_results[q_type]['min_latency']]))
+            else:
+                print("None found.")
 
         if num_runs > 0:
             ctime_fmt = lambda t: f"{int(t)//3600}h {(int(t)%3600)//60}m {int(t)%60}s"
