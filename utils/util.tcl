@@ -29,7 +29,7 @@ proc set_tech_lib {tech_type root_dir} {
         options set ComponentLibs/TechLibSearchPath "/ip/arm/gf12/sc7p5mcpp84_base_slvt_c14/r1p0/db" -append
 
         solution library add sc7p5mcpp84_12lp_base_slvt_c14_tt_nominal_max_0p90v_25c_dc \
-            -file "$root_dir/../gf12/sc7p5mcpp84_12lp_base_slvt_c14_tt_nominal_max_0p90v_25c_dc_smooth.lib" \
+            -file "$root_dir/../gf12_libs/sc7p5mcpp84_12lp_base_slvt_c14_tt_nominal_max_0p90v_25c_dc_smooth.lib" \
             -- -rtlsyntool DesignCompiler -vendor GlobalFoundries -technology 012nm
 
     } elseif {$tech_type eq "saed32"} {
@@ -197,8 +197,8 @@ proc run_syn {tech_type SYN root_dir {RTL_FILE "rtl"}} {
         if {$tech_type eq "fpga"} {
             puts "Syn: Running FPGA Vivado synthesis"
             go synthesize
-        } elseif {$tech_type eq "saed32"} {
-            puts "Syn: Running Design Compiler for saed32"
+        } elseif {$tech_type eq "saed32" || $tech_type eq "gf12"} {
+            puts "Syn: Running Design Compiler for $tech_type"
             
             # Replace compile commands with compile_ultra in the DC synthesis file
             # Get the full path to the generated DC file

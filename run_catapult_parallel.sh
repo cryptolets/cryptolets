@@ -14,21 +14,23 @@ CORE_CATAPULT_SCRIPT=$1
 PARAMS_TCL_SCRIPT=$2
 KERNEL_NAME=$3
 DRY_RUN_ARG=$4
+GUI_ARG=$5
 
 source utils/parallel_helpers.sh
 load_tcl_sweep_params $PARAMS_TCL_SCRIPT # load params from tcl config file
 
 # Core allocation configuration - MODIFY THESE VALUES AS NEEDED
 TOTAL_CORES=40          # Total available cores (K)
-CORES_PER_PROCESS=4     # Cores used per process (M)
-MAX_PARALLEL=$((TOTAL_CORES / CORES_PER_PROCESS))  # K/M parallel processes
+DESIGN_COMPILER_THREADS=4     # Cores used per process (M)
+export DESIGN_COMPILER_THREADS
+MAX_PARALLEL=$((TOTAL_CORES / DESIGN_COMPILER_THREADS))  # K/M parallel processes
 
 echo "========================================="
 echo "Controlled Parallel Catapult Synthesis"
 echo "========================================="
 echo "Core allocation:"
 echo "  Total cores: $TOTAL_CORES"
-echo "  Cores per process: $CORES_PER_PROCESS"
+echo "  Cores per process: $DESIGN_COMPILER_THREADS"
 echo "  Max parallel processes: $MAX_PARALLEL"
 echo ""
 
@@ -58,6 +60,15 @@ echo "Configurations to run:"
 sweep_recurse 0 count_configs
 
 echo "Total configurations: $total_configs"
+
+# Check GUI mode constraints
+if [ "$GUI_ARG" = "--gui" ] && [ "$total_configs" -gt 1 ]; then
+    echo "Error: GUI mode can only be used with a single configuration."
+    echo "Current sweep produces $total_configs configurations."
+    echo "Please modify the parameters to generate only 1 configuration."
+    exit 1
+fi
+
 echo "Will run with max $MAX_PARALLEL parallel processes"
 echo ""
 
@@ -80,9 +91,17 @@ run_config() {
     
     echo "$print_line"
     if [ "$DRY_RUN_ARG" = "--dry-run" ]; then 
-      echo "[DRY RUN] Would run: catapult -shell -f $ROOT_DIR/$CORE_CATAPULT_SCRIPT > $log_file 2>&1"
+      if [ "$GUI_ARG" = "--gui" ]; then
+        echo "[DRY RUN] Would run: catapult -f $ROOT_DIR/$CORE_CATAPULT_SCRIPT"
+      else
+        echo "[DRY RUN] Would run: catapult -shell -f $ROOT_DIR/$CORE_CATAPULT_SCRIPT > $log_file 2>&1"
+      fi
     else
-      catapult -shell -f "$ROOT_DIR/$CORE_CATAPULT_SCRIPT" > "$log_file" 2>&1
+      if [ "$GUI_ARG" = "--gui" ]; then
+        catapult -f "$ROOT_DIR/$CORE_CATAPULT_SCRIPT"
+      else
+        catapult -shell -f "$ROOT_DIR/$CORE_CATAPULT_SCRIPT" > "$log_file" 2>&1
+      fi
     fi
 
     # Note: exit code will be checked by wait_for_slot function
@@ -155,9 +174,9 @@ echo "========================================="
 echo ""
 echo "Core utilization summary:"
 echo "  Total cores available: $TOTAL_CORES"
-echo "  Cores per process: $CORES_PER_PROCESS"
+echo "  Cores per process: $DESIGN_COMPILER_THREADS"
 echo "  Max parallel processes: $MAX_PARALLEL"
-echo "  Peak core usage: $((MAX_PARALLEL * CORES_PER_PROCESS)) cores"
+echo "  Peak core usage: $((MAX_PARALLEL * DESIGN_COMPILER_THREADS)) cores"
 echo ""
 
 # # Show log files location

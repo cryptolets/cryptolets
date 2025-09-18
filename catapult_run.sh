@@ -2,12 +2,15 @@
 set -euo pipefail
 
 DRY_RUN_ARG=""
+GUI_ARG=""
 ARGS=()
 
-# Extract --dry-run from anywhere
+# Extract --dry-run and --gui from anywhere
 for arg in "$@"; do
     if [[ "$arg" == "--dry-run" ]]; then
         DRY_RUN_ARG="--dry-run"
+    elif [[ "$arg" == "--gui" ]]; then
+        GUI_ARG="--gui"
     else
         ARGS+=("$arg")
     fi
@@ -44,7 +47,7 @@ declare -A GROUP_MAP=(
 )
 
 usage() {
-    echo "Usage: bash catapult_run.sh [--dry-run] <kernel_name|all>"
+    echo "Usage: bash catapult_run.sh [--dry-run] [--gui] <kernel_name|all>"
     exit 1
 }
 
@@ -70,5 +73,5 @@ for kernel in "${kernels[@]}"; do
     PARAMS_TCL_SCRIPT="catapult_${group_name}_params.tcl"
 
     echo "=== Running Catapult for kernel=$kernel (script=$CORE_CATAPULT_SCRIPT) ==="
-    bash run_catapult_parallel.sh "$CORE_CATAPULT_SCRIPT" "$PARAMS_TCL_SCRIPT" "$kernel" "$DRY_RUN_ARG"
+    bash run_catapult_parallel.sh "$CORE_CATAPULT_SCRIPT" "$PARAMS_TCL_SCRIPT" "$kernel" "$DRY_RUN_ARG" "$GUI_ARG"
 done
