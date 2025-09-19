@@ -71,7 +71,13 @@ foreach bm $base_mul_depths {
         append flags " -DQ_PRIME_HEX=\\\"[get_field_const $curve_type q_prime $root_dir]\\\""
         append flags " -DMU_HEX=\\\"[get_field_const $curve_type mu $root_dir]\\\""
         options set /Input/CompilerFlags "$include_flags $flags"
+        
+        # we want only verilog output
+        options set Output/OutputVHDL false
 
+        # rtl schematics take up a ton of space
+        options set Output/RTLSchem false
+        
         # Add kernel + dependencies
         solution file add $kernel_dir/src/${kernel}.cpp
         solution file add $kernel_dir/src/${kernel}_tb.cpp -exclude true
@@ -179,7 +185,7 @@ foreach bm $base_mul_depths {
         project save
         solution table export -file [file join $work_dir $table_name]
         run_scverify $kernel_dir $work_dir $bitwidth $SIM
-        run_syn $tech_type $SYN $root_dir
+        run_syn $tech_type $SYN $root_dir $RTL_FILE
         solution table export -file [file join $work_dir $table_name]
 
         # solution remove -solution "${sol_name_test_only}.v1" -delete

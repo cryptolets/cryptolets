@@ -1,4 +1,4 @@
-set design [getenv "rtl_file"]
+set design [getenv "RTL_FILE"]
 
 sh mkdir -p reports
 sh mkdir -p netlist
