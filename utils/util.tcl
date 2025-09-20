@@ -21,8 +21,12 @@ proc override_default_options {} {
 proc set_tech_lib {tech_type root_dir} {
     solution library remove *
     if {$tech_type eq "45nm"} {
+        set custom_dc_script_path [file normalize "$root_dir/dc_custom_scripts"]
+        options set Flows/DesignCompiler/CustomScriptDirPath "$custom_dc_script_path"
+        # options set ComponentLibs/TechLibSearchPath [file normalize "$root_dir/../freepdk-45nm"] -append
+
         solution library add nangate-45nm_beh \
-            -- -rtlsyntool OasysRTL -vendor Nangate -technology 045nm
+            -- -rtlsyntool DesignCompiler -vendor Nangate -technology 045nm
     } elseif {$tech_type eq "gf12"} {
         set custom_dc_script_path [file normalize "$root_dir/dc_custom_scripts"]
         options set Flows/DesignCompiler/CustomScriptDirPath "$custom_dc_script_path"
@@ -36,10 +40,6 @@ proc set_tech_lib {tech_type root_dir} {
         # add custom dc script path
         set custom_dc_script_path [file normalize "$root_dir/dc_custom_scripts"]
         options set Flows/DesignCompiler/CustomScriptDirPath "$custom_dc_script_path"
-        options set ComponentLibs/TechLibSearchPath "/ip/synopsys/saed32/v02_2024/" -append
-        options set ComponentLibs/TechLibSearchPath "/ip/synopsys/saed32/v02_2024/tech/tf" -append
-        options set ComponentLibs/TechLibSearchPath "/ip/synopsys/saed32/v02_2024/lib/stdcell_lvt/lef" -append
-        options set ComponentLibs/TechLibSearchPath "/ip/synopsys/saed32/v02_2024/lib/stdcell_lvt/db_nldm" -append
         options set ComponentLibs/TechLibSearchPath "/ip/synopsys/saed32/v02_2024/lib/stdcell_lvt/db_ccs" -append
 
         solution library add saed32lvt_tt0p78v125c_beh \
@@ -197,7 +197,7 @@ proc run_syn {tech_type SYN root_dir {RTL_FILE "rtl"}} {
         if {$tech_type eq "fpga"} {
             puts "Syn: Running FPGA Vivado synthesis"
             go synthesize
-        } elseif {$tech_type eq "saed32" || $tech_type eq "gf12"} {
+        } elseif {$tech_type eq "45nm" || $tech_type eq "saed32" || $tech_type eq "gf12"} {
             puts "Syn: Running Design Compiler for $tech_type"
             
             # Replace compile commands with compile_ultra in the DC synthesis file

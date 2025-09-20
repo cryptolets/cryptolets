@@ -72,6 +72,19 @@ fi
 echo "Will run with max $MAX_PARALLEL parallel processes"
 echo ""
 
+# What suffix to use for which paramter in the log file name
+declare -A SWEEP_KEY_LOG_MAP=(
+  [BITWIDTHS]=BW # bitwidth
+  [TECH_TYPES]=TT # tech type
+  [TARGET_IIS]=II # ii
+  [MUL_TYPES]=MT # mul type
+  [TARGET_PERIODS]=P # period
+  [Q_TYPES]=QT # q_type
+  [CURVE_TYPES]=CT # curve type
+  [BASE_MUL_DEPTH_MAP]=BM # base mul depth
+  [KAR_MUL_DEPTH_MAP]=KAR # kar mul depth
+)
+
 # Function to run a single configuration
 run_config() {
     local print_line="Starting:"
@@ -79,13 +92,23 @@ run_config() {
     export KERNEL_NAME=$KERNEL_NAME
 
     for k in "${SWEEPS_PROJ_ORDER[@]}"; do
-        local key="${k::-1}" # remove trailing 's'
-        local val="${SWEEP_STATE[$k]}"
-        export "${key}"="$val" # export for core catapult script
+      # --- export key mapping (same logic as count_configs) ---
+      local exp_key
+      case "$k" in
+        BASE_MUL_DEPTH_MAP) exp_key="BASE_MUL_DEPTH" ;;
+        KAR_MUL_DEPTH_MAP)  exp_key="KAR_MUL_DEPTH"  ;;
+        *)                  exp_key="${k::-1}"       ;;  # strip trailing s
+      esac
 
-        # build log file name
-        print_line+=" $key=$val"
-        log_suffix+="${key^^}_${val}_"
+      # --- log key mapping (explicit map, fallback to raw) ---
+      local log_key="${SWEEP_KEY_LOG_MAP[$k]:-$k}"
+
+      local val="${SWEEP_STATE[$k]}"
+
+      export "${exp_key}"="$val"   # export for core catapult script
+
+      print_line+=" $exp_key=$val"
+      log_suffix+="${log_key^^}_${val}_"
     done
     local log_file="$LOGS_DIR/catapult_${log_suffix%_}.log"
     

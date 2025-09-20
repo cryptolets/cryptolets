@@ -15,21 +15,50 @@ format_duration() {
 }
 
 # Read sweep params from tcl config file
-declare -a SWEEPS_ALL=()        # names of normal arrays
+declare -a SWEEPS_ALL=()           # names of arrays and maps
 declare -a SWEEPS_PROJ_ORDER=()    # projection order
 
 load_tcl_sweep_params() {
   local file=$1
+  local inside_map=0
+  local current_map=""
 
-  while read -r line; do
-    line=${line%%;#*}   # strip comments
+  while read -r line || [[ -n "$line" ]]; do
+    # Strip trailing comments
+    line=${line%%;#*}
+    line=$(echo "$line" | xargs)   # trim whitespace
     [[ -z "$line" ]] && continue
+
+    # Inside a multi-line map
+    if [[ $inside_map -eq 1 ]]; then
+      if [[ "$line" == "}" ]]; then
+        inside_map=0
+        current_map=""
+        continue
+      fi
+      key=$(echo "$line" | awk '{print $1}')
+      vals=$(echo "$line" | sed -E 's/^[^{]+\{([^}]*)\}.*/\1/')
+      eval "$current_map[$key]=\"\$vals\""
+      continue
+    fi
 
     case "$line" in
       set\ *)
         var=$(echo "$line" | awk '{print $2}')
-        if [[ "$line" == *"{"*"}"* ]]; then
-          val=$(echo "$line" | cut -d\{ -f2 | cut -d\} -f1)
+        rest=${line#*"$var"}
+
+        # Multi-line map
+        if [[ "$rest" =~ "{"$'\n'?$ ]]; then
+          declare -g -A "$var"
+          SWEEPS_ALL+=("$var")
+          inside_map=1
+          current_map=$var
+          continue
+        fi
+
+        # Inline list
+        if [[ "$rest" == *"{"*"}"* ]]; then
+          val=$(echo "$rest" | cut -d\{ -f2 | cut -d\} -f1)
           if [[ $var == "SWEEPS_PROJ_ORDER" ]]; then
             SWEEPS_PROJ_ORDER=($val)
           else
@@ -37,13 +66,16 @@ load_tcl_sweep_params() {
             SWEEPS_ALL+=("$var")
           fi
         else
-          val=$(echo "$line" | awk '{print $3}')
+          # Scalar
+          val=$(echo "$rest" | awk '{print $1}')
           eval "$var=$val"
+          SWEEPS_ALL+=("$var")
         fi
         ;;
     esac
   done < "$file"
 }
+
 
 # Basically, so the bit nested for loop recursively and generalizes it
 # It takes SWEEPS_PROJ_ORDER to define the order
@@ -59,7 +91,17 @@ sweep_recurse() {
   fi
 
   local name=${SWEEPS_PROJ_ORDER[$depth]}
-  eval "values=(\"\${${name}[@]}\")"
+  local values=()
+  
+  if declare -p "$name" 2>/dev/null | grep -q 'declare \-a'; then
+    # normal array
+    eval "values=(\"\${${name}[@]}\")"
+  else
+    # map: lookup using current bitwidth
+    local bw=${SWEEP_STATE[BITWIDTHS]}
+    eval "valstr=\"\${${name}[$bw]}\""
+    read -ra values <<< "$valstr"
+  fi
 
   # override BITWIDTHS sweep for specific CURVE_TYPE (non-RAND_CURVE)
   if [[ $name == "BITWIDTHS" ]] \
@@ -70,6 +112,21 @@ sweep_recurse() {
     curve_type=${SWEEP_STATE[CURVE_TYPES]}
     bitwidth=$(python3 -c "import json;d=json.load(open('$json_fp'));print(d['$curve_type']['bitwidth'])")
     values=("$bitwidth")
+  fi
+
+  # If MUL_TYPE is sb -> override KAR_MUL_DEPTH_MAP[BITWIDTH] = {BITWIDTH}
+  if [[ $name == "KAR_MUL_DEPTH_MAP" ]] \
+    && [[ ${SWEEP_STATE[MUL_TYPES]} == "sb" ]]; then
+    local bw=${SWEEP_STATE[BITWIDTHS]}
+    values=("$bw")
+  fi
+
+  # If MUL_TYPE is nor -> override both maps to {BITWIDTH}
+  if [[ ${SWEEP_STATE[MUL_TYPES]} == "nor" ]]; then
+    local bw=${SWEEP_STATE[BITWIDTHS]}
+    if [[ $name == "KAR_MUL_DEPTH_MAP" ]] || [[ $name == "BASE_MUL_DEPTH_MAP" ]]; then
+      values=("$bw")
+    fi
   fi
 
   for v in "${values[@]}"; do
@@ -83,7 +140,12 @@ count_configs() {
   ((total_configs++))
   local line="-"
   for k in "${SWEEPS_PROJ_ORDER[@]}"; do
-    local key="${k::-1}"   # remove the "s", from sweep array name
+    local key
+    case "$k" in
+      BASE_MUL_DEPTH_MAP) key="BASE_MUL_DEPTH" ;;
+      KAR_MUL_DEPTH_MAP)  key="KAR_MUL_DEPTH"  ;;
+      *)                  key="${k::-1}"       ;;  # strip trailing s
+    esac
     line+=" $key=${SWEEP_STATE[$k]}"
   done
   echo "  $line"

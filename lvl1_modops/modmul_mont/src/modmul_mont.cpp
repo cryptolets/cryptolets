@@ -9,7 +9,7 @@ wide_t modmul_mont_core(const wide_t x, const wide_t y, const wide_t q, const wi
 
     // (t_red * q_prime) & (R-1)
 #if Q_TYPE == FIXED_Q 
-    wide_t m_red = cmul_f(t_red);
+    wide_t m_red = (t_red * Q_PRIME).slc<BITWIDTH>(0);
 #else
     wide_t m_red = mul_f(t_red, q_prime);
 #endif
@@ -27,7 +27,7 @@ wide_t modsq_mont_core(const wide_t x, const wide_t q, const wide_t q_prime) {
 
     // (t_red * q_prime) & (R-1)
 #if Q_TYPE == FIXED_Q 
-    wide_t m_red = cmul_f(t_red);
+    wide_t m_red = (t_red * Q_PRIME).slc<BITWIDTH>(0);
 #else
     wide_t m_red = mul_f(t_red, q_prime);
 #endif

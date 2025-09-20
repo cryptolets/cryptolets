@@ -5,10 +5,6 @@
 #include "mul_f.h"
 #include "sq_f.h"
 
-#if Q_TYPE == FIXED_Q 
-#include "cmul_f.h"
-#endif
-
 wide_t modmul_mont_core(
     const wide_t x, const wide_t y,
     const wide_t q, const wide_t q_prime

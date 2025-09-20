@@ -22,9 +22,9 @@ ALL_KERNELS=(
     # cmul_f
     # modadd 
     # modsub
-    # mul_f
     # sq_f
-    # modmul_mont
+    modmul_mont
+    mul_f
     # modmul_barrett
     # point_add 
     # point_add_cyclonemsm

@@ -171,6 +171,10 @@ def parse_table_name(table_name):
             info["target_freq"] = float(p[1:].replace("MHz", ""))
         elif p.startswith("p"):
             info["target_period"] = float(p[1:].replace("ns", ""))
+        elif p.startswith("bm"):
+            info["bm"] = int(p[2:])
+        elif p.startswith("kar"):
+            info["kar"] = int(p[3:])
         elif p.startswith("ct"):
             info["curve_type"] = name.split("_ct")[-1]
 
@@ -366,7 +370,7 @@ def sort_key(row):
     vnum = int(row["sol"].split(".")[-1][1:])
 
     return (
-        vnum,
+        # vnum,
         row.get("tech_type") or "",
         row.get("curve_type") or "",
         row.get("target_period") or float("inf"),
@@ -388,6 +392,7 @@ if __name__ == "__main__":
     parser.add_argument("-o", "--out-txt", action="store_true", help="Write TXT output")
     parser.add_argument("-c", "--out-csv", action="store_true", help="Write CSV output")
     parser.add_argument("-t", "--tech-type", action="store_true", help="Show tech type")
+    parser.add_argument("--proj-dir", type=str, default="Catapult", help="switch between project dirs")
     parser.add_argument("--ccore", action="store_true", help="Include Catapult ccore solutions (default: only top-level sols)")
     parser.add_argument("--freq", action="store_true", help="show freq metrics")
     parser.add_argument("--period", type=str, help="Filter results by clock period value")
@@ -399,7 +404,7 @@ if __name__ == "__main__":
     mp = args.mp
     tech_type = "asic" if args.asic else "fpga"
 
-    catapult_dir = f"{kernel_path}/Catapult/"
+    catapult_dir = f"{kernel_path}/{args.proj_dir}/"
     all_metrics = []
 
     if os.path.isdir(catapult_dir):
