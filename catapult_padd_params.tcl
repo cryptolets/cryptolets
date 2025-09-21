@@ -66,7 +66,7 @@ set SWEEPS_PROJ_ORDER {CURVE_TYPES Q_TYPES TECH_TYPES MUL_TYPES TARGET_PERIODS T
 set SIM false ;# verify RTL
 set SYN false
 set TEST true ;# test C++ code
-set TEST_ONLY true ;# only test C++ code with osci, for quick initial testing
+set TEST_ONLY false ;# only test C++ code with osci, for quick initial testing
 set NUM_TEST_SAMPLES 1000
 set GEN_SAMPLES true ;# set off if custom samples
 set HAS_MODSQ true ;# only false for cyclonemsm twisted edward formula so far
