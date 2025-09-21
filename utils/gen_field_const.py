@@ -20,6 +20,8 @@ def gen_random_field_const(bitwidth, seed=42):
     q_prime = (-mod_inverse(q, R)) % R
     mu = (Integer(1) << (2 * bitwidth)) // q
     return {
+        "a": "0",
+        "b": "1",
         "q": str(hex(q))[2:],
         "q_prime": str(hex(q_prime))[2:], 
         "mu": str(hex(mu))[2:],

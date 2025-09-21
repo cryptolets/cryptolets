@@ -15,7 +15,7 @@ from utils.field_helpers import (
 
 random.seed(42)
 
-def point_add_ref(P0, P1, q):
+def point_add_mnt_ref(P0, P1, q):
     result = EC_point_J()
 
     if (P0.Z == 0 and P1.Z == 0):
@@ -40,28 +40,36 @@ def point_add_ref(P0, P1, q):
 
         # if equal, run the doubling algorithm
         if U1 == U2 and S1 == S2:
-            # https://www.hyperelliptic.org/EFD/g1p/auto-shortw-jacobian-0.html#doubling-dbl-2009-l
-            A        = modsq(P0.X, q)         # A = X1^2
-            B        = modsq(P0.Y, q)         # B = Y1^2
-            C        = modsq(B, q)            # C = B^2
-            t0       = modadd(P0.X, B, q)     # t0 = X1+B
-            t1       = modsq(t0, q)           # t1 = t0^2
-            t2       = modsub(t1, A, q)       # t2 = t1-A
-            t3       = modsub(t2, C, q)       # t3 = t2-C
-            D        = moddouble(t3, q)       # D = 2*t3
-            E        = moddouble(A, q)        # E = A+A
-            E        = modadd(E, A, q)        # E = E+A
-            F        = modsq(E, q)            # F = E^2
-            t4       = moddouble(D, q)        # t4 = 2*D
-            result.X = modsub(F, t4, q)       # X3 = F-t4
-            t5       = modsub(D, result.X, q) # t5 = D-X3
-            t6       = moddouble(C, q)        # t6 = C+C
-            t6       = moddouble(t6, q)       # t6 = t6+t6
-            t6       = moddouble(t6, q)       # t6 = t6+t6
-            t7       = modmul(E, t5, q)       # t7 = E*t5
-            result.Y = modsub(t7, t6, q)      # Y3 = t7-t6
-            t8       = modmul(P0.Y, P0.Z, q)  # t8 = Y1*Z1
-            result.Z = moddouble(t8, q)       # Z3 = 2*t8
+            # https://www.hyperelliptic.org/EFD/g1p/auto-shortw-jacobian.html#doubling-dbl-2007-bl
+            # specifically for a = 2
+            XX       = modsq(P0.X, q)        # XX = X1^2
+            YY       = modsq(P0.Y, q)        # YY = Y1^2
+            YYYY     = modsq(YY, q)          # YYYY = YY^2
+            ZZ       = modsq(P0.Z, q)        # ZZ = Z1^2
+            t0       = modadd(P0.X, YY, q)   # t0 = X1+YY
+            t1       = modsq(t0, q)          # t1 = t0^2
+            t2       = modsub(t1, XX, q)     # t2 = t1-XX
+            t3       = modsub(t2, YYYY, q)   # t3 = t2-YYYY
+            S        = moddouble(t3, q)      # S = 2*t3
+            t4       = modsq(ZZ, q)          # t4 = ZZ^2
+            t5       = moddouble(t4, q)      # t5 = a*t4; a = 2
+            t6       = moddouble(XX, q)      # t6 = XX+XX
+            t6       = modadd(t6, XX, q)     # t6 = t6+XX
+            M        = modadd(t6, t5, q)     # M = t6+t5
+            t7       = modsq(M, q)           # t7 = M^2
+            t8       = moddouble(S, q)       # t8 = 2*S
+            T        = modsub(t7, t8, q)     # T = t7-t8
+            result.X = T                     # X3 = T
+            t9       = modsub(S, T, q)       # t9 = S-T
+            t10      = moddouble(YYYY, q)    # t10 = YYYY+YYYY
+            t10      = moddouble(t10, q)     # t10 = t10+t10
+            t10      = moddouble(t10, q)     # t10 = t10+t10
+            t11      = modmul(M, t9, q)      # t11 = M*t9
+            result.Y = modsub(t11, t10, q)   # Y3 = t11-t10
+            t12      = modadd(P0.Y, P0.Z, q) # t12 = Y1+Z1
+            t13      = modsq(t12, q)         # t13 = t12^2
+            t14      = modsub(t13, YY, q)    # t14 = t13-YY
+            result.Z = modsub(t14, ZZ, q)    # Z3 = t14-ZZ
         # otherwise do the addition
         else:
             H        = modsub(U2, U1, q)      # H = U2-U1
@@ -96,12 +104,12 @@ def write_csv_files(curve_type, total_samples, json_file, samples_path=None, gol
     a = get_field_const(curve_type, "a", json_file)
     b = get_field_const(curve_type, "b", json_file)
 
-    if a != 0:
+    if a != 2:
         if curve_type == "RAND_CURVE":
-            print(f"Warning: overriding a={a} to a=0")
-            a = 0
+            print(f"Warning: overriding a={a} to a=2")
+            a = 2
         else:
-            assert a == 0, f"Error: a={a}, must be a=0 for this formula"
+            assert a == 2, f"Error: a={a}, must be a=2 for this formula"
 
     E = ShortWeierstrass(q, a=a, b=b)
 
@@ -138,7 +146,7 @@ def write_csv_files(curve_type, total_samples, json_file, samples_path=None, gol
 
         samples_mont.append((*P1_mont, *P2_mont, q, q_prime))
 
-        golden_jac = point_add_ref(P1_jac, P2_jac, q)
+        golden_jac = point_add_mnt_ref(P1_jac, P2_jac, q)
         ref_aff = E.add(P1, P2) # use affine point add for reference (sanity check)
         golden_aff = E.jac_to_aff(golden_jac)
         assert (ref_aff.x, ref_aff.y) == (golden_aff.x, golden_aff.y)

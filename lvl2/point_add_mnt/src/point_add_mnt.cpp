@@ -1,7 +1,7 @@
-#include "point_add.h"
+#include "point_add_mnt.h"
 
-// Short Weierstrass Curve (a = 0)
-EC_point_J point_add_core(
+// Short Weierstrass Curve (a = 2)
+EC_point_J point_add_mnt_core(
     EC_point_J P0, 
     EC_point_J P1,
     const wide_t q, const wide_t q_prime
@@ -30,27 +30,34 @@ EC_point_J point_add_core(
         // if equal, run the doubling algorithm
         if (U1 == U2 && S1 == S2) {
             // https://www.hyperelliptic.org/EFD/g1p/auto-shortw-jacobian-0.html#doubling-dbl-2009-l
-            wide_t A  = modsq_mont_core(P0.X, q, q_prime)        ; // A = X1^2
-            wide_t B  = modsq_mont_core(P0.Y, q, q_prime)        ; // B = Y1^2
-            wide_t C  = modsq_mont_core(B, q, q_prime)           ; // C = B^2
-            wide_t t0 = modadd_core(P0.X, B, q)                  ; // t0 = X1+B
-            wide_t t1 = modsq_mont_core(t0, q, q_prime)          ; // t1 = t0^2
-            wide_t t2 = modsub_core(t1, A, q)                    ; // t2 = t1-A
-            wide_t t3 = modsub_core(t2, C, q)                    ; // t3 = t2-C
-            wide_t D  = moddouble_core(t3, q)                    ; // D = 2*t3
-            wide_t E  = moddouble_core(A, q)                     ; // E = A+A
-            E         = modadd_core(E, A, q)                     ; // E = E+A
-            wide_t F  = modsq_mont_core(E, q, q_prime)           ; // F = E^2
-            wide_t t4 = moddouble_core(D, q)                     ; // t4 = 2*D
-            result.X  = modsub_core(F, t4, q)                    ; // X3 = F-t4
-            wide_t t5 = modsub_core(D, result.X, q)              ; // t5 = D-X3
-            wide_t t6 = moddouble_core(C, q)                     ; // t6 = C+C
-            t6        = moddouble_core(t6, q)                    ; // t6 = t6+t6
-            t6        = moddouble_core(t6, q)                    ; // t6 = t6+t6
-            wide_t t7 = modmul_mont_core(E, t5, q, q_prime)      ; // t7 = E*t5
-            result.Y  = modsub_core(t7, t6, q)                   ; // Y3 = t7-t6
-            wide_t t8 = modmul_mont_core(P0.Y, P0.Z, q, q_prime) ; // t8 = Y1*Z1
-            result.Z  = moddouble_core(t8, q)                    ; // Z3 = 2*t8
+            wide_t XX   = modsq_mont_core(P0.X, q, q_prime)   ; // XX = X1^2
+            wide_t YY   = modsq_mont_core(P0.Y, q, q_prime)   ; // YY = Y1^2
+            wide_t YYYY = modsq_mont_core(YY, q, q_prime)     ; // YYYY = YY^2
+            wide_t ZZ   = modsq_mont_core(P0.Z, q, q_prime)   ; // ZZ = Z1^2
+            wide_t t0   = modadd_core(P0.X, YY, q)            ; // t0 = X1+YY
+            wide_t t1   = modsq_mont_core(t0, q, q_prime)     ; // t1 = t0^2
+            wide_t t2   = modsub_core(t1, XX, q)              ; // t2 = t1-XX
+            wide_t t3   = modsub_core(t2, YYYY, q)            ; // t3 = t2-YYYY
+            wide_t S    = moddouble_core(t3, q)               ; // S = 2*t3
+            wide_t t4   = modsq_mont_core(ZZ, q, q_prime)     ; // t4 = ZZ^2
+            wide_t t5   = moddouble_core(t4, q)               ; // t5 = a*t4; a=2
+            wide_t t6   = moddouble_core(XX, q)               ; // t6 = XX+XX
+            t6          = modadd_core(t6, XX, q)              ; // t6 = t6+XX
+            wide_t M    = modadd_core(t6, t5, q)              ; // M = t6+t5
+            wide_t t7   = modsq_mont_core(M, q, q_prime)      ; // t7 = M^2
+            wide_t t8   = moddouble_core(S, q)                ; // t8 = 2*S
+            wide_t T    = modsub_core(t7, t8, q)              ; // T = t7-t8
+            result.X    = T                                   ; // X3 = T
+            wide_t t9   = modsub_core(S, T, q)                ; // t9 = S-T
+            wide_t t10  = moddouble_core(YYYY, q)             ; // t10 = YYYY+YYYY
+            t10         = moddouble_core(t10, q)              ; // t10 = t10+t10
+            t10         = moddouble_core(t10, q)              ; // t10 = t10+t10
+            wide_t t11  = modmul_mont_core(M, t9, q, q_prime) ; // t11 = M*t9
+            result.Y    = modsub_core(t11, t10, q)            ; // Y3 = t11-t10
+            wide_t t12  = modadd_core(P0.Y, P0.Z, q)          ; // t12 = Y1+Z1
+            wide_t t13  = modsq_mont_core(t12, q, q_prime)    ; // t13 = t12^2
+            wide_t t14  = modsub_core(t13, YY, q)             ; // t14 = t13-YY
+            result.Z    = modsub_core(t14, ZZ, q)             ; // Z3 = t14-ZZ
         } else {
             // otherwise do the addition
             // https://www.hyperelliptic.org/EFD/g1p/auto-shortw-jacobian-0.html#addition-add-2007-bl
@@ -82,17 +89,17 @@ EC_point_J point_add_core(
 
 #if Q_TYPE == FIXED_Q
 
-EC_point_J point_add(EC_point_J P0, EC_point_J P1) {
-    return point_add_core(P0, P1, Q, Q_PRIME);
+EC_point_J point_add_mnt(EC_point_J P0, EC_point_J P1) {
+    return point_add_mnt_core(P0, P1, Q, Q_PRIME);
 }
 
 #else  // VARIABLE Q
 
-EC_point_J point_add(
+EC_point_J point_add_mnt(
     EC_point_J P0, EC_point_J P1, 
     const wide_t q, const wide_t q_prime
 ) {
-    return point_add_core(P0, P1, q, q_prime);
+    return point_add_mnt_core(P0, P1, q, q_prime);
 }
 
 #endif

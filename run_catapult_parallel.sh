@@ -85,11 +85,40 @@ declare -A SWEEP_KEY_LOG_MAP=(
   [KAR_MUL_DEPTH_MAP]=KAR # kar mul depth
 )
 
+# for special cases padds
+declare -A CURVE_KERNEL_MAP=(
+  [MNT4753]="point_add_mnt"
+)
+
 # Function to run a single configuration
 run_config() {
     local print_line="Starting:"
     local log_suffix=""
-    export KERNEL_NAME=$KERNEL_NAME
+
+    # All this code is so we can call point_add kernel with MNT4753
+    # and it will automatically map to point_add_mnt
+    # This will be useful when running long sweeps together
+    # save old
+    local old_kernel_name="$KERNEL_NAME"
+
+    # only override if original was point_add
+    if [[ "$old_kernel_name" == "point_add" ]]; then
+        local curve="${SWEEP_STATE[CURVE_TYPES]}"
+        if [[ -n "${CURVE_KERNEL_MAP[$curve]}" ]]; then
+            KERNEL_NAME="${CURVE_KERNEL_MAP[$curve]}"
+        else
+            KERNEL_NAME="$old_kernel_name"
+        fi
+        export KERNEL_NAME
+
+        # log only if override happened
+        if [[ "$KERNEL_NAME" != "$old_kernel_name" ]]; then
+            echo "Note: KERNEL_NAME overridden from $old_kernel_name to $KERNEL_NAME"
+        fi
+    else
+        # keep original
+        export KERNEL_NAME="$old_kernel_name"
+    fi
 
     for k in "${SWEEPS_PROJ_ORDER[@]}"; do
       # --- export key mapping (same logic as count_configs) ---
