@@ -1,47 +1,79 @@
 {
-  "BN128": {
-    "q": "30644e72e131a029b85045b68181585d97816a916871ca8d3c208c16d87cfd47",
-    "q_prime": "357a22b791888c6bd8afcbd01833da809ede7d651eca6ac987d20782e4866389",
-    "mu": "54a47462623a04a7ab074a5868073013ae965e1767cd4c086f3aed8a19bf90e5",
+  "BN254": {
+    "form": "Weierstrass",
+    "desc": "Curve from Zexe paper: https://eprint.iacr.org/2018/962, params taken from: https://eips.ethereum.org/EIPS/eip-2539 where they are explicitly listed.",
+    "a": "0000000000000000000000000000000000000000000000000000000000000000",
+    "b": "0000000000000000000000000000000000000000000000000000000000000002",
+    "q": "2523648240000001ba344d80000000086121000000000013a700000000000013",
+    "q_prime": "365373ccba60808c92022379c45b843c6e371ba81104f6c808435e50d79435e5",
+    "mu": "6e4a6484093af33947fcedba37bb36c39240464503b56f6105a5f8d224c735a9",
     "bitwidth": 254
   },
-  "SECP256K1": {
-    "q": "fffffffffffffffffffffffffffffffffffffffffffffffffffffffefffffc2f",
-    "q_prime": "c9bd1905155383999c46c2c295f2b761bcb223fedc24a059d838091dd2253531",
-    "mu": "100000000000000000000000000000000000000000000000000000001000003d1",
-    "bitwidth": 256
-  },
   "BLS12_377": {
+    "form": "Weierstrass",
+    "desc": "",
+    "a": "00",
+    "b": "01",
     "q": "1ae3a4617c510eac63b05c06ca1493b1a22d9f300f5138f1ef3622fba094800170b5d44300000008508c00000000001",
     "q_prime": "1a5205feec82e3d22f80141806a3cec5b245b86cced7a1335ed1347970debffd1e94577a00000008508bfffffffffff",
     "mu": "261508d0cc4060e976c3ca0582ef4f73bbad0de6776b1a06af2d488d85a6d02d0ed687789c42a591f9fd58c5e4daffc",
     "bitwidth": 377
   },
   "BLS12_381": {
+    "form": "Weierstrass",
+    "desc": "Curve from https://electriccoin.co/blog/new-snark-curve/. As used in ZCash.",
+    "a": "00",
+    "b": "04",
     "q": "1a0111ea397fe69a4b1ba7b6434bacd764774b84f38512bf6730d2a0f6b0f6241eabfffeb153ffffb9feffffffffaaab",
     "q_prime": "eb06106feaafc9468b316fee268cf5819ecca0e8eb2db4c16ef2ef0c8e30b48286adb92d9d113e889f3fffcfffcfffd",
     "mu": "2760d74bcf32791738a0406c331e9ae8a46e09d07fda82a52f7d1dc780a19de74e65c59e8163c701ec4f881fd59646e8",
     "bitwidth": 381
   },
-  "CURVE25519": {
-    "q": "7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffed",
-    "q_prime": "2f286bca1af286bca1af286bca1af286bca1af286bca1af286bca1af286bca1b",
-    "mu": "8000000000000000000000000000000000000000000000000000000000000013",
-    "bitwidth": 255
+  "MNT4753": {
+    "form": "Weierstrass",
+    "desc": "https://docs.rs/ark-mnt4-753/latest/ark_mnt4_753/",
+    "a": "2",
+    "b": "1373684a8c9dcae7a016ac5d7748d3313cd8e39051c596560835df0c9e50a5b59b882a92c78dc537e51a16703ec9855c77fc3d8bb21c8d68bb8cfb9db4b8c8fba773111c36c8b1b4e8f1ece940ef9eaad265458e06372009c9a0491678ef4",
+    "q": "1c4c62d92c41110229022eee2cdadb7f997505b8fafed5eb7e8f96c97d87307fdb925e8a0ed8d99d124d9a15af79db117e776f218059db80f0da5cb537e38685acce9767254a4638810719ac425f0e39d54522cdd119f5e9063de245e8001",
+    "q_prime": "13e99b46043f050309a545bc9a4c8a9e95de1104e1702786f6f1695db749377b90b32f7f6f94b9718c63feecc18958d63b05346eaa82fff75c466adb4e7f04adb7a6352a3a656d9e1947eee113b7a7fd403903e304c4cf2044cfbe45e7fff",
+    "mu": "242f916cfa82727c6eaef38056aaa0aaedb057467fb932cae2aba9a5d17c1ff73538ba300e0ede1965cbf72f0aa9bf03479d58326e3c0552419849e3c7171d852282372b75580c27c4d1f1f57a96a1145dcc95da918349f4965a2aee8fd75",
+    "bitwidth": 753
   },
-  "CURVE448": {
-    "q": "fffffffffffffffffffffffffffffffffffffffffffffffffffffffeffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
-    "q_prime": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000000000000000000000000000000000000000000000000001",
-    "mu": "10000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000002",
-    "bitwidth": 448
+  "BLS12_377_ED": {
+    "form": "TwistedEdwards",
+    "desc": "https://docs.rs/ark-ed-on-bls12-377/latest/ark_ed_on_bls12_377/",
+    "a": "12ab655e9a2ca55660b44d1e5c37b00159aa76fed00000010a11800000000000",
+    "d": "bcd",
+    "q": "12ab655e9a2ca55660b44d1e5c37b00159aa76fed00000010a11800000000001",
+    "q_prime": "262362e9504199f50022e5e41113fe6992d0fa68b29556249765c34790a000452217cc900000010a117fffffffffff",
+    "mu": "36d9491ec40b2c9ee4e51e49faa80548fd0a180b8d69e258f5204c21151e79ea143dac7fb33b9f29f3f210148c4d639840e11b4aece45ac34f29bda8dbc26a",
+    "bitwidth": 381
+  },
+  "MNT4753_ED": {
+    "form": "TwistedEdwards",
+    "desc": "https://docs.rs/ark-ed-on-mnt4-753/latest/ark_ed_on_mnt4_753/",
+    "a": "1c4c62d92c41110229022eee2cdadb7f997505b8fafed5eb7e8f96c97d87307fdb925e8a0ed8d99d124d9a15af79db26c5c28c859a99b3eebca9429212636b9dff97634993aa4d6c381bc3f0057974ea099170fa13a4fd90776e240000000",
+    "d": "4d8fa",
+    "q": "1c4c62d92c41110229022eee2cdadb7f997505b8fafed5eb7e8f96c97d87307fdb925e8a0ed8d99d124d9a15af79db26c5c28c859a99b3eebca9429212636b9dff97634993aa4d6c381bc3f0057974ea099170fa13a4fd90776e240000001",
+    "q_prime": "1ca8d9105b396c8b26f9de60c2f805ec55f11b8452e51525f17af3144d2288b60dbe0076f54231fbd6b213d679f81291f14d3dc5311a484986a3d163f2c2de3107fb1f51969f35795f3f7d6484182adb37525ab8c5f5ac90776e23fffffff",
+    "mu": "242f916cfa82727c6eaef38056aaa0aaedb057467fb932cae2aba9a5d17c1ff73538ba300e0ede1965cbf72f0aa9bee81208140a086edaa60c58eb476bdedcb35276d65fe7e00ba391da260f2623ff9a2dae11d15867718ec70f5ff059bba",
+    "bitwidth": 753
   },
   "ED25519": {
+    "form": "TwistedEdwards",
+    "desc": "Curve from https://ed25519.cr.yp.to",
+    "a": "7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffec",
+    "d": "52036cee2b6ffe738cc740797779e89800700a4d4141d8ab75eb4dca135978a3",
     "q": "7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffed",
     "q_prime": "2f286bca1af286bca1af286bca1af286bca1af286bca1af286bca1af286bca1b",
     "mu": "8000000000000000000000000000000000000000000000000000000000000013",
     "bitwidth": 255
   },
   "ED448": {
+    "form": "TwistedEdwards",
+    "desc": "Curve from https://ed25519.cr.yp.to",
+    "a": "01",
+    "d": "d78b4bdc7f0daf19f24f38c29373a2ccad46157242a50f37809b1da3412a12e79ccc9c81264cfe9ad080997058fb61c4243cc32dbaa156b9",
     "q": "fffffffffffffffffffffffffffffffffffffffffffffffffffffffeffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
     "q_prime": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000000000000000000000000000000000000000000000000001",
     "mu": "10000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000002",

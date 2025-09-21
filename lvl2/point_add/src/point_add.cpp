@@ -30,9 +30,9 @@ EC_point_J point_add_core(
 
         // if equal, run the doubling algorithm
         if (U1 == U2 && S1 == S2) {
-            wide_t A = modmul_mont_core(P0.X, P0.X, q, q_prime);
-            wide_t B = modmul_mont_core(P0.Y, P0.Y, q, q_prime);
-            wide_t C = modmul_mont_core(B, B, q, q_prime);
+            wide_t A = modsq_mont_core(P0.X, q, q_prime);
+            wide_t B = modsq_mont_core(P0.Y, q, q_prime);
+            wide_t C = modsq_mont_core(B, q, q_prime);
             wide_t sum_square = modsq_mont_core(modadd_core(P0.X, B, q), q, q_prime);
             wide_t ss_minus_A = modsub_core(sum_square, A, q);
             wide_t D = modsub_core(ss_minus_A, C, q);

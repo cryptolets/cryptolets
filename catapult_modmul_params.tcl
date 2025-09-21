@@ -1,11 +1,11 @@
 # Sweep parameters
-set BITWIDTHS {384} ;# 8 12 16 24 32 48 64 96 128 192 256 384 512 768 1024
-set TECH_TYPES {saed32} ;# 45nm gf12 saed32 fpga
+set BITWIDTHS {254 384} ;# 8 12 16 24 32 48 64 96 128 192 256 384 512 768 1024
+set TECH_TYPES {45nm} ;# 45nm gf12 saed32 fpga
 set TARGET_IIS {1}
-set MUL_TYPES {kar sb} ;# kar sb nor
-set TARGET_PERIODS {4} ;# in ns
+set MUL_TYPES {nor sb kar} ;# kar sb nor
+set TARGET_PERIODS {5} ;# in ns
 set Q_TYPES {varq fixedq} ;# in ns
-set CURVE_TYPES {RAND_CURVE BN128}
+set CURVE_TYPES {RAND_CURVE}
 
 set BASE_MUL_DEPTH_MAP {
     8 {8}
@@ -59,12 +59,12 @@ set SWEEPS_PROJ_ORDER {CURVE_TYPES Q_TYPES TECH_TYPES MUL_TYPES TARGET_PERIODS T
 
 # Control flags
 set SIM false ;# verify RTL
-set SYN true ;# run synthesis
+set SYN false ;# run synthesis
 set TEST true ;# test C++ code
 set TEST_ONLY false ;# only test C++ code with osci, for quick initial testing
 set NUM_TEST_SAMPLES 1000
 set GEN_SAMPLES true ;# set off if custom samples
 set CCORE_TOP false ;# gives us better area/latency for combination units
-set CCORE_MUL_F false ;# make mul_f ccore, false = more compile time, better design latency  
+set CCORE_MUL_F false ;# make mul_f ccore, false = more compile time, better design latency
 
 # Note: we cannot set CCORE_TOP = true and SIM=true or TEST=true at the same time

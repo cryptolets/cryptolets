@@ -40,9 +40,9 @@ def point_add_ref(P0, P1, q):
 
         # if equal, run the doubling algorithm
         if U1 == U2 and S1 == S2:
-            A = modmul(P0.X, P0.X, q)
-            B = modmul(P0.Y, P0.Y, q)
-            C = modmul(B, B, q)
+            A = modsq(P0.X, q)
+            B = modsq(P0.Y, q)
+            C = modsq(B, q)
             sum_square = modsq(modadd(P0.X, B, q), q)
             ss_minus_A = modsub(sum_square, A, q)
             D = modsub(ss_minus_A, C, q)
@@ -90,8 +90,10 @@ def write_csv_files(curve_type, total_samples, json_file, samples_path=None, gol
     q = get_field_const(curve_type, "q", json_file)
     q_prime = get_field_const(curve_type, "q_prime", json_file)
     bitwidth = get_field_const(curve_type, "bitwidth", json_file)
+    a = get_field_const(curve_type, "a", json_file)
+    b = get_field_const(curve_type, "b", json_file)
 
-    E = ShortWeierstrass(q, a=2, b=3)
+    E = ShortWeierstrass(q, a=a, b=b)
 
     # default paths
     samples_file = Path(samples_path) if samples_path else Path("samples") / f"samples_{bitwidth}.csv"
@@ -104,9 +106,18 @@ def write_csv_files(curve_type, total_samples, json_file, samples_path=None, gol
     samples_mont = []
     goldens_mont = []
 
-    for _ in range(total_samples):
-        P1 = E.random_point()
-        P2 = E.random_point()
+    for i in range(total_samples):
+        if i < total_samples // 2:
+            # Case 1: P1 == P2 (doubling test)
+            P1 = E.random_point()
+            P2 = P1
+        else:
+            # Case 2: P1 != P2 (addition test)
+            while True:
+                P1 = E.random_point()
+                P2 = E.random_point()
+                if P1 != P2:   # ensure distinct
+                    break
 
         P1_jac = E.aff_to_jac(P1)
         P2_jac = E.aff_to_jac(P2)

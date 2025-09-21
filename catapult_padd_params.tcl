@@ -4,8 +4,10 @@ set TECH_TYPES {gf12} ;# 45nm gf12 saed32 fpga
 set TARGET_IIS {1}
 set MUL_TYPES {sb} ;# kar sb nor
 set TARGET_PERIODS {1} ;# in ns
-set Q_TYPES {fixedq} ;# in ns
-set CURVE_TYPES {RAND_CURVE}
+set Q_TYPES {fixedq varq} ;# fixedq varq
+
+# BN254 BLS12_377 BLS12_381 MNT4753 RAND_CURVE
+set CURVE_TYPES {BN254 BLS12_377 BLS12_381}
 
 set BASE_MUL_DEPTH_MAP {
     8 {8}
@@ -27,6 +29,7 @@ set BASE_MUL_DEPTH_MAP {
     448 {56}
     512 {64}
     521 {65}
+    753 {47}
     768 {48}
     1024 {64}
 }
@@ -38,17 +41,19 @@ set KAR_MUL_DEPTH_MAP {
     24 {24}
     32 {32 16}
     48 {48 24}
-    64 {64 32 16}
+    64 {64 32}
     96 {96 48 24}
-    128 {128 64 32 16}
+    128 {128 64 32}
     192 {192 96 48 24}
     254 {254 127 63}
     256 {256 128 64}
-    377 {377 1888 94 47}
+    377 {377 188 94 47}
     381 {381 190 95 47}
     384 {384 192 96 48}
-    512 {512 256 128}
+    448 {448 224 112 56}
+    512 {512 256 128 64}
     521 {521 260 130 65}
+    753 {753 276 188 94 47}
     768 {768 384 192 96 48 23}
     1024 {1024 512 256 128 64 32 16}
 }

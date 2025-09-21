@@ -16,6 +16,7 @@ proc override_default_options {} {
     options set /Input/CppStandard c++14
     options set /Input/TargetPlatform x86_64
     options set Flows/SCVerify/MAX_ERROR_CNT 1
+    options set Flows/DesignCompiler/OutNetlistFormat verilog
 }
 
 proc set_tech_lib {tech_type root_dir} {
@@ -40,6 +41,11 @@ proc set_tech_lib {tech_type root_dir} {
         # add custom dc script path
         set custom_dc_script_path [file normalize "$root_dir/dc_custom_scripts"]
         options set Flows/DesignCompiler/CustomScriptDirPath "$custom_dc_script_path"
+        # it prob just needs some of these paths, but linking all for now just to be safe 
+        options set ComponentLibs/TechLibSearchPath "/ip/synopsys/saed32/v02_2024/" -append
+        options set ComponentLibs/TechLibSearchPath "/ip/synopsys/saed32/v02_2024/tech/tf" -append
+        options set ComponentLibs/TechLibSearchPath "/ip/synopsys/saed32/v02_2024/lib/stdcell_lvt/lef" -append
+        options set ComponentLibs/TechLibSearchPath "/ip/synopsys/saed32/v02_2024/lib/stdcell_lvt/db_nldm" -append
         options set ComponentLibs/TechLibSearchPath "/ip/synopsys/saed32/v02_2024/lib/stdcell_lvt/db_ccs" -append
 
         solution library add saed32lvt_tt0p78v125c_beh \

@@ -70,7 +70,7 @@ if {$CCORE_TOP} {
 go compile
 
 run_osci_test $kernel_dir $work_dir $root_dir $bitwidth $NUM_TEST_SAMPLES $TEST $GEN_SAMPLES
-if {$TEST_ONLY} { continue }
+if {$TEST_ONLY} { exit }
 
 set_tech_lib $tech_type $root_dir ;# set libraries
 go libraries

@@ -81,7 +81,7 @@ solution design set $kernel -top
 go compile
 run_osci_test $kernel_dir $work_dir $root_dir $bitwidth \
         $NUM_TEST_SAMPLES $TEST $GEN_SAMPLES $curve_type
-if {$TEST_ONLY} { continue }
+if {$TEST_ONLY} { exit }
 
 directive set -OPT_CONST_MULTS full
 directive set -PIPELINE_INIT_INTERVAL $target_ii

@@ -79,7 +79,7 @@ go compile
 run_osci_test $kernel_dir $work_dir $root_dir $bitwidth \
                 $NUM_TEST_SAMPLES $TEST $GEN_SAMPLES $curve_type
 
-if {$TEST_ONLY} { continue }
+if {$TEST_ONLY} { exit }
 
 directive set -OPT_CONST_MULTS full
 directive set -PIPELINE_INIT_INTERVAL $target_ii
@@ -92,7 +92,7 @@ set_tech_lib $tech_type $root_dir
 if {$CCORE_MUL_F} {
     # I think it should be safe to use diff clock periods, 
     # since this is what ccore points does
-    set mul_period [expr $period * 1]
+    set mul_period [expr $period * 0.95]
 
     proc mul_op_run { mul_op bm kar mul_period tech_type} {
         set mul_op_sol_name "${mul_op}"
