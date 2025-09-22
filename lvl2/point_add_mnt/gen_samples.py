@@ -104,13 +104,11 @@ def write_csv_files(curve_type, total_samples, json_file, samples_path=None, gol
     a = get_field_const(curve_type, "a", json_file)
     b = get_field_const(curve_type, "b", json_file)
 
-    if a != 2:
-        if curve_type == "RAND_CURVE":
-            print(f"Warning: overriding a={a} to a=2")
-            a = 2
-        else:
-            assert a == 2, f"Error: a={a}, must be a=2 for this formula"
+    if a != 2 and curve_type == "RAND_CURVE":
+        print(f"Warning: overriding a={a} to a=2")
+        a = 2
 
+    assert a == 2, f"Error: a={a}, must be a=2 for this formula"
     E = ShortWeierstrass(q, a=a, b=b)
 
     # default paths

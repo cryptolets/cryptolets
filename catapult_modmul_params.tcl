@@ -1,11 +1,11 @@
 # Sweep parameters
-set BITWIDTHS {254 384} ;# 8 12 16 24 32 48 64 96 128 192 256 384 512 768 1024
-set TECH_TYPES {45nm} ;# 45nm gf12 saed32 fpga
+set BITWIDTHS {254} ;# 8 12 16 24 32 48 64 96 128 192 256 384 512 768 1024
+set TECH_TYPES {gf12} ;# 45nm gf12 saed32 fpga
 set TARGET_IIS {1}
-set MUL_TYPES {nor sb kar} ;# kar sb nor
-set TARGET_PERIODS {5} ;# in ns
+set MUL_TYPES {sb kar} ;# kar sb nor
+set TARGET_PERIODS {1} ;# in ns
 set Q_TYPES {varq fixedq} ;# in ns
-set CURVE_TYPES {RAND_CURVE}
+set CURVE_TYPES {BN254}
 
 set BASE_MUL_DEPTH_MAP {
     8 {8}
@@ -27,6 +27,7 @@ set BASE_MUL_DEPTH_MAP {
     448 {56}
     512 {64}
     521 {65}
+    753 {47}
     768 {48}
     1024 {64}
 }
@@ -38,20 +39,23 @@ set KAR_MUL_DEPTH_MAP {
     24 {24}
     32 {32 16}
     48 {48 24}
-    64 {64 32 16}
+    64 {64 32}
     96 {96 48 24}
-    128 {128 64 32 16}
+    128 {128 64 32}
     192 {192 96 48 24}
-    254 {127 63}
-    256 {64}
+    254 {254 127 63}
+    256 {256 128 64}
     377 {377 188 94 47}
     381 {381 190 95 47}
-    384 {48}
-    512 {512 256 128}
+    384 {384 192 96 48}
+    448 {448 224 112 56}
+    512 {512 256 128 64}
     521 {521 260 130 65}
-    768 {768 384 192 96 48 23}
-    1024 {1024 512 256 128 64 32 16}
+    753 {753 276 188 94 47}
+    768 {768 384 192 96 48}
+    1024 {1024 512 256 128 64}
 }
+
 
 # DO NOT CHANGE UNLESS DEVELEOPMENT
 # defines for order of params before project split (at the level we parallelize)

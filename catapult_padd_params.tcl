@@ -1,8 +1,8 @@
 # Sweep parameters
-set BITWIDTHS {64} ;# 8 12 16 24 32 48 64 96 128 192 256 384 512 768 1024
+set BITWIDTHS {254} ;# 8 12 16 24 32 48 64 96 128 192 256 384 512 768 1024
 set TECH_TYPES {gf12} ;# 45nm gf12 saed32 fpga
 set TARGET_IIS {1}
-set MUL_TYPES {kar sb} ;# kar sb nor
+set MUL_TYPES {sb kar} ;# kar sb nor
 set TARGET_PERIODS {1} ;# in ns
 set Q_TYPES {fixedq varq} ;# fixedq varq
 
@@ -67,7 +67,7 @@ set SIM false ;# verify RTL
 set SYN false
 set TEST true ;# test C++ code
 set TEST_ONLY false ;# only test C++ code with osci, for quick initial testing
-set NUM_TEST_SAMPLES 1000
+set NUM_TEST_SAMPLES 5000
 set GEN_SAMPLES true ;# set off if custom samples
 set HAS_MODSQ true ;# only false for cyclonemsm twisted edward formula so far
 set CCORE_MUL_F false ;# make mul_f ccore, false = more compile time, better design latency  

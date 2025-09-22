@@ -20,14 +20,13 @@ ac_int<BW_A+BW_B,false> mul_schoolbook_gen(
         // split a
         static constexpr int la = BW_A / 2;
         static constexpr int ha = BW_A - la;
-
-        ac_int<la,false> a0 = a.template slc<la>(0);
-        ac_int<ha,false> a1 = a.template slc<ha>(la);
-
+        
         // split b
         static constexpr int lb = BW_B / 2;
         static constexpr int hb = BW_B - lb;
 
+        ac_int<la,false> a0 = a.template slc<la>(0);
+        ac_int<ha,false> a1 = a.template slc<ha>(la);
         ac_int<lb,false> b0 = b.template slc<lb>(0);
         ac_int<hb,false> b1 = b.template slc<hb>(lb);
 
