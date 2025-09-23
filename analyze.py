@@ -222,10 +222,11 @@ def derive_all_attr(parsed_raw_attrs, table_info):
             "sol": sol,
             "tech_type": all_info.get("tech_type", None),
             "curve_type": all_info.get("curve_type", None),
+            "a": all_info.get("a", None),
             "target_period": round(period, 2) if period else all_info["target_period"],
             "target_freq": round(1000/period, 2) if period else None,
-            "bitwidth": all_info['bitwidth'],
             "q_type": all_info['q_type'],
+            "bitwidth": all_info['bitwidth'],
             "mt": all_info['mul_type'],
             "bm": all_info['bm'],
             "kar": all_info['kar'],
@@ -239,6 +240,7 @@ def derive_all_attr(parsed_raw_attrs, table_info):
             "latency": latency,
             "ii": ii,
             "area": area,
+            "area (mm^2)": round(area/1e6, 2) if area else area,
         }
 
         if all_info['tech_type'] in ASIC_TECH_TYPES:

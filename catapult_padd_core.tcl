@@ -147,6 +147,9 @@ if {[catch {project get /SOLUTION/$modmul_mont_sol_name.v* -match glob} err]} {
     go libraries
     if {$CCORE_MUL_F && $mul_type ne "nor"} { directive set /modmul_mont_core/mul_f -MAP_TO_MODULE "\[CCORE\] $mul_f_sol"}
 
+    go architect
+    remove_broken_mul_libs $tech_type
+
     go extract
     solution table export -file [file join $work_dir $table_name]
     set modmul_mont_sol "[solution get /name].[solution get /VERSION]"
@@ -177,6 +180,9 @@ if {$HAS_MODSQ} {
             directive set /modsq_mont_core/sq_f -MAP_TO_MODULE "\[CCORE\] $sq_f_sol"
             directive set /modsq_mont_core/mul_f -MAP_TO_MODULE "\[CCORE\] $mul_f_sol"
         }
+        go architect
+        remove_broken_mul_libs $tech_type
+        
         go extract
         solution table export -file [file join $work_dir $table_name]
         set modsq_mont_sol "[solution get /name].[solution get /VERSION]"
