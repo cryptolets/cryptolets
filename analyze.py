@@ -174,6 +174,8 @@ def parse_table_name(table_name):
             info["mul_type"] = p[2:]
         elif p.startswith("tt"):
             info["tech_type"] = p[2:]
+        elif p.startswith("fa"):
+            info["a"] = FIELD_A_TO_INT.get(p[2:], None)
         elif p.startswith("f"):
             info["target_freq"] = float(p[1:].replace("MHz", ""))
         elif p.startswith("p"):
@@ -184,8 +186,6 @@ def parse_table_name(table_name):
             info["kar"] = int(p[3:])
         elif p.startswith("ct"):
             info["curve_type"] = name.split("_ct")[-1]
-        elif p.startswith("fa"):
-            info["a"] = FIELD_A_TO_INT.get(p[2:], None)
 
     return info
 
