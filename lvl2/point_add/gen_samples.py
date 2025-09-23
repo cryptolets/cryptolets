@@ -7,7 +7,6 @@ from pathlib import Path
 
 import sys
 sys.path.append(str(Path(__file__).resolve().parents[2]))
-from utils import from_twos_complement
 from utils.field_helpers import (
     modadd, modsub, modmul, modsq, moddouble,
     EC_point_J, ShortWeierstrass,

@@ -1,11 +1,11 @@
 # Sweep parameters
-set BITWIDTHS {254} ;# 8 12 16 24 32 48 64 96 128 192 256 384 512 768 1024
+set BITWIDTHS {256 384} ;# 8 12 16 24 32 48 64 96 128 192 256 384 512 768 1024
 set TECH_TYPES {gf12} ;# 45nm gf12 saed32 fpga
 set TARGET_IIS {1}
 set MUL_TYPES {sb kar} ;# kar sb nor
 set TARGET_PERIODS {1} ;# in ns
 set Q_TYPES {varq fixedq} ;# in ns
-set CURVE_TYPES {BN254}
+set CURVE_TYPES {RAND_CURVE BN254 BLS12_377}
 
 set BASE_MUL_DEPTH_MAP {
     8 {8}

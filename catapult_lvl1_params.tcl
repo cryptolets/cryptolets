@@ -2,9 +2,9 @@
 set BITWIDTHS {256 384}
 set TECH_TYPES {gf12} ;# 45nm gf12 saed32 fpga
 set TARGET_IIS {1}
-set TARGET_PERIODS {3} ;# in ns
+set TARGET_PERIODS {1} ;# in ns
 set Q_TYPES {varq fixedq} ;# in ns
-set CURVE_TYPES {RAND_CURVE BN128}
+set CURVE_TYPES {RAND_CURVE BN254 BLS12_377}
 
 # DO NOT CHANGE UNLESS DEVELEOPMENT
 # defines for order of params before project split (at the level we parallelize)
