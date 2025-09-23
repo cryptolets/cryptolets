@@ -1,4 +1,5 @@
-# Sweep script for bw group (modmul_mont)
+# For Short Weierstrass curve = "point_add" kernel
+# Sweep script for bw group (point_add)
 set lvl_dir "lvl2"
 
 # import project level sweep params from env
@@ -11,6 +12,7 @@ set q_type $env(Q_TYPE)
 set curve_type $env(CURVE_TYPE)
 set bm $env(BASE_MUL_DEPTH)
 set kar $env(KAR_MUL_DEPTH)
+set field_a $env(FIELD_A)
 
 set kernel $env(KERNEL_NAME)
 set root_dir [file normalize [file dirname [info script]]]
@@ -37,7 +39,7 @@ lappend include_dirs [file join $lvl_dir $kernel include]
 set include_flags [build_include_flags $root_dir $include_dirs]
     
 set period_str [string map {. _} $period]
-set sweep_key "bw${bitwidth}_tt${tech_type}_ii${target_ii}_qt${q_type}_mt${mul_type}_bm${bm}_kar${kar}_p${period_str}ns_ct${curve_type}"
+set sweep_key "bw${bitwidth}_tt${tech_type}_ii${target_ii}_qt${q_type}_mt${mul_type}_bm${bm}_kar${kar}_p${period_str}ns_fa${field_a}_ct${curve_type}"
 set proj_name "Catapult_${sweep_key}"
 set table_name "table_$sweep_key.csv"
 set sol_name "sol"
@@ -45,7 +47,7 @@ set sol_name "sol"
 open_or_create_proj $proj_name $work_dir
 puts "\n=== Starting project $proj_name ==="
 
-run_gen_field_const $bitwidth $curve_type $root_dir
+run_gen_field_const $bitwidth $curve_type $root_dir $field_a
 
 set sol_name_test_only "${sol_name}_test_only"
 open_or_create_solution $sol_name_test_only
@@ -62,6 +64,7 @@ append flags " -DCURVE_TYPE=$curve_type"
 append flags " -DQ_HEX=\\\"[get_field_const $curve_type q $root_dir]\\\""
 append flags " -DQ_PRIME_HEX=\\\"[get_field_const $curve_type q_prime $root_dir]\\\""
 append flags " -DMU_HEX=\\\"[get_field_const $curve_type mu $root_dir]\\\""
+append flags " -DFIELD_A=$field_a"
 
 options set /Input/CompilerFlags "$include_flags $flags"
 

@@ -81,6 +81,15 @@
   #define CURVE_TYPE RAND_CURVE
 #endif
 
+
+#define A0 0 // a=0
+#define A2 2 // a=2
+#define ANEG3 3 // a=-3
+
+#ifndef FIELD_A
+#define FIELD_A A_0
+#endif
+
 // Warning: Fixed placeholder constants, but not functionally correct
 #if Q_TYPE == FIXED_Q
 

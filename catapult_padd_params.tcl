@@ -1,13 +1,22 @@
+# For Short Weierstrass curve = "point_add" kernel
 # Sweep parameters
-set BITWIDTHS {254} ;# 8 12 16 24 32 48 64 96 128 192 256 384 512 768 1024
+set BITWIDTHS {256} ;# 8 12 16 24 32 48 64 96 128 192 256 384 512 768 1024
 set TECH_TYPES {gf12} ;# 45nm gf12 saed32 fpga
 set TARGET_IIS {1}
-set MUL_TYPES {sb kar} ;# kar sb nor
+set MUL_TYPES {sb} ;# kar sb nor
 set TARGET_PERIODS {1} ;# in ns
 set Q_TYPES {fixedq varq} ;# fixedq varq
 
-# BN254 BLS12_377 BLS12_381 MNT4753 RAND_CURVE
-set CURVE_TYPES {BN254 BLS12_377 BLS12_381 MNT4753}
+# curve types: 
+# RAND_CURVE
+# a=0 : BN254 BLS12_377 BLS12_381 SECP256K1
+# a=2 : MNT4753
+# a=-3 : P_256 P_521
+set CURVE_TYPES {BN254 BLS12_377 BLS12_381 SECP256K1 BN254 P_256 P_521 MNT4753}
+
+# for RAND_CURVE can select what "a" to pick which will specify what formula will be used
+# for other CURVE_TYPE's this value will be overrided
+set FIELD_AS {A0 A2 ANEG3} ;# A0: a=0, A2: a=2, ANEG3: a=-3
 
 set BASE_MUL_DEPTH_MAP {
     8 {8}
@@ -60,14 +69,14 @@ set KAR_MUL_DEPTH_MAP {
 
 # DO NOT CHANGE UNLESS DEVELEOPMENT
 # defines for order of params before project split (at the level we parallelize)
-set SWEEPS_PROJ_ORDER {CURVE_TYPES Q_TYPES TECH_TYPES MUL_TYPES TARGET_PERIODS TARGET_IIS BITWIDTHS BASE_MUL_DEPTH_MAP KAR_MUL_DEPTH_MAP}
+set SWEEPS_PROJ_ORDER {CURVE_TYPES FIELD_AS Q_TYPES TECH_TYPES MUL_TYPES TARGET_PERIODS TARGET_IIS BITWIDTHS BASE_MUL_DEPTH_MAP KAR_MUL_DEPTH_MAP}
 
 # Control flags
 set SIM false ;# verify RTL
 set SYN false
 set TEST true ;# test C++ code
-set TEST_ONLY false ;# only test C++ code with osci, for quick initial testing
-set NUM_TEST_SAMPLES 5000
+set TEST_ONLY true ;# only test C++ code with osci, for quick initial testing
+set NUM_TEST_SAMPLES 1000
 set GEN_SAMPLES true ;# set off if custom samples
 set HAS_MODSQ true ;# only false for cyclonemsm twisted edward formula so far
 set CCORE_MUL_F false ;# make mul_f ccore, false = more compile time, better design latency  

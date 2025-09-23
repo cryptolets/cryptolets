@@ -76,6 +76,16 @@ load_tcl_sweep_params() {
   done < "$file"
 }
 
+# Curve type to field a map
+declare -A CURVE_TO_FIELD_A_MAP=(
+  [BN254]=A0
+  [BLS12_377]=A0
+  [BLS12_381]=A0
+  [SECP256K1]=A0
+  [P_256]=ANEG3
+  [P_521]=ANEG3
+  [MNT4753]=A2
+)
 
 # Basically, so the bit nested for loop recursively and generalizes it
 # It takes SWEEPS_PROJ_ORDER to define the order
@@ -101,6 +111,15 @@ sweep_recurse() {
     local bw=${SWEEP_STATE[BITWIDTHS]}
     eval "valstr=\"\${${name}[$bw]}\""
     read -ra values <<< "$valstr"
+  fi
+
+  # override FIELD_AS sweep for specific CURVE_TYPE (non-RAND_CURVE)
+  if [[ $name == "FIELD_AS" ]] \
+    && [[ -v SWEEP_STATE[CURVE_TYPES] ]] \
+    && [[ ${SWEEP_STATE[CURVE_TYPES]} != "RAND_CURVE" ]]; then
+    
+    curve_type=${SWEEP_STATE[CURVE_TYPES]}
+    values=("${CURVE_TO_FIELD_A_MAP[$curve_type]}")
   fi
 
   # override BITWIDTHS sweep for specific CURVE_TYPE (non-RAND_CURVE)

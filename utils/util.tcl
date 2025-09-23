@@ -116,13 +116,13 @@ proc handle_kar_depths {mul_type bitwidth kar_mul_depth_map} {
     }
 }
 
-proc run_gen_field_const {bitwidth curve_type root_dir} {
+proc run_gen_field_const {bitwidth curve_type root_dir {field_a "A0"}} {
     if {$curve_type eq "RAND_CURVE"} {
         set proj_dir [project get /PROJECT_DIR]
         set py_exec [file join $root_dir .venv/bin/ python]
         set py_file [file join $root_dir utils gen_field_const.py]
         set json_file [file join $proj_dir field_const.json]
-        set cmd [list $py_exec $py_file --bitwidth $bitwidth --json-file $json_file]
+        set cmd [list $py_exec $py_file --bitwidth $bitwidth --json-file $json_file --field-a $field_a]
         exec tcsh -c "$cmd"
     }
 }

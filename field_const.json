@@ -29,6 +29,36 @@
     "mu": "2760d74bcf32791738a0406c331e9ae8a46e09d07fda82a52f7d1dc780a19de74e65c59e8163c701ec4f881fd59646e8",
     "bitwidth": 381
   },
+  "SECP256K1": {
+    "form": "Weierstrass",
+    "desc": "A Koblitz curve.",
+    "a": "0000000000000000000000000000000000000000000000000000000000000000",
+    "b": "0000000000000000000000000000000000000000000000000000000000000007",
+    "q": "fffffffffffffffffffffffffffffffffffffffffffffffffffffffefffffc2f",
+    "q_prime": "c9bd1905155383999c46c2c295f2b761bcb223fedc24a059d838091dd2253531",
+    "mu": "100000000000000000000000000000000000000000000000000000001000003d1",
+    "bitwidth": 256
+  },
+  "P_256": {
+    "form": "Weierstrass",
+    "desc": "A randomly generated curve. [SEC2v1](https://www.secg.org/SEC2-Ver-1.0.pdf) states 'E was chosen verifiably at random as specified in ANSI X9.62 [1] from the seed'.",
+    "a": "0xffffffff00000001000000000000000000000000fffffffffffffffffffffffc",
+    "b": "5ac635d8aa3a93e7b3ebbd55769886bc651d06b0cc53b0f63bce3c3e27d2604b",
+    "q": "ffffffff00000001000000000000000000000000ffffffffffffffffffffffff",
+    "q_prime": "ffffffff00000002000000000000000000000001000000000000000000000001",
+    "mu": "100000000fffffffffffffffefffffffefffffffeffffffff0000000000000003",
+    "bitwidth": 256
+  },
+  "P_521": {
+    "form": "Weierstrass",
+    "desc": "https://neuromancer.sk/std/nist/P-521",
+    "a": "01fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffc",
+    "b": "0051953eb9618e1c9a1f929a21a0b68540eea2da725b99b315f3b8b489918ef109e156193951ec7e937b1652c0bd3bb1bf073573df883d2c34f1ef451fd46b503f00",
+    "q": "01ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+    "q_prime": "1",
+    "mu": "20000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001",
+    "bitwidth": 521
+  },
   "MNT4753": {
     "form": "Weierstrass",
     "desc": "https://docs.rs/ark-mnt4-753/latest/ark_mnt4_753/",
@@ -68,15 +98,5 @@
     "q_prime": "2f286bca1af286bca1af286bca1af286bca1af286bca1af286bca1af286bca1b",
     "mu": "8000000000000000000000000000000000000000000000000000000000000013",
     "bitwidth": 255
-  },
-  "ED448": {
-    "form": "TwistedEdwards",
-    "desc": "Curve from https://ed25519.cr.yp.to",
-    "a": "01",
-    "d": "d78b4bdc7f0daf19f24f38c29373a2ccad46157242a50f37809b1da3412a12e79ccc9c81264cfe9ad080997058fb61c4243cc32dbaa156b9",
-    "q": "fffffffffffffffffffffffffffffffffffffffffffffffffffffffeffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
-    "q_prime": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000000000000000000000000000000000000000000000000001",
-    "mu": "10000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000002",
-    "bitwidth": 448
   }
 }

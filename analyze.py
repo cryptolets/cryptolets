@@ -52,6 +52,12 @@ ATTR_TO_COL_NAME = {
 
 ASIC_TECH_TYPES = ["45nm", "gf12", "saed32"]
 FPGA_TECH_TYPES = ["fpga"]
+FIELD_A_TO_INT = {
+    "A0": 0,
+    "A2": 2,
+    "ANEG3": -3
+}
+
 
 def parse_table_csv(csv_fn):
     flows = []
@@ -153,7 +159,8 @@ def parse_table_name(table_name):
         "q_type": None,
         "mul_type": None,
         "target_freq": None,
-        "target_period": None
+        "target_period": None,
+        "a": None
     }
 
     for p in parts:
@@ -177,6 +184,8 @@ def parse_table_name(table_name):
             info["kar"] = int(p[3:])
         elif p.startswith("ct"):
             info["curve_type"] = name.split("_ct")[-1]
+        elif p.startswith("fa"):
+            info["a"] = FIELD_A_TO_INT.get(p[2:], None)
 
     return info
 
