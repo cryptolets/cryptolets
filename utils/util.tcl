@@ -65,14 +65,18 @@ proc open_or_create_proj {proj_name work_dir} {
     set proj_ccs [file join $work_dir "${proj_name}.ccs"]
     set proj_dir [file join $work_dir $proj_name]
 
-    if {[file exists $proj_ccs]} {
-        puts "Opening existing project: $proj_name"
-        project load $proj_ccs
-    } else {
-        puts "Creating new project at: $proj_name"
-        project new -name $proj_name -directory $proj_dir
-        project save
+    if {[file exists $proj_dir]} {
+        puts "Removing existing project dir: $proj_dir"
+        file delete -force $proj_dir
     }
+    if {[file exists $proj_ccs]} {
+        puts "Removing existing project file: $proj_ccs"
+        file delete -force $proj_ccs
+    }
+
+    puts "Creating new project: $proj_name"
+    project new -name $proj_name -directory $proj_dir
+    project save
 }
 
 # Solution handling
