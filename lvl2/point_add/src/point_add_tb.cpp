@@ -17,6 +17,7 @@ struct STIMULUS_TYPE {
   EC_point_J P1;
   wide_t q_sample;
   wide_t q_prime_sample;
+  wide_t field_a_sample;
   EC_point_J o_sample;
 };
 
@@ -72,13 +73,24 @@ CCS_MAIN(int argc, char **argv)    // required for sc verify flow in Catapult
       stimulus_element.P0,
       stimulus_element.P1
     );
-#else // variable Q
+
+#elif Q_TYPE == VAR_Q && FIELD_A == AVAR // variable q and variable a
+    stimulus_element.o_sample = CCS_DESIGN(point_add)(
+          stimulus_element.P0,
+          stimulus_element.P1,
+          stimulus_element.q_sample,
+          stimulus_element.q_prime_sample,
+          stimulus_element.field_a_sample
+        );
+
+#else // variable q only
     stimulus_element.o_sample = CCS_DESIGN(point_add)(
           stimulus_element.P0,
           stimulus_element.P1,
           stimulus_element.q_sample,
           stimulus_element.q_prime_sample
         );
+
 #endif
 
     samples_out.push_back(stimulus_element);
@@ -101,7 +113,7 @@ int ReadCSV_Samples(string filename, samplesVector_t &samples)
     return -1;
   }
   // CSV file is expected to have 4 columns: X1,Y1,Z1,X2,Y2,Z2,q_sample,q_prime_sample
-  assert(CsvParser_getNumFields(header)== 8);
+  assert(CsvParser_getNumFields(header)== 9);
 
   const char **headerFields = CsvParser_getFields(header);
   while ((row = CsvParser_getRow(csvparser)) ) {
@@ -117,6 +129,8 @@ int ReadCSV_Samples(string filename, samplesVector_t &samples)
 
     stimulus_element.q_sample = parse_ac_int<wide_t::width>(rowFields[6]);
     stimulus_element.q_prime_sample = parse_ac_int<wide_t::width>(rowFields[7]);
+    stimulus_element.field_a_sample = parse_ac_int<wide_t::width>(rowFields[8]);
+
     samples.push_back(stimulus_element);
     CsvParser_destroy_row(row);
   }

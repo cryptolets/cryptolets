@@ -10,7 +10,8 @@ FIELD_JSON = "field_const.json"
 FIELD_A_TO_INT = {
     "A0": 0,
     "A2": 2,
-    "ANEG3": -3
+    "ANEG3": -3,
+    "AVAR": 5 # just for testing variable a
 }
 
 def gen_random_field_const(bitwidth, field_a, seed=42):

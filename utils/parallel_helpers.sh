@@ -95,6 +95,16 @@ sweep_recurse() {
   local leaf_func=$2   # function to call at leaf
 
   if (( depth == ${#SWEEPS_PROJ_ORDER[@]} )); then
+    # skip if FIELD_AS == "AVAR" and CURVE_TYPES == "RAND_CURVE" and Q_TYPES == "fixedq"
+    if [[ -v SWEEP_STATE[FIELD_AS] ]] \
+      && [[ -v SWEEP_STATE[CURVE_TYPES] ]] \
+      && [[ -v SWEEP_STATE[Q_TYPES] ]] \
+      && [[ ${SWEEP_STATE[FIELD_AS]} == "AVAR" ]] \
+      && [[ ${SWEEP_STATE[CURVE_TYPES]} == "RAND_CURVE" ]] \
+      && [[ ${SWEEP_STATE[Q_TYPES]} == "fixedq" ]]; then
+      return
+    fi
+    
     # Call the leaf function with current sweep state
     "$leaf_func"
     return
@@ -119,7 +129,7 @@ sweep_recurse() {
     && [[ ${SWEEP_STATE[CURVE_TYPES]} != "RAND_CURVE" ]]; then
     
     curve_type=${SWEEP_STATE[CURVE_TYPES]}
-    values=("${CURVE_TO_FIELD_A_MAP[$curve_type]}")
+    values=("${CURVE_TO_FIELD_A_MAP[$curve_type]:-AVAR}")
   fi
 
   # override BITWIDTHS sweep for specific CURVE_TYPE (non-RAND_CURVE)

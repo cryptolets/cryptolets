@@ -42,41 +42,6 @@ def point_dbl_2009_l_a_0_ref(P0, q):
     result.Z = moddouble(t8, q)       # Z3 = 2*t8
     return result
 
-def point_dbl_2009_l_a_2_ref(P0, q):
-    # point doubling for a=2
-    # Note: this is a general formula, but 2*A mod q translates to A+A mod q, which is easy in hardware
-    # https://www.hyperelliptic.org/EFD/g1p/auto-shortw-jacobian.html#doubling-dbl-2007-bl
-    result = EC_point_J()
-    XX       = modsq(P0.X, q)        # XX = X1^2
-    YY       = modsq(P0.Y, q)        # YY = Y1^2
-    YYYY     = modsq(YY, q)          # YYYY = YY^2
-    ZZ       = modsq(P0.Z, q)        # ZZ = Z1^2
-    t0       = modadd(P0.X, YY, q)   # t0 = X1+YY
-    t1       = modsq(t0, q)          # t1 = t0^2
-    t2       = modsub(t1, XX, q)     # t2 = t1-XX
-    t3       = modsub(t2, YYYY, q)   # t3 = t2-YYYY
-    S        = moddouble(t3, q)      # S = 2*t3
-    t4       = modsq(ZZ, q)          # t4 = ZZ^2
-    t5       = moddouble(t4, q)      # t5 = a*t4; a = 2
-    t6       = moddouble(XX, q)      # t6 = XX+XX
-    t6       = modadd(t6, XX, q)     # t6 = t6+XX
-    M        = modadd(t6, t5, q)     # M = t6+t5
-    t7       = modsq(M, q)           # t7 = M^2
-    t8       = moddouble(S, q)       # t8 = 2*S
-    T        = modsub(t7, t8, q)     # T = t7-t8
-    result.X = T                     # X3 = T
-    t9       = modsub(S, T, q)       # t9 = S-T
-    t10      = moddouble(YYYY, q)    # t10 = YYYY+YYYY
-    t10      = moddouble(t10, q)     # t10 = t10+t10
-    t10      = moddouble(t10, q)     # t10 = t10+t10
-    t11      = modmul(M, t9, q)      # t11 = M*t9
-    result.Y = modsub(t11, t10, q)   # Y3 = t11-t10
-    t12      = modadd(P0.Y, P0.Z, q) # t12 = Y1+Z1
-    t13      = modsq(t12, q)         # t13 = t12^2
-    t14      = modsub(t13, YY, q)    # t14 = t13-YY
-    result.Z = modsub(t14, ZZ, q)    # Z3 = t14-ZZ
-    return result
-
 def point_dbl_2009_l_a_3_ref(P0, delta, q):
     # point doubling for a=-3
     # https://www.hyperelliptic.org/EFD/g1p/auto-shortw-jacobian-3.html#doubling-dbl-2001-b
@@ -107,6 +72,47 @@ def point_dbl_2009_l_a_3_ref(P0, delta, q):
     result.Y = modsub(t12, t11, q)     # Y3 = t12-t11
     return result
 
+def point_dbl_2009_l_a_var_ref(P0, q, a):
+    # point doubling for variable a
+    # Note: this is a general formula, but 2*A mod q translates to A+A mod q, which is easy in hardware
+    # https://www.hyperelliptic.org/EFD/g1p/auto-shortw-jacobian.html#doubling-dbl-2007-bl
+    result = EC_point_J()
+    XX       = modsq(P0.X, q)        # XX = X1^2
+    YY       = modsq(P0.Y, q)        # YY = Y1^2
+    YYYY     = modsq(YY, q)          # YYYY = YY^2
+    ZZ       = modsq(P0.Z, q)        # ZZ = Z1^2
+    t0       = modadd(P0.X, YY, q)   # t0 = X1+YY
+    t1       = modsq(t0, q)          # t1 = t0^2
+    t2       = modsub(t1, XX, q)     # t2 = t1-XX
+    t3       = modsub(t2, YYYY, q)   # t3 = t2-YYYY
+    S        = moddouble(t3, q)      # S = 2*t3
+    t4       = modsq(ZZ, q)          # t4 = ZZ^2
+
+    if a == 2:
+        # point doubling for a=2
+        t5   = moddouble(t4, q)      # t5 = a*t4; a = 2
+    else:
+        t5   = modmul(a, t4, q)      # t5 = a*t4
+
+    t6       = moddouble(XX, q)      # t6 = XX+XX
+    t6       = modadd(t6, XX, q)     # t6 = t6+XX
+    M        = modadd(t6, t5, q)     # M = t6+t5
+    t7       = modsq(M, q)           # t7 = M^2
+    t8       = moddouble(S, q)       # t8 = 2*S
+    T        = modsub(t7, t8, q)     # T = t7-t8
+    result.X = T                     # X3 = T
+    t9       = modsub(S, T, q)       # t9 = S-T
+    t10      = moddouble(YYYY, q)    # t10 = YYYY+YYYY
+    t10      = moddouble(t10, q)     # t10 = t10+t10
+    t10      = moddouble(t10, q)     # t10 = t10+t10
+    t11      = modmul(M, t9, q)      # t11 = M*t9
+    result.Y = modsub(t11, t10, q)   # Y3 = t11-t10
+    t12      = modadd(P0.Y, P0.Z, q) # t12 = Y1+Z1
+    t13      = modsq(t12, q)         # t13 = t12^2
+    t14      = modsub(t13, YY, q)    # t14 = t13-YY
+    result.Z = modsub(t14, ZZ, q)    # Z3 = t14-ZZ
+    return result
+
 
 def point_add_ref(P0, P1, q, a):
     result = EC_point_J()
@@ -135,10 +141,10 @@ def point_add_ref(P0, P1, q, a):
         if U1 == U2 and S1 == S2:
             if a == 0:
                 result = point_dbl_2009_l_a_0_ref(P0, q)
-            elif a == 2:
-                result = point_dbl_2009_l_a_2_ref(P0, q)
             elif a == (-3 % q):
                 result = point_dbl_2009_l_a_3_ref(P0, Z1Z1, q)
+            else:
+                result = point_dbl_2009_l_a_var_ref(P0, q, a)
 
         # otherwise do the addition
         else:
@@ -174,8 +180,8 @@ def write_csv_files(curve_type, total_samples, json_file, samples_path=None, gol
     a = get_field_const(curve_type, "a", json_file)
     b = get_field_const(curve_type, "b", json_file)
 
-    valid_a = a == (0 % q) or a == (2 % q) or a == (-3 % q)
-    assert valid_a, f"Error: a={a}, must be a=0, a=2, or a={-3 % q}"
+    valid_a = a == (0 % q) or a == (2 % q) or a == (-3 % q) or a == 5
+    assert valid_a, f"Error: a={a}, must be a=0, a=2, a={-3 % q}, or a=5 (variable a)"
     E = ShortWeierstrass(q, a=a, b=b)
 
     # default paths
@@ -209,7 +215,7 @@ def write_csv_files(curve_type, total_samples, json_file, samples_path=None, gol
         P1_mont = to_mont(P1_jac.as_tuple(), q)
         P2_mont = to_mont(P2_jac.as_tuple(), q)
 
-        samples_mont.append((*P1_mont, *P2_mont, q, q_prime))
+        samples_mont.append((*P1_mont, *P2_mont, q, q_prime, to_mont(a,q)))
 
         golden_jac = point_add_ref(P1_jac, P2_jac, q, a)
         ref_aff = E.add(P1, P2) # use affine point add for reference (sanity check)
@@ -225,7 +231,8 @@ def write_csv_files(curve_type, total_samples, json_file, samples_path=None, gol
     # Write samples
     with samples_file.open("w", newline="") as f:
         writer = csv.writer(f)
-        writer.writerow(["X1", "Y1", "Z1", "X2", "Y2", "Z2", "q_sample", "q_prime_sample"])
+        samples_header = ["X1", "Y1", "Z1", "X2", "Y2", "Z2", "q_sample", "q_prime_sample", "field_a_sample"]
+        writer.writerow(samples_header)
         writer.writerows(samples_mont)
 
     # Write goldens

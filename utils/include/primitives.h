@@ -52,6 +52,8 @@ typedef struct {
 
 // --- Fixed modulus values (for const-Q optimizations) ---
 #if Q_TYPE == FIXED_Q
+#include "tmp_const.h"
+
 static const wide_t Q = ac::bit_fill_hex<wide_t>(Q_HEX);
 
 // Montgomery constant

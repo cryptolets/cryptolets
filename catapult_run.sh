@@ -73,5 +73,5 @@ for kernel in "${kernels[@]}"; do
     PARAMS_TCL_SCRIPT="catapult_${group_name}_params.tcl"
 
     echo "=== Running Catapult for kernel=$kernel (script=$CORE_CATAPULT_SCRIPT) ==="
-    bash run_catapult_parallel.sh "$CORE_CATAPULT_SCRIPT" "$PARAMS_TCL_SCRIPT" "$kernel" "$DRY_RUN_ARG" "$GUI_ARG"
+    bash run_catapult_parallel.sh $CORE_CATAPULT_SCRIPT $PARAMS_TCL_SCRIPT $kernel $DRY_RUN_ARG $GUI_ARG
 done

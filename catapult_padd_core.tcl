@@ -14,6 +14,15 @@ set bm $env(BASE_MUL_DEPTH)
 set kar $env(KAR_MUL_DEPTH)
 set field_a $env(FIELD_A)
 
+set include_dirs {
+    utils/include
+    lvl0_primitives/mul_f/include
+    lvl0_primitives/sq_f/include
+    lvl1_modops/modadd/include
+    lvl1_modops/modsub/include
+    lvl1_modops/modmul_mont/include
+}
+
 set kernel $env(KERNEL_NAME)
 set root_dir [file normalize [file dirname [info script]]]
 source [file join $root_dir catapult_padd_params.tcl] ;# get solution level params and control flags
@@ -24,19 +33,8 @@ source [file join $root_dir utils util.tcl]
 set kernel_dir [file join $root_dir $lvl_dir $kernel]
 set work_dir [enter_work_dir $kernel_dir] ;# move to a lvl_dir/kernel/Catapult as working dir
 
+set TEST [expr {$SIM || $TEST}]
 override_default_options ;# Reset tool options
-
-set include_dirs {
-    utils/include
-    lvl0_primitives/mul_f/include
-    lvl0_primitives/sq_f/include
-    lvl1_modops/modadd/include
-    lvl1_modops/modsub/include
-    lvl1_modops/modmul_mont/include
-}
-
-lappend include_dirs [file join $lvl_dir $kernel include]
-set include_flags [build_include_flags $root_dir $include_dirs]
     
 set period_str [string map {. _} $period]
 set sweep_key "bw${bitwidth}_tt${tech_type}_ii${target_ii}_qt${q_type}_mt${mul_type}_bm${bm}_kar${kar}_p${period_str}ns_fa${field_a}_ct${curve_type}"
@@ -47,7 +45,10 @@ set sol_name "sol"
 open_or_create_proj $proj_name $work_dir
 puts "\n=== Starting project $proj_name ==="
 
-run_gen_field_const $bitwidth $curve_type $root_dir $field_a
+set tmp_const_h_dir [run_const_gens $bitwidth $curve_type $root_dir $field_a]
+lappend include_dirs [file join $tmp_const_h_dir]
+lappend include_dirs [file join $lvl_dir $kernel include]
+set include_flags [build_include_flags $root_dir $include_dirs]
 
 set sol_name_test_only "${sol_name}_test_only"
 open_or_create_solution $sol_name_test_only
@@ -61,9 +62,6 @@ append flags " -DMUL_TYPE=[get_mul_val $mul_type]"
 append flags " -DKAR_BASE_MUL_WIDTH=$kar"
 append flags " -DBASE_MUL_WIDTH=$bm"
 append flags " -DCURVE_TYPE=$curve_type"
-append flags " -DQ_HEX=\\\"[get_field_const $curve_type q $root_dir]\\\""
-append flags " -DQ_PRIME_HEX=\\\"[get_field_const $curve_type q_prime $root_dir]\\\""
-append flags " -DMU_HEX=\\\"[get_field_const $curve_type mu $root_dir]\\\""
 append flags " -DFIELD_A=$field_a"
 
 options set /Input/CompilerFlags "$include_flags $flags"
@@ -258,7 +256,9 @@ if {$CCORE_MODADDSUB} {
 }
 
 go extract
+project save
 solution table export -file [file join $work_dir $table_name]
+
 run_scverify $kernel_dir $work_dir $bitwidth $SIM
 run_syn $tech_type $SYN $root_dir
 solution table export -file [file join $work_dir $table_name]

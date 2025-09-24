@@ -33,45 +33,6 @@ EC_point_J point_dbl_2009_l_a_0(
     return result;
 }
 
-EC_point_J point_dbl_2009_l_a_2(
-    EC_point_J P0, 
-    const wide_t q, const wide_t q_prime
-) {
-    // point doubling for a=2
-    // Note: this is a general formula, but 2*A mod q translates to A+A mod q, which is easy in hardware
-    // https://www.hyperelliptic.org/EFD/g1p/auto-shortw-jacobian.html#doubling-dbl-2007-bl
-    EC_point_J result;
-    wide_t XX   = modsq_mont_core(P0.X, q, q_prime)   ; // XX = X1^2
-    wide_t YY   = modsq_mont_core(P0.Y, q, q_prime)   ; // YY = Y1^2
-    wide_t YYYY = modsq_mont_core(YY, q, q_prime)     ; // YYYY = YY^2
-    wide_t ZZ   = modsq_mont_core(P0.Z, q, q_prime)   ; // ZZ = Z1^2
-    wide_t t0   = modadd_core(P0.X, YY, q)            ; // t0 = X1+YY
-    wide_t t1   = modsq_mont_core(t0, q, q_prime)     ; // t1 = t0^2
-    wide_t t2   = modsub_core(t1, XX, q)              ; // t2 = t1-XX
-    wide_t t3   = modsub_core(t2, YYYY, q)            ; // t3 = t2-YYYY
-    wide_t S    = moddouble_core(t3, q)               ; // S = 2*t3
-    wide_t t4   = modsq_mont_core(ZZ, q, q_prime)     ; // t4 = ZZ^2
-    wide_t t5   = moddouble_core(t4, q)               ; // t5 = a*t4; a=2
-    wide_t t6   = moddouble_core(XX, q)               ; // t6 = XX+XX
-    t6          = modadd_core(t6, XX, q)              ; // t6 = t6+XX
-    wide_t M    = modadd_core(t6, t5, q)              ; // M = t6+t5
-    wide_t t7   = modsq_mont_core(M, q, q_prime)      ; // t7 = M^2
-    wide_t t8   = moddouble_core(S, q)                ; // t8 = 2*S
-    wide_t T    = modsub_core(t7, t8, q)              ; // T = t7-t8
-    result.X    = T                                   ; // X3 = T
-    wide_t t9   = modsub_core(S, T, q)                ; // t9 = S-T
-    wide_t t10  = moddouble_core(YYYY, q)             ; // t10 = YYYY+YYYY
-    t10         = moddouble_core(t10, q)              ; // t10 = t10+t10
-    t10         = moddouble_core(t10, q)              ; // t10 = t10+t10
-    wide_t t11  = modmul_mont_core(M, t9, q, q_prime) ; // t11 = M*t9
-    result.Y    = modsub_core(t11, t10, q)            ; // Y3 = t11-t10
-    wide_t t12  = modadd_core(P0.Y, P0.Z, q)          ; // t12 = Y1+Z1
-    wide_t t13  = modsq_mont_core(t12, q, q_prime)    ; // t13 = t12^2
-    wide_t t14  = modsub_core(t13, YY, q)             ; // t14 = t13-YY
-    result.Z    = modsub_core(t14, ZZ, q)             ; // Z3 = t14-ZZ
-    return result;
-}
-
 EC_point_J point_dbl_2009_l_a_3(
     EC_point_J P0, const wide_t delta,
     const wide_t q, const wide_t q_prime
@@ -106,12 +67,86 @@ EC_point_J point_dbl_2009_l_a_3(
     return result;
 }
 
-
-EC_point_J point_add_core(
+#if FIELD_A == A2
+EC_point_J point_dbl_2009_l_a_var(
     EC_point_J P0, 
-    EC_point_J P1,
     const wide_t q, const wide_t q_prime
-) {
+) 
+#else
+EC_point_J point_dbl_2009_l_a_var(
+    EC_point_J P0, 
+    const wide_t q, const wide_t q_prime, const wide_t field_a
+)
+#endif
+{
+    // point doubling for variable a and a=2
+    // Note: this is a general formula; 2*A mod q translates to A+A mod q, which is easy in hardware
+    // https://www.hyperelliptic.org/EFD/g1p/auto-shortw-jacobian.html#doubling-dbl-2007-bl
+    EC_point_J result;
+    wide_t XX   = modsq_mont_core(P0.X, q, q_prime)   ; // XX = X1^2
+    wide_t YY   = modsq_mont_core(P0.Y, q, q_prime)   ; // YY = Y1^2
+    wide_t YYYY = modsq_mont_core(YY, q, q_prime)     ; // YYYY = YY^2
+    wide_t ZZ   = modsq_mont_core(P0.Z, q, q_prime)   ; // ZZ = Z1^2
+    wide_t t0   = modadd_core(P0.X, YY, q)            ; // t0 = X1+YY
+    wide_t t1   = modsq_mont_core(t0, q, q_prime)     ; // t1 = t0^2
+    wide_t t2   = modsub_core(t1, XX, q)              ; // t2 = t1-XX
+    wide_t t3   = modsub_core(t2, YYYY, q)            ; // t3 = t2-YYYY
+    wide_t S    = moddouble_core(t3, q)               ; // S = 2*t3
+    wide_t t4   = modsq_mont_core(ZZ, q, q_prime)     ; // t4 = ZZ^2
+
+#if FIELD_A == A2
+    wide_t t5   = moddouble_core(t4, q)               ; // t5 = a*t4; a=2
+#else // variable a
+    wide_t t5   = modmul_mont_core(field_a, t4, q, q_prime) ; // t5 = a*t4
+#endif
+
+    wide_t t6   = moddouble_core(XX, q)               ; // t6 = XX+XX
+    t6          = modadd_core(t6, XX, q)              ; // t6 = t6+XX
+    wide_t M    = modadd_core(t6, t5, q)              ; // M = t6+t5
+    wide_t t7   = modsq_mont_core(M, q, q_prime)      ; // t7 = M^2
+    wide_t t8   = moddouble_core(S, q)                ; // t8 = 2*S
+    wide_t T    = modsub_core(t7, t8, q)              ; // T = t7-t8
+    result.X    = T                                   ; // X3 = T
+    wide_t t9   = modsub_core(S, T, q)                ; // t9 = S-T
+    wide_t t10  = moddouble_core(YYYY, q)             ; // t10 = YYYY+YYYY
+    t10         = moddouble_core(t10, q)              ; // t10 = t10+t10
+    t10         = moddouble_core(t10, q)              ; // t10 = t10+t10
+    wide_t t11  = modmul_mont_core(M, t9, q, q_prime) ; // t11 = M*t9
+    result.Y    = modsub_core(t11, t10, q)            ; // Y3 = t11-t10
+    wide_t t12  = modadd_core(P0.Y, P0.Z, q)          ; // t12 = Y1+Z1
+    wide_t t13  = modsq_mont_core(t12, q, q_prime)    ; // t13 = t12^2
+    wide_t t14  = modsub_core(t13, YY, q)             ; // t14 = t13-YY
+    result.Z    = modsub_core(t14, ZZ, q)             ; // Z3 = t14-ZZ
+    return result;
+}
+
+
+#if Q_TYPE == FIXED_Q
+
+EC_point_J point_add(EC_point_J P0, EC_point_J P1)
+
+#elif Q_TYPE == VAR_Q && FIELD_A == AVAR // variable q and variable a
+
+EC_point_J point_add(
+    EC_point_J P0, EC_point_J P1,
+    const wide_t q, const wide_t q_prime, const wide_t field_a
+) 
+
+#else // variable q only
+
+EC_point_J point_add(
+    EC_point_J P0, EC_point_J P1,
+    const wide_t q, const wide_t q_prime
+) 
+
+#endif
+{
+
+#if Q_TYPE == FIXED_Q
+    wide_t q = Q;
+    wide_t q_prime = Q_PRIME;
+#endif
+
     EC_point_J result;
 
     if (P0.Z == 0 && P1.Z == 0)
@@ -138,9 +173,11 @@ EC_point_J point_add_core(
 #if FIELD_A == A0
             result = point_dbl_2009_l_a_0(P0, q, q_prime);
 #elif FIELD_A == A2
-            result = point_dbl_2009_l_a_2(P0, q, q_prime);
+            result = point_dbl_2009_l_a_var(P0, q, q_prime);
 #elif FIELD_A == ANEG3
             result = point_dbl_2009_l_a_3(P0, Z1Z1, q, q_prime);
+#elif Q_TYPE == VAR_Q && FIELD_A == AVAR
+            result = point_dbl_2009_l_a_var(P0, q, q_prime, field_a);
 #endif
         } else {
             // otherwise do the addition
@@ -171,20 +208,3 @@ EC_point_J point_add_core(
     }
     return result;
 }
-
-#if Q_TYPE == FIXED_Q
-
-EC_point_J point_add(EC_point_J P0, EC_point_J P1) {
-    return point_add_core(P0, P1, Q, Q_PRIME);
-}
-
-#else  // VARIABLE Q
-
-EC_point_J point_add(
-    EC_point_J P0, EC_point_J P1, 
-    const wide_t q, const wide_t q_prime
-) {
-    return point_add_core(P0, P1, q, q_prime);
-}
-
-#endif

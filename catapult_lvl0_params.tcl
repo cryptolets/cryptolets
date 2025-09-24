@@ -1,16 +1,16 @@
 # Sweep parameters
 set BITWIDTHS {16 32 64}
-set TECH_TYPES {saed32} ;# 45nm gf12 saed32 fpga
+set TECH_TYPES {gf12} ;# 45nm gf12 saed32 fpga
 set TARGET_IIS {1}
-set TARGET_PERIODS {4} ;# in ns
+set TARGET_PERIODS {1} ;# in ns
 
 # DO NOT CHANGE UNLESS DEVELEOPMENT
 # defines for order of params before project split (at the level we parallelize)
 set SWEEPS_PROJ_ORDER {TECH_TYPES TARGET_PERIODS TARGET_IIS BITWIDTHS}
 
 # Control flags
-set SIM false ;# verify RTL
-set SYN true
+set SIM true ;# verify RTL
+set SYN false
 set TEST true ;# test C++ code
 set TEST_ONLY false ;# only test C++ code with osci, for quick initial testing
 set NUM_TEST_SAMPLES 1000

@@ -33,25 +33,25 @@ set BASE_MUL_DEPTH_MAP {
 set KAR_MUL_DEPTH_MAP {
     8 {8}
     12 {12}
-    16 {16}
-    24 {24}
-    32 {32 16}
-    48 {48 24}
-    64 {64 32}
-    96 {96 48 24}
-    128 {128 64 32}
-    192 {192 96 48 24}
-    254 {254 127 63}
-    256 {256 128 64}
-    377 {377 188 94 47}
-    381 {381 190 95 47}
-    384 {384 192 96 48}
-    448 {448 224 112 56}
-    512 {512 256 128 64}
-    521 {521 260 130 65}
-    753 {753 276 188 94 47}
-    768 {768 384 192 96 48}
-    1024 {1024 512 256 128 64}
+    16 {8}
+    24 {12}
+    32 {16}
+    48 {24}
+    64 {32}
+    96 {48 24}
+    128 {64 32}
+    192 {96 48 24}
+    254 {127 63}
+    256 {128 64}
+    377 {188 94 47}
+    381 {190 95 47}
+    384 {192 96 48}
+    448 {224 112 56}
+    512 {256 128 64}
+    521 {260 130 65}
+    753 {376 188 94 47}
+    768 {384 192 96 48}
+    1024 {512 256 128 64}
 }
 
 # DO NOT CHANGE UNLESS DEVELEOPMENT
@@ -59,7 +59,7 @@ set KAR_MUL_DEPTH_MAP {
 set SWEEPS_PROJ_ORDER {TECH_TYPES MUL_TYPES TARGET_PERIODS TARGET_IIS BITWIDTHS BASE_MUL_DEPTH_MAP KAR_MUL_DEPTH_MAP}
 
 # Control flags
-set SIM false ;# verify RTL
+set SIM true ;# verify RTL
 set SYN false
 set TEST true ;# test C++ code
 set TEST_ONLY false ;# only test C++ code with osci, for quick initial testing

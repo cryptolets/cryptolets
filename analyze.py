@@ -53,9 +53,10 @@ ATTR_TO_COL_NAME = {
 ASIC_TECH_TYPES = ["45nm", "gf12", "saed32"]
 FPGA_TECH_TYPES = ["fpga"]
 FIELD_A_TO_INT = {
-    "A0": 0,
-    "A2": 2,
-    "ANEG3": -3
+    "A0": "0",
+    "A2": "2",
+    "ANEG3": "-3",
+    "AVAR": "var"
 }
 
 
@@ -240,10 +241,10 @@ def derive_all_attr(parsed_raw_attrs, table_info):
             "latency": latency,
             "ii": ii,
             "area": area,
-            "area (mm^2)": round(area/1e6, 2) if area else area,
         }
 
         if all_info['tech_type'] in ASIC_TECH_TYPES:
+            row["area (mm^2)"] = round(area/1e6, 2) if area else area
             row["reg"] = to_float(a.get("reg"))
             row["memory"] = to_float(a.get("memory"))
         elif all_info['tech_type'] in FPGA_TECH_TYPES:
@@ -384,6 +385,7 @@ def sort_key(row):
         # vnum,
         row.get("tech_type") or "",
         row.get("curve_type") or "",
+        row.get("a") or "",
         row.get("target_period") or float("inf"),
         row.get("ii") or float("inf"),
         row.get("q_type") or "",
@@ -426,7 +428,9 @@ if __name__ == "__main__":
             fp = os.path.join(catapult_dir, fn)
             table_info = parse_table_name(fn)
 
-            if not table_info["tech_type"] in ASIC_TECH_TYPES:
+            if tech_type == "asic" and not table_info["tech_type"] in ASIC_TECH_TYPES:
+                continue
+            if tech_type == "fpga" and not table_info["tech_type"] in FPGA_TECH_TYPES:
                 continue
 
             all_metrics += derive_all_attr(parse_table_csv(fp), table_info)

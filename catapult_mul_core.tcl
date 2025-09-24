@@ -20,8 +20,9 @@ source [file join $root_dir catapult_mul_params.tcl] ;# get solution level param
 set kernel_dir [file join $root_dir $lvl_dir $kernel]
 set work_dir [enter_work_dir $kernel_dir] ;# move to a lvl_dir/kernel/Catapult as working dir
 
-override_default_options ;# Reset tool options
+set TEST [expr {$SIM || $TEST}]
 assert {!(($CCORE_TOP && $TEST) || $CCORE_TOP && $SIM)} "top cannot be ccore for sim or test"
+override_default_options ;# Reset tool options
 
 set include_dirs {
     utils/include
@@ -89,7 +90,9 @@ go schedule
 if {$CCORE_TOP} { branch_if_ccore_comb $kernel }
 
 go extract
+project save
 solution table export -file [file join $work_dir $table_name]
+
 run_scverify $kernel_dir $work_dir $bitwidth $SIM
 run_syn $tech_type $SYN $root_dir
 solution table export -file [file join $work_dir $table_name]

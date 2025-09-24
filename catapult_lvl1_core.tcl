@@ -8,6 +8,10 @@ set bitwidth $env(BITWIDTH)
 set q_type $env(Q_TYPE)
 set curve_type $env(CURVE_TYPE)
 
+set include_dirs {
+    utils/include
+}
+
 set kernel $env(KERNEL_NAME)
 set root_dir [file normalize [file dirname [info script]]]
 
@@ -18,15 +22,9 @@ source [file join $root_dir catapult_lvl1_params.tcl] ;# get solution level para
 set kernel_dir [file join $root_dir $lvl_dir $kernel]
 set work_dir [enter_work_dir $kernel_dir] ;# move to a lvl_dir/kernel/Catapult as working dir
 
+set TEST [expr {$SIM || $TEST}]
 assert {!(($CCORE_TOP && $TEST) || $CCORE_TOP && $SIM)} "top cannot be ccore for sim or test"
 override_default_options ;# Reset tool options
-
-set include_dirs {
-    utils/include
-}
-
-lappend include_dirs [file join $lvl_dir $kernel include]
-set include_flags [build_include_flags $root_dir $include_dirs]
 
 set period_str [string map {. _} $period]
 set sweep_key "bw${bitwidth}_tt${tech_type}_ii${target_ii}_qt${q_type}_p${period}ns_ct${curve_type}"
@@ -38,23 +36,19 @@ set CCORE_TOP [expr {$CCORE_TOP && $target_ii <= 1}]
 open_or_create_proj $proj_name $work_dir
 puts "\n=== Starting project $proj_name ==="
 
-run_gen_field_const $bitwidth $curve_type $root_dir
+set tmp_const_h_dir [run_const_gens $bitwidth $curve_type $root_dir]
+lappend include_dirs [file join $tmp_const_h_dir]
+lappend include_dirs [file join $lvl_dir $kernel include]
+set include_flags [build_include_flags $root_dir $include_dirs]
 
 open_or_create_solution $sol_name
 puts "  -> Solution: $sol_name (bitwidth=$bitwidth, q_type=$q_type)"
 
 # Compiler flags
-set q_val [expr {$q_type eq "fixedq" ? "FIXED_Q" : "VAR_Q"}]
-
 set flags ""
 append flags " -DBITWIDTH=$bitwidth"
-append flags " -DQ_TYPE=$q_val"
+append flags " -DQ_TYPE=[get_q_val $q_type]"
 append flags " -DCURVE_TYPE=$curve_type"
-append flags " -DQ_HEX=\\\"[get_field_const $curve_type q $root_dir]\\\""
-append flags " -DQ_PRIME_HEX=\\\"[get_field_const $curve_type q_prime $root_dir]\\\""
-append flags " -DMU_HEX=\\\"[get_field_const $curve_type mu $root_dir]\\\""
-
-
 options set /Input/CompilerFlags "$include_flags $flags"
 
 # Add kernel + dependencies
@@ -91,7 +85,10 @@ if {$CCORE_TOP} { branch_if_ccore_comb $kernel }
 
 go extract
 
+project save
+solution table export -file [file join $work_dir $table_name]
 run_scverify $kernel_dir $work_dir $bitwidth $SIM
 run_syn $tech_type $SYN $root_dir
+
 solution table export -file [file join $work_dir $table_name]
 project save

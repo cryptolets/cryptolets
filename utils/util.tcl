@@ -120,15 +120,25 @@ proc handle_kar_depths {mul_type bitwidth kar_mul_depth_map} {
     }
 }
 
-proc run_gen_field_const {bitwidth curve_type root_dir {field_a "A0"}} {
+proc run_const_gens {bitwidth curve_type root_dir {field_a "A0"}} {
+    set proj_dir [project get /PROJECT_DIR]
+    set py_exec [file join $root_dir .venv/bin/ python]
+
     if {$curve_type eq "RAND_CURVE"} {
-        set proj_dir [project get /PROJECT_DIR]
-        set py_exec [file join $root_dir .venv/bin/ python]
-        set py_file [file join $root_dir utils gen_field_const.py]
         set json_file [file join $proj_dir field_const.json]
-        set cmd [list $py_exec $py_file --bitwidth $bitwidth --json-file $json_file --field-a $field_a]
-        exec tcsh -c "$cmd"
+        set gen_field_const_py [file join $root_dir utils gen_field_const.py]
+        set cmd0 [list $py_exec $gen_field_const_py --bitwidth $bitwidth --json-file $json_file --field-a $field_a]
+        exec tcsh -c "$cmd0"
+    } else {
+        set json_file [file join $root_dir field_const.json]
     }
+
+    set gen_const_h_py [file join $root_dir utils gen_const_h.py]
+    set tmp_const_h_dir [file join $proj_dir "include"]
+    set tmp_const_h_fp [file join $tmp_const_h_dir "tmp_const.h"]
+    set cmd1 [list $py_exec $gen_const_h_py --out $tmp_const_h_fp --json-file $json_file --curve-type $curve_type]
+    exec tcsh -c "$cmd1"
+    return $tmp_const_h_dir
 }
 
 proc run_osci_test {kernel_dir work_dir root_dir bitwidth NUM_TEST_SAMPLES TEST GEN_SAMPLES {curve_type ""}} {
@@ -178,16 +188,25 @@ proc run_osci_test {kernel_dir work_dir root_dir bitwidth NUM_TEST_SAMPLES TEST 
             puts "PASS: Output matches golden for bitwidth=$bitwidth"
         }
     }
-
 }
 
 proc run_scverify {kernel_dir work_dir bitwidth SIM} {
     if {$SIM} {
+        options set Flows/QuestaSIM/Path /eda/mentor/questasim/linux_x86_64
+        # If MGLS_LICENSE_FILE is set, copy it to SALT_LICENSE_SERVER
+        if { [info exists ::env(MGLS_LICENSE_FILE)] } {
+            set ::env(SALT_LICENSE_SERVER) $::env(MGLS_LICENSE_FILE)
+        }
+
         puts "Sim: Running SCVerify for bitwidth=$bitwidth"
         set proj_dir [project get /PROJECT_DIR]
         set sample_fp [file join $proj_dir samples/samples_${bitwidth}.csv]
         set output_fp [file join $proj_dir outputs/output_${bitwidth}.csv]
         set golden_fp [file join $proj_dir goldens/golden_${bitwidth}.csv]
+
+        if {[file exists $output_fp]} {
+            file delete -force $output_fp
+        }
 
         flow package require /SCVerify
         flow package option set /SCVerify/INVOKE_ARGS "$sample_fp $output_fp"
