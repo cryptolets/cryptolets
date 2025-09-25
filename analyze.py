@@ -383,6 +383,7 @@ def sort_key(row):
 
     return (
         # vnum,
+        row.get("sol") or "",
         row.get("tech_type") or "",
         row.get("curve_type") or "",
         row.get("a") or "",
