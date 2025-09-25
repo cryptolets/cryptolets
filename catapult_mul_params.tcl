@@ -54,6 +54,53 @@ set KAR_MUL_DEPTH_MAP {
     1024 {512 256 128 64}
 }
 
+# # FPGA - DSP 27 mul
+# set BASE_MUL_DEPTH_MAP {
+#     8 {8}
+#     12 {12}
+#     16 {16}
+#     24 {24}
+#     32 {16}
+#     48 {24}
+#     64 {16}
+#     96 {24}
+#     128 {16}
+#     192 {24}
+#     254 {15}
+#     255 {15}
+#     256 {16}
+#     381 {23}
+#     384 {24}
+#     377 {23}
+#     448 {14}
+#     512 {16}
+#     521 {16}
+#     753 {23}
+#     768 {24}
+#     1024 {16}
+# }
+
+# # FPGA
+# set KAR_MUL_DEPTH_MAP {
+#     32 {16}
+#     48 {24}
+#     64 {32 16}
+#     96 {48 24}
+#     128 {64 32 16}
+#     192 {96 48 24}
+#     254 {127 63 31 15}
+#     256 {128 64 32 16}
+#     377 {188 94 47 23}
+#     381 {190 95 47 23}
+#     384 {192 96 48 24}
+#     448 {224 112 56 28 14}
+#     512 {256 128 64 32 16}
+#     521 {260 130 65 32 16}
+#     753 {376 188 94 47 23}
+#     768 {384 192 96 48 24}
+#     1024 {512 256 128 64 32 16}
+# }
+
 # DO NOT CHANGE UNLESS DEVELEOPMENT
 # defines for order of params before project split (at the level we parallelize)
 set SWEEPS_PROJ_ORDER {TECH_TYPES MUL_TYPES TARGET_PERIODS TARGET_IIS BITWIDTHS BASE_MUL_DEPTH_MAP KAR_MUL_DEPTH_MAP}
