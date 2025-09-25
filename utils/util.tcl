@@ -52,11 +52,18 @@ proc set_tech_lib {tech_type root_dir} {
             -- -rtlsyntool DesignCompiler -vendor SAED32 -technology {lvt tt0p78v125c}        
     } else {
         options set Flows/Vivado/XILINX_VIVADO /eda/xilinx//Vivado/2024.2/
-        
-        solution library add mgc_Xilinx-VIRTEX-uplus-1_beh \
+
+        # Top of the line Versal HBM
+        solution library add mgc_Xilinx-VERSAL-hbm-3HP_beh \
             -- -rtlsyntool Vivado -manufacturer Xilinx \
-            -family VIRTEX-uplus -speed -1 \
-            -part xcvu9p-flga2104-1-e
+            -family VERSAL-hbm -speed -3HP \
+            -part xcvh1782-lsva4737-3HP-e-S
+
+        # Virtex Ultra+ used by other papers
+        # solution library add mgc_Xilinx-VIRTEX-uplus-1_beh \
+        #     -- -rtlsyntool Vivado -manufacturer Xilinx \
+        #     -family VIRTEX-uplus -speed -1 \
+        #     -part xcvu9p-flga2104-1-e
     }
 }
 
