@@ -302,22 +302,26 @@ proc remove_broken_mul_libs { tech_type } {
     # Don't use mgc_mul or mgc_sqr > 64b, up till 2999b
     for {set i 7} {$i <= 9} {incr i 1} {
         directive set "/.../*mgc_mul(${i}?,*)" -match glob -QUANTITY 0
-        directive set "/.../*mgc_mul(${i}?,*)" -match glob -QUANTITY 0
         directive set "/.../*mgc_sqr(${i}?,*)" -match glob -QUANTITY 0
-        directive set "/.../*mgc_sqr(${i}?,*)" -match glob -QUANTITY 0
+        directive set "/.../*mgc_mul_pipe(${i}?,*,2,0,1)" -match glob -QUANTITY 0
+        directive set "/.../*mgc_sqr_pipe(${i}?,*,2,0,1)" -match glob -QUANTITY 0
     }
 
     for {set i 1} {$i <= 9} {incr i 1} {
         directive set "/.../*mgc_mul(${i}??,*)" -match glob -QUANTITY 0
-        directive set "/.../*mgc_mul(${i}??,*)" -match glob -QUANTITY 0
         directive set "/.../*mgc_sqr(${i}??,*)" -match glob -QUANTITY 0
-        directive set "/.../*mgc_sqr(${i}??,*)" -match glob -QUANTITY 0
+        directive set "/.../*mgc_mul_pipe(${i}??,*,2,0,1)" -match glob -QUANTITY 0
+        directive set "/.../*mgc_sqr_pipe(${i}??,*,2,0,1)" -match glob -QUANTITY 0
     }
 
     directive set "/.../*mgc_mul(1???,*)" -match glob -QUANTITY 0
     directive set "/.../*mgc_mul(2???,*)" -match glob -QUANTITY 0
     directive set "/.../*mgc_sqr(1???,*)" -match glob -QUANTITY 0
     directive set "/.../*mgc_sqr(2???,*)" -match glob -QUANTITY 0
+    directive set "/.../*mgc_mul_pipe(1???,*,2,0,1)" -match glob -QUANTITY 0
+    directive set "/.../*mgc_mul_pipe(2???,*,2,0,1)" -match glob -QUANTITY 0
+    directive set "/.../*mgc_sqr_pipe(1???,*,2,0,1)" -match glob -QUANTITY 0
+    directive set "/.../*mgc_sqr_pipe(2???,*,2,0,1)" -match glob -QUANTITY 0
 }
 
 # proc create_lib_f {kernel_dir lib_name} {
