@@ -20,8 +20,8 @@ source utils/parallel_helpers.sh
 load_tcl_sweep_params $PARAMS_TCL_SCRIPT # load params from tcl config file
 
 # Core allocation configuration - MODIFY THESE VALUES AS NEEDED
-TOTAL_CORES=40          # Total available cores (K)
-DESIGN_COMPILER_THREADS=4     # Cores used per process (M)
+TOTAL_CORES=35          # Total available cores (K)
+DESIGN_COMPILER_THREADS=1     # Cores used per process (M)
 export DESIGN_COMPILER_THREADS
 MAX_PARALLEL=$((TOTAL_CORES / DESIGN_COMPILER_THREADS))  # K/M parallel processes
 
@@ -39,7 +39,7 @@ echo ""
 
 # Record start time
 START_TIME=$(date +%s)
-START_TIME_HUMAN=$(date '+%Y-%m-%d %H:%M:%S')
+START_TIME_HUMAN=$(date "+%Y-%m-%d %H:%M:%S")
 echo "Synthesis started at: $START_TIME_HUMAN"
 echo ""
 
@@ -75,20 +75,45 @@ fi
 echo "Will run with max $MAX_PARALLEL parallel processes"
 echo ""
 
+# What suffix to use for which paramter in the log file name
+declare -A SWEEP_KEY_LOG_MAP=(
+  [BITWIDTHS]=BW # bitwidth
+  [TECH_TYPES]=TT # tech type
+  [TARGET_IIS]=II # ii
+  [MUL_TYPES]=MT # mul type
+  [TARGET_PERIODS]=P # period
+  [Q_TYPES]=QT # q_type
+  [CURVE_TYPES]=CT # curve type
+  [FIELD_AS]=FA # field a
+  [BASE_MUL_DEPTH_MAP]=BM # base mul depth
+  [KAR_MUL_DEPTH_MAP]=KAR # kar mul depth
+)
+
 # Function to run a single configuration
 run_config() {
     local print_line="Starting:"
     local log_suffix=""
-    export KERNEL_NAME=$KERNEL_NAME
+    export KERNEL_NAME="$KERNEL_NAME"
+    export PARAMS_TCL_SCRIPT="$PARAMS_TCL_SCRIPT"
 
     for k in "${SWEEPS_PROJ_ORDER[@]}"; do
-        local key="${k::-1}" # remove trailing 's'
-        local val="${SWEEP_STATE[$k]}"
-        export "${key}"="$val" # export for core catapult script
+      # --- export key mapping (same logic as count_configs) ---
+      local exp_key
+      case "$k" in
+        BASE_MUL_DEPTH_MAP) exp_key="BASE_MUL_DEPTH" ;;
+        KAR_MUL_DEPTH_MAP)  exp_key="KAR_MUL_DEPTH"  ;;
+        *)                  exp_key="${k::-1}"       ;;  # strip trailing s
+      esac
 
-        # build log file name
-        print_line+=" $key=$val"
-        log_suffix+="${key^^}_${val}_"
+      # --- log key mapping (explicit map, fallback to raw) ---
+      local log_key="${SWEEP_KEY_LOG_MAP[$k]:-$k}"
+
+      local val="${SWEEP_STATE[$k]}"
+
+      export "${exp_key}"="$val"   # export for core catapult script
+
+      print_line+=" $exp_key=$val"
+      log_suffix+="${log_key^^}_${val}_"
     done
     local log_file="$LOGS_DIR/catapult_${log_suffix%_}.log"
     
@@ -132,7 +157,7 @@ launch_config() {
     process_start_times[$new_pid]=$(date +%s)
     ((running_count++))
 
-    current_time=$(date '+%H:%M:%S')
+    current_time=$(date "+%H:%M:%S")
     echo "[$current_time] Launched config $config_num/$total_configs (PID: $new_pid)"
     echo "Currently running: ${#active_pids[@]}/$MAX_PARALLEL processes"
   else
@@ -149,7 +174,7 @@ wait_for_finish # Wait for all remaining processes to finish
 
 # Calculate total execution time
 END_TIME=$(date +%s)
-END_TIME_HUMAN=$(date '+%Y-%m-%d %H:%M:%S')
+END_TIME_HUMAN=$(date "+%Y-%m-%d %H:%M:%S")
 TOTAL_DURATION=$((END_TIME - START_TIME))
 TOTAL_DURATION_STR=$(format_duration $TOTAL_DURATION)
 

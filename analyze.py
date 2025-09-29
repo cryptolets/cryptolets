@@ -52,6 +52,14 @@ ATTR_TO_COL_NAME = {
 
 ASIC_TECH_TYPES = ["45nm", "gf12", "saed32"]
 FPGA_TECH_TYPES = ["fpga"]
+FIELD_A_TO_INT = {
+    "A0": "0",
+    "A2": "2",
+    "ANEG3": "-3",
+    "AVAR": "var",
+    "ANEG1": "-1",
+}
+
 
 def parse_table_csv(csv_fn):
     flows = []
@@ -101,6 +109,53 @@ def parse_table_csv(csv_fn):
                 header = row[:]
 
     return parsed_raw_attrs
+
+def parse_dc_reports(catapult_proj_dir_fp):
+    data = {}
+    for d in os.listdir(catapult_proj_dir_fp):
+        sol_dir = os.path.join(catapult_proj_dir_fp, d)
+        if os.path.isdir(sol_dir) and d.startswith("sol.v"):
+            # QoR report
+            rpt_qor = os.path.join(sol_dir, "gate_synthesis_dc", "reports", "report_qor.rpt")
+            slack, area = None, None
+            if os.path.isfile(rpt_qor):
+                with open(rpt_qor, "r") as f:
+                    for line in f:
+                        line = line.strip()
+                        if line.startswith("Critical Path Slack:"):
+                            slack = line.split("Critical Path Slack:")[1].strip()
+                        elif line.startswith("Cell Area:"):
+                            area = line.split("Cell Area:")[1].strip()
+
+            # Power report
+            rpt_power = os.path.join(sol_dir, "gate_synthesis_dc", "reports", "report_power.rpt")
+            total_power = None
+            if os.path.isfile(rpt_power):
+                with open(rpt_power, "r") as f:
+                    header_found = False
+                    for line in f:
+                        line = line.strip()
+                        if not line:
+                            continue
+                        if line.startswith("Hierarchy"):
+                            header_found = True
+                            continue
+                        if header_found:
+                            if line.startswith("-"):  # skip separator
+                                continue
+                            parts = line.split()
+                            if len(parts) >= 5:
+                                # 0=module, 1=Switch, 2=Int, 3=Leak, 4=Total, 5=% 
+                                total_power = parts[4]
+                            break
+
+            data[os.path.basename(sol_dir)] = {
+                "slack": slack,
+                "area": area,
+                "power": total_power
+            }
+
+    return data
 
 def parse_sol_name(sol_name):    
     # bw   ->  "sol"
@@ -153,7 +208,8 @@ def parse_table_name(table_name):
         "q_type": None,
         "mul_type": None,
         "target_freq": None,
-        "target_period": None
+        "target_period": None,
+        "a": None
     }
 
     for p in parts:
@@ -167,10 +223,16 @@ def parse_table_name(table_name):
             info["mul_type"] = p[2:]
         elif p.startswith("tt"):
             info["tech_type"] = p[2:]
+        elif p.startswith("fa"):
+            info["a"] = FIELD_A_TO_INT.get(p[2:], None)
         elif p.startswith("f"):
             info["target_freq"] = float(p[1:].replace("MHz", ""))
         elif p.startswith("p"):
             info["target_period"] = float(p[1:].replace("ns", ""))
+        elif p.startswith("bm"):
+            info["bm"] = int(p[2:])
+        elif p.startswith("kar"):
+            info["kar"] = int(p[3:])
         elif p.startswith("ct"):
             info["curve_type"] = name.split("_ct")[-1]
 
@@ -180,11 +242,15 @@ def derive_all_attr(parsed_raw_attrs, table_info):
     def to_float(val):
         return None if val in (None, "") else round(float(val), 2)
 
+    def to_float_prec(val):
+        return None if val in (None, "") else float(val)
+    
     results = []
     for sol, a in parsed_raw_attrs.items():
         cycles = round(float(a.get("cycles"))) if a.get("cycles") else None
-        period = float(a.get("period")) if a.get("period") else None
-        slack = float(a.get("slack")) if a.get("slack") else None
+        period = to_float_prec(a.get("period"))
+        slack = to_float_prec(a.get("slack"))
+        power = to_float_prec(a.get("power"))
         ii, area = to_float(a.get("ii")), to_float(a.get("area"))
         sol_info = parse_sol_name(sol)
         
@@ -195,40 +261,43 @@ def derive_all_attr(parsed_raw_attrs, table_info):
             all_info[k] = v2 if v2 is not None else v1
 
         period = period if period else all_info["target_period"]
-        minclkprd = period-slack if (period and slack) else None
+        minclkprd = period-slack if (period is not None and slack is not None) else None
         latency = None
-        if period and slack:
+        if (period is not None and slack is not None):
             if cycles > 0:
                 latency = round(cycles*(period-slack), 2)
             else:
                 latency = round(period-slack, 2)        
 
-        ctime_raw = float(a.get('ctime', 0)) # total compile time
+        ctime_raw = to_float_prec(a.get("ctime")) # total compile time
 
         row = {
             "sol": sol,
             "tech_type": all_info.get("tech_type", None),
             "curve_type": all_info.get("curve_type", None),
+            "a": all_info.get("a", None),
             "target_period": round(period, 2) if period else all_info["target_period"],
             "target_freq": round(1000/period, 2) if period else None,
-            "bitwidth": all_info['bitwidth'],
             "q_type": all_info['q_type'],
+            "bitwidth": all_info['bitwidth'],
             "mt": all_info['mul_type'],
             "bm": all_info['bm'],
             "kar": all_info['kar'],
             "limbs": all_info['limbs'],
             "wbw": all_info['bitwidth'] // all_info['limbs'] if all_info['limbs'] else None,
-            "ctime_raw": ctime_raw,
-            "ctime": f"{int(ctime_raw) // 60}m {int(ctime_raw) % 60}s",
+            "ctime_raw": ctime_raw if ctime_raw else 0,
+            "ctime": f"{int(ctime_raw) // 60}m {int(ctime_raw) % 60}s" if ctime_raw else -1,
             "minclkprd": round(minclkprd, 2) if minclkprd else None,
             "fmax": round(1000/minclkprd, 2) if (minclkprd and minclkprd != 0) else None,
             "cycles": cycles,
             "latency": latency,
             "ii": ii,
             "area": area,
+            "power": f"{power:.2e}" if power else None,
         }
 
         if all_info['tech_type'] in ASIC_TECH_TYPES:
+            row["area (mm^2)"] = round(area/1e6, 2) if area else area
             row["reg"] = to_float(a.get("reg"))
             row["memory"] = to_float(a.get("memory"))
         elif all_info['tech_type'] in FPGA_TECH_TYPES:
@@ -366,10 +435,12 @@ def sort_key(row):
     vnum = int(row["sol"].split(".")[-1][1:])
 
     return (
-        vnum,
+        # vnum,
+        row.get("sol") or "",
         row.get("tech_type") or "",
         row.get("curve_type") or "",
-        row.get("target_period") or float("inf"),
+        row.get("a") or "",
+        # row.get("target_period") or float("inf"),
         row.get("ii") or float("inf"),
         row.get("q_type") or "",
         row.get("mt") or "",
@@ -388,10 +459,12 @@ if __name__ == "__main__":
     parser.add_argument("-o", "--out-txt", action="store_true", help="Write TXT output")
     parser.add_argument("-c", "--out-csv", action="store_true", help="Write CSV output")
     parser.add_argument("-t", "--tech-type", action="store_true", help="Show tech type")
+    parser.add_argument("--proj-dir", type=str, default="Catapult", help="switch between project dirs")
     parser.add_argument("--ccore", action="store_true", help="Include Catapult ccore solutions (default: only top-level sols)")
     parser.add_argument("--freq", action="store_true", help="show freq metrics")
     parser.add_argument("--period", type=str, help="Filter results by clock period value")
     parser.add_argument("--curve", type=str, help="Filter results by curve type")
+    parser.add_argument("--no-syn", action="store_true", help="Do not include synthesis results")
     args = parser.parse_args()
 
     kernel = os.path.basename(os.path.normpath(args.kernel))
@@ -399,7 +472,7 @@ if __name__ == "__main__":
     mp = args.mp
     tech_type = "asic" if args.asic else "fpga"
 
-    catapult_dir = f"{kernel_path}/Catapult/"
+    catapult_dir = f"{kernel_path}/{args.proj_dir}/"
     all_metrics = []
 
     if os.path.isdir(catapult_dir):
@@ -408,12 +481,29 @@ if __name__ == "__main__":
                 continue
             
             fp = os.path.join(catapult_dir, fn)
+            proj_sweep_key = fn.split("table_")[-1].split(".")[0]
+            catapult_proj_dir_fp = os.path.join(catapult_dir, f"Catapult_{proj_sweep_key}")
             table_info = parse_table_name(fn)
+            syn_raw_attrs = {}
 
-            if not table_info["tech_type"] in ASIC_TECH_TYPES:
+            if tech_type == "asic" and not table_info["tech_type"] in ASIC_TECH_TYPES:
+                continue
+            if tech_type == "fpga" and not table_info["tech_type"] in FPGA_TECH_TYPES:
                 continue
 
-            all_metrics += derive_all_attr(parse_table_csv(fp), table_info)
+            if table_info["tech_type"] in ASIC_TECH_TYPES:
+                syn_raw_attrs = parse_dc_reports(catapult_proj_dir_fp)
+
+            parsed_raw_attrs = parse_table_csv(fp)
+
+            # override catapult data with dc reports
+            if not args.no_syn:
+                for sol in syn_raw_attrs:
+                    for attr in syn_raw_attrs[sol]:
+                        if syn_raw_attrs[sol][attr]:
+                            parsed_raw_attrs[sol][attr] = syn_raw_attrs[sol][attr]
+
+            all_metrics += derive_all_attr(parsed_raw_attrs, table_info)
 
         # filter and clean
         all_metrics = filter_mp(all_metrics, mp)

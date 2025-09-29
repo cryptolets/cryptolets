@@ -2,6 +2,7 @@
 #define _PRIMITIVES_H_
 
 #include "params.h"
+#include "tmp_const.h"
 #include <ac_int.h>
 
 typedef ac_int<BITWIDTH, false>         wide_t;
@@ -52,6 +53,7 @@ typedef struct {
 
 // --- Fixed modulus values (for const-Q optimizations) ---
 #if Q_TYPE == FIXED_Q
+
 static const wide_t Q = ac::bit_fill_hex<wide_t>(Q_HEX);
 
 // Montgomery constant
@@ -59,6 +61,12 @@ static const wide_t Q_PRIME = ac::bit_fill_hex<wide_t>(Q_PRIME_HEX);
 
 // Barrett constant
 static const wide_2x_t MU = ac::bit_fill_hex<wide_2x_t>(MU_HEX);
+
 #endif
+
+static const wide_t FIELD_A_MONT = ac::bit_fill_hex<wide_2x_t>(FIELD_A_MONT_HEX);
+static const wide_t FIELD_D_MONT = ac::bit_fill_hex<wide_2x_t>(FIELD_D_MONT_HEX);
+static const wide_t FIELD_K_MONT = ac::bit_fill_hex<wide_2x_t>(FIELD_K_MONT_HEX);
+
 
 #endif // _PRIMITIVES_H_

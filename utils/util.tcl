@@ -16,13 +16,18 @@ proc override_default_options {} {
     options set /Input/CppStandard c++14
     options set /Input/TargetPlatform x86_64
     options set Flows/SCVerify/MAX_ERROR_CNT 1
+    options set Flows/DesignCompiler/OutNetlistFormat verilog
 }
 
 proc set_tech_lib {tech_type root_dir} {
     solution library remove *
     if {$tech_type eq "45nm"} {
+        set custom_dc_script_path [file normalize "$root_dir/dc_custom_scripts"]
+        options set Flows/DesignCompiler/CustomScriptDirPath "$custom_dc_script_path"
+        options set ComponentLibs/TechLibSearchPath [file normalize "$root_dir/../45nm_db"] -append
+
         solution library add nangate-45nm_beh \
-            -- -rtlsyntool OasysRTL -vendor Nangate -technology 045nm
+            -- -rtlsyntool DesignCompiler -vendor Nangate -technology 045nm
     } elseif {$tech_type eq "gf12"} {
         set custom_dc_script_path [file normalize "$root_dir/dc_custom_scripts"]
         options set Flows/DesignCompiler/CustomScriptDirPath "$custom_dc_script_path"
@@ -36,6 +41,7 @@ proc set_tech_lib {tech_type root_dir} {
         # add custom dc script path
         set custom_dc_script_path [file normalize "$root_dir/dc_custom_scripts"]
         options set Flows/DesignCompiler/CustomScriptDirPath "$custom_dc_script_path"
+        # it prob just needs some of these paths, but linking all for now just to be safe 
         options set ComponentLibs/TechLibSearchPath "/ip/synopsys/saed32/v02_2024/" -append
         options set ComponentLibs/TechLibSearchPath "/ip/synopsys/saed32/v02_2024/tech/tf" -append
         options set ComponentLibs/TechLibSearchPath "/ip/synopsys/saed32/v02_2024/lib/stdcell_lvt/lef" -append
@@ -46,11 +52,18 @@ proc set_tech_lib {tech_type root_dir} {
             -- -rtlsyntool DesignCompiler -vendor SAED32 -technology {lvt tt0p78v125c}        
     } else {
         options set Flows/Vivado/XILINX_VIVADO /eda/xilinx//Vivado/2024.2/
-        
-        solution library add mgc_Xilinx-VIRTEX-uplus-1_beh \
+
+        # Top of the line Versal HBM
+        solution library add mgc_Xilinx-VERSAL-hbm-3HP_beh \
             -- -rtlsyntool Vivado -manufacturer Xilinx \
-            -family VIRTEX-uplus -speed -1 \
-            -part xcvu9p-flga2104-1-e
+            -family VERSAL-hbm -speed -3HP \
+            -part xcvh1782-lsva4737-3HP-e-S
+
+        # # Virtex Ultra+ used by other papers
+        # solution library add mgc_Xilinx-VIRTEX-uplus-1_beh \
+        #     -- -rtlsyntool Vivado -manufacturer Xilinx \
+        #     -family VIRTEX-uplus -speed -1 \
+        #     -part xcvu9p-flga2104-1-e
     }
 }
 
@@ -59,14 +72,18 @@ proc open_or_create_proj {proj_name work_dir} {
     set proj_ccs [file join $work_dir "${proj_name}.ccs"]
     set proj_dir [file join $work_dir $proj_name]
 
-    if {[file exists $proj_ccs]} {
-        puts "Opening existing project: $proj_name"
-        project load $proj_ccs
-    } else {
-        puts "Creating new project at: $proj_name"
-        project new -name $proj_name -directory $proj_dir
-        project save
+    if {[file exists $proj_dir]} {
+        puts "Removing existing project dir: $proj_dir"
+        file delete -force $proj_dir
     }
+    if {[file exists $proj_ccs]} {
+        puts "Removing existing project file: $proj_ccs"
+        file delete -force $proj_ccs
+    }
+
+    puts "Creating new project: $proj_name"
+    project new -name $proj_name -directory $proj_dir
+    project save
 }
 
 # Solution handling
@@ -110,15 +127,25 @@ proc handle_kar_depths {mul_type bitwidth kar_mul_depth_map} {
     }
 }
 
-proc run_gen_field_const {bitwidth curve_type root_dir} {
+proc run_const_gens {bitwidth curve_type root_dir {field_a "A0"}} {
+    set proj_dir [project get /PROJECT_DIR]
+    set py_exec [file join $root_dir .venv/bin/ python]
+
     if {$curve_type eq "RAND_CURVE"} {
-        set proj_dir [project get /PROJECT_DIR]
-        set py_exec [file join $root_dir .venv/bin/ python]
-        set py_file [file join $root_dir utils gen_field_const.py]
         set json_file [file join $proj_dir field_const.json]
-        set cmd [list $py_exec $py_file --bitwidth $bitwidth --json-file $json_file]
-        exec tcsh -c "$cmd"
+        set gen_field_const_py [file join $root_dir utils gen_field_const.py]
+        set cmd0 [list $py_exec $gen_field_const_py --bitwidth $bitwidth --json-file $json_file --field-a $field_a]
+        exec tcsh -c "$cmd0"
+    } else {
+        set json_file [file join $root_dir field_const.json]
     }
+
+    set gen_const_h_py [file join $root_dir utils gen_const_h.py]
+    set tmp_const_h_dir [file join $proj_dir "include"]
+    set tmp_const_h_fp [file join $tmp_const_h_dir "tmp_const.h"]
+    set cmd1 [list $py_exec $gen_const_h_py --out $tmp_const_h_fp --json-file $json_file --curve-type $curve_type]
+    exec tcsh -c "$cmd1"
+    return $tmp_const_h_dir
 }
 
 proc run_osci_test {kernel_dir work_dir root_dir bitwidth NUM_TEST_SAMPLES TEST GEN_SAMPLES {curve_type ""}} {
@@ -168,16 +195,25 @@ proc run_osci_test {kernel_dir work_dir root_dir bitwidth NUM_TEST_SAMPLES TEST 
             puts "PASS: Output matches golden for bitwidth=$bitwidth"
         }
     }
-
 }
 
 proc run_scverify {kernel_dir work_dir bitwidth SIM} {
     if {$SIM} {
+        options set Flows/QuestaSIM/Path /eda/mentor/questasim/linux_x86_64
+        # If MGLS_LICENSE_FILE is set, copy it to SALT_LICENSE_SERVER
+        if { [info exists ::env(MGLS_LICENSE_FILE)] } {
+            set ::env(SALT_LICENSE_SERVER) $::env(MGLS_LICENSE_FILE)
+        }
+
         puts "Sim: Running SCVerify for bitwidth=$bitwidth"
         set proj_dir [project get /PROJECT_DIR]
         set sample_fp [file join $proj_dir samples/samples_${bitwidth}.csv]
         set output_fp [file join $proj_dir outputs/output_${bitwidth}.csv]
         set golden_fp [file join $proj_dir goldens/golden_${bitwidth}.csv]
+
+        if {[file exists $output_fp]} {
+            file delete -force $output_fp
+        }
 
         flow package require /SCVerify
         flow package option set /SCVerify/INVOKE_ARGS "$sample_fp $output_fp"
@@ -197,7 +233,7 @@ proc run_syn {tech_type SYN root_dir {RTL_FILE "rtl"}} {
         if {$tech_type eq "fpga"} {
             puts "Syn: Running FPGA Vivado synthesis"
             go synthesize
-        } elseif {$tech_type eq "saed32" || $tech_type eq "gf12"} {
+        } elseif {$tech_type eq "45nm" || $tech_type eq "saed32" || $tech_type eq "gf12"} {
             puts "Syn: Running Design Compiler for $tech_type"
             
             # Replace compile commands with compile_ultra in the DC synthesis file
@@ -263,25 +299,48 @@ proc get_mul_val {mul_type} {
 proc remove_broken_mul_libs { tech_type } {
     # Make sure mgc_mul's with blank MinClkPrd are not used
 
-    # Don't use mgc_mul or mgc_sqr > 64b, up till 2999b
-    for {set i 7} {$i <= 9} {incr i 1} {
-        directive set "/.../*mgc_mul(${i}?,*)" -match glob -QUANTITY 0
-        directive set "/.../*mgc_mul(${i}?,*)" -match glob -QUANTITY 0
-        directive set "/.../*mgc_sqr(${i}?,*)" -match glob -QUANTITY 0
-        directive set "/.../*mgc_sqr(${i}?,*)" -match glob -QUANTITY 0
-    }
+    if {$tech_type eq "gf12" || $tech_type eq "45nm" || $tech_type eq "saed32" || $tech_type eq "saed14"} {
+        # Don't use mgc_mul or mgc_sqr > 64b, up till 2999b
+        for {set i 7} {$i <= 9} {incr i 1} {
+            directive set "/.../*mgc_mul(${i}?,*)" -match glob -QUANTITY 0
+            directive set "/.../*mgc_sqr(${i}?,*)" -match glob -QUANTITY 0
+            directive set "/.../*mgc_mul_pipe(${i}?,*,2,0,1)" -match glob -QUANTITY 0
+            directive set "/.../*mgc_sqr_pipe(${i}?,*,2,0,1)" -match glob -QUANTITY 0
 
-    for {set i 1} {$i <= 9} {incr i 1} {
-        directive set "/.../*mgc_mul(${i}??,*)" -match glob -QUANTITY 0
-        directive set "/.../*mgc_mul(${i}??,*)" -match glob -QUANTITY 0
-        directive set "/.../*mgc_sqr(${i}??,*)" -match glob -QUANTITY 0
-        directive set "/.../*mgc_sqr(${i}??,*)" -match glob -QUANTITY 0
-    }
+            if {$tech_type eq "45nm"} {
+                directive set "/.../*mgc_mul_pipe(${i}?,*,2,0,2)" -match glob -QUANTITY 0
+                directive set "/.../*mgc_sqr_pipe(${i}?,*,2,0,2)" -match glob -QUANTITY 0
+            }
+        }
 
-    directive set "/.../*mgc_mul(1???,*)" -match glob -QUANTITY 0
-    directive set "/.../*mgc_mul(2???,*)" -match glob -QUANTITY 0
-    directive set "/.../*mgc_sqr(1???,*)" -match glob -QUANTITY 0
-    directive set "/.../*mgc_sqr(2???,*)" -match glob -QUANTITY 0
+        for {set i 1} {$i <= 9} {incr i 1} {
+            directive set "/.../*mgc_mul(${i}??,*)" -match glob -QUANTITY 0
+            directive set "/.../*mgc_sqr(${i}??,*)" -match glob -QUANTITY 0
+            directive set "/.../*mgc_mul_pipe(${i}??,*,2,0,1)" -match glob -QUANTITY 0
+            directive set "/.../*mgc_sqr_pipe(${i}??,*,2,0,1)" -match glob -QUANTITY 0
+
+            if {$tech_type eq "45nm"} {
+                directive set "/.../*mgc_mul_pipe(${i}??,*,2,0,2)" -match glob -QUANTITY 0
+                directive set "/.../*mgc_sqr_pipe(${i}??,*,2,0,2)" -match glob -QUANTITY 0
+            }
+        }
+
+        directive set "/.../*mgc_mul(1???,*)" -match glob -QUANTITY 0
+        directive set "/.../*mgc_mul(2???,*)" -match glob -QUANTITY 0
+        directive set "/.../*mgc_sqr(1???,*)" -match glob -QUANTITY 0
+        directive set "/.../*mgc_sqr(2???,*)" -match glob -QUANTITY 0
+        directive set "/.../*mgc_mul_pipe(1???,*,2,0,1)" -match glob -QUANTITY 0
+        directive set "/.../*mgc_mul_pipe(2???,*,2,0,1)" -match glob -QUANTITY 0
+        directive set "/.../*mgc_sqr_pipe(1???,*,2,0,1)" -match glob -QUANTITY 0
+        directive set "/.../*mgc_sqr_pipe(2???,*,2,0,1)" -match glob -QUANTITY 0
+        
+        if {$tech_type eq "45nm"} {
+            directive set "/.../*mgc_mul_pipe(1???,*,2,0,2)" -match glob -QUANTITY 0
+            directive set "/.../*mgc_mul_pipe(2???,*,2,0,2)" -match glob -QUANTITY 0
+            directive set "/.../*mgc_sqr_pipe(1???,*,2,0,2)" -match glob -QUANTITY 0
+            directive set "/.../*mgc_sqr_pipe(2???,*,2,0,2)" -match glob -QUANTITY 0
+        }
+    }
 }
 
 # proc create_lib_f {kernel_dir lib_name} {

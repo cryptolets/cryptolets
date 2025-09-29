@@ -15,25 +15,39 @@ ac_int<2*BW, false> sq_f_gen(
     const ac_int<BW, false> a
 ) {
 #if MUL_TYPE == MUL_SCHOOLBOOK
-    return mul_schoolbook_gen<BW>(a, a);
+    return mul_schoolbook_gen<BW,BW>(a, a);
+
 #elif MUL_TYPE == MUL_KARATSUBA
-    if constexpr (BW <= KAR_BASE_MUL_WIDTH) {
-        return mul_schoolbook_gen<BW>(a, a);
+    if constexpr (BW <= (KAR_BASE_MUL_WIDTH+2)) {
+        return mul_schoolbook_gen<BW,BW>(a, a);
     } else {
-        static constexpr int H = BW / 2;
+        // asymmetric split
+        static constexpr int L = BW / 2;     // floor
+        static constexpr int H = BW - L;     // ceil
 
-        ac_int<H,false> a0 = a.template slc<H>(0);
-        ac_int<H,false> a1 = a.template slc<BW>(H);
-    
-        ac_int<2*H,false> z0 = sq_f_gen<H>(a0);
-        ac_int<2*H,false> z1 = mul_karatsuba_gen<H>(a0, a1);
+        ac_int<L,false> a0 = a.template slc<L>(0);
+        ac_int<H,false> a1 = a.template slc<H>(L);
+
+        // recursive terms
+        ac_int<2*L,false> z0 = sq_f_gen<L>(a0);
         ac_int<2*H,false> z2 = sq_f_gen<H>(a1);
+        ac_int<L+H,false> z1;
 
-        // Combine
-        ac_int<(3*H)+1, false> z1_ext = (ac_int<(3*H)+1, false>)z1 << (H + 1);
-        ac_int<2*BW, false>    z2_ext = (ac_int<2*BW, false>)z2 << (2*H);
-        return z2_ext + z1_ext + z0;
+        // Karatsuba doesn't work for different bitwidths, so use schoolbook instead
+        if constexpr (L == H) {
+            z1 = mul_karatsuba_gen<L>(a0, a1);
+        } else {
+            z1 = mul_schoolbook_gen<L,H>(a0, a1);
+        }
+
+        // combine
+        ac_int<2*BW,false> z0_ext = z0;
+        ac_int<2*BW,false> z1_ext = (ac_int<2*BW,false>)z1 << L;        // shift by low part
+        ac_int<2*BW,false> z2_ext = (ac_int<2*BW,false>)z2 << (2*L);    // shift by 2*low part
+
+        return z2_ext + (z1_ext << 1) + z0_ext;  // multiply cross term by 2
     }
+
 #else // MUL_TYPE == MUL_NORMAL
     return a * a;
 #endif

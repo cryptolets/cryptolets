@@ -56,7 +56,15 @@
 #define VAR_Q   1
 
 #ifndef Q_TYPE
-#define Q_TYPE VAR_Q
+  #define Q_TYPE VAR_Q
+#endif
+
+// Modmul type
+#define MODMUL_TYPE_MONT 0
+#define MODMUL_TYPE_BARRET 1
+
+#ifndef MODMUL_TYPE
+  #define MODMUL_TYPE MODMUL_TYPE_MONT
 #endif
 
 // -------------------------------------------------------------------
@@ -81,21 +89,15 @@
   #define CURVE_TYPE RAND_CURVE
 #endif
 
-// Warning: Fixed placeholder constants, but not functionally correct
-#if Q_TYPE == FIXED_Q
+// Assumptions about a
+#define A0 0 // a=0
+#define ANEG1 1 // a=-1
+#define A2 2 // a=2
+#define ANEG3 3 // a=-3
+#define AVAR 4 // variable a
 
-#ifndef Q_HEX
-#define Q_HEX "97946e1350897f8851fabcb69629e447"
-#endif
-
-#ifndef Q_PRIME_HEX
-#define Q_PRIME_HEX "a78765fd00ddebfc871d098ac95d7a89"
-#endif
-
-#ifndef MU_HEX
-#define MU_HEX "1b05a6571679ffcc76b655f190e7c9918"
-#endif
-
+#ifndef FIELD_A
+  #define FIELD_A A_0
 #endif
 
 #endif // _PARAMS_H_
