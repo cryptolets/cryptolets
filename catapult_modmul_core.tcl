@@ -9,6 +9,7 @@ set mul_type $env(MUL_TYPE)
 set bitwidth $env(BITWIDTH)
 set q_type $env(Q_TYPE)
 set curve_type $env(CURVE_TYPE)
+set rtl_file $env(RTL_FILE)
 set bm $env(BASE_MUL_DEPTH)
 set kar $env(KAR_MUL_DEPTH)
 
@@ -62,6 +63,12 @@ append flags " -DKAR_BASE_MUL_WIDTH=$kar"
 append flags " -DBASE_MUL_WIDTH=$bm"
 append flags " -DCURVE_TYPE=$curve_type"
 options set /Input/CompilerFlags "$include_flags $flags"
+
+# we want only verilog output
+options set Output/OutputVHDL false
+
+# rtl schematics take up a ton of space
+options set Output/RTLSchem false
 
 # Add kernel + dependencies
 solution file add $kernel_dir/src/${kernel}.cpp
