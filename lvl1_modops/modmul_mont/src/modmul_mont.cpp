@@ -87,7 +87,7 @@ wide_t modsq_mont_core(const wide_t x, const wide_t q, const wide_t q_prime) {
 
 // special case where we are multiplying by a const
 // either x or y should be a const
-wide_t modmul_mont_const(const wide_t x, const wide_t y, const wide_t q, const wide_t q_prime) {
+wide_t cmodmul_mont(const wide_t x, const wide_t y, const wide_t q, const wide_t q_prime) {
     wide_2x_t t = x * y; // compile to constant multiplier
     return mont_reduction(t, q, q_prime);
 }

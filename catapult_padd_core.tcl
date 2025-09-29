@@ -21,6 +21,7 @@ set include_dirs {
     lvl1_modops/modadd/include
     lvl1_modops/modsub/include
     lvl1_modops/modmul_mont/include
+    lvl1_modops/include
 }
 
 set kernel $env(KERNEL_NAME)

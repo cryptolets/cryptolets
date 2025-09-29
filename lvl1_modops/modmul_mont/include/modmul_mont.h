@@ -27,7 +27,7 @@ wide_t modsq_mont(const wide_t x,
                   const wide_t q, const wide_t q_prime);
 #endif
 
-wide_t modmul_mont_const(
+wide_t cmodmul_mont(
     const wide_t x, const wide_t y, 
     const wide_t q, const wide_t q_prime
 );

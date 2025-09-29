@@ -1,6 +1,6 @@
 # For Short Weierstrass curve = "point_add" kernel
 # Sweep parameters
-set BITWIDTHS {64 96 254 256} ;# 8 12 16 24 32 48 64 96 128 192 256 384 512 768 1024
+set BITWIDTHS {64 96} ;# 8 12 16 24 32 48 64 96 128 192 256 384 512 768 1024
 # 256 377 381 384
 # 64 96 128 192 254 256 377 381 384 : clock 1ns and mod_ops_period ratio = 0.95
 # 448 512 521 : clock at 1.1 and mod_ops_period ratio = 0.90
@@ -17,7 +17,7 @@ set Q_TYPES {fixedq varq} ;# fixedq varq
 # a=0 : BN254 BLS12_377 BLS12_381 SECP256K1
 # a=2 : MNT4753
 # a=-3 : P_256 P_521
-set CURVE_TYPES {BN254 BLS12_377 RAND_CURVE}
+set CURVE_TYPES {BN254 BLS12_377 P_256 RAND_CURVE}
 
 # for RAND_CURVE can select what "a" to pick which will specify what formula will be used
 # for other CURVE_TYPE's this value will be overrided
