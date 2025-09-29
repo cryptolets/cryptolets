@@ -9,6 +9,7 @@ set mul_type $env(MUL_TYPE)
 set bitwidth $env(BITWIDTH)
 set q_type $env(Q_TYPE)
 set curve_type $env(CURVE_TYPE)
+set rtl_file $env(RTL_FILE)
 
 set kernel $env(KERNEL_NAME)
 set root_dir [file normalize [file dirname [info script]]]
@@ -185,7 +186,7 @@ foreach bm $base_mul_depths {
         project save
         solution table export -file [file join $work_dir $table_name]
         run_scverify $kernel_dir $work_dir $bitwidth $SIM
-        run_syn $tech_type $SYN $root_dir $RTL_FILE
+        run_syn $tech_type $SYN $root_dir $rtl_file
         solution table export -file [file join $work_dir $table_name]
 
         # solution remove -solution "${sol_name_test_only}.v1" -delete
