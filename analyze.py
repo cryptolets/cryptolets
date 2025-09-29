@@ -109,6 +109,53 @@ def parse_table_csv(csv_fn):
 
     return parsed_raw_attrs
 
+def parse_dc_reports(catapult_proj_dir_fp):
+    data = {}
+    for d in os.listdir(catapult_proj_dir_fp):
+        sol_dir = os.path.join(catapult_proj_dir_fp, d)
+        if os.path.isdir(sol_dir) and d.startswith("sol.v"):
+            # QoR report
+            rpt_qor = os.path.join(sol_dir, "gate_synthesis_dc", "reports", "report_qor.rpt")
+            slack, area = None, None
+            if os.path.isfile(rpt_qor):
+                with open(rpt_qor, "r") as f:
+                    for line in f:
+                        line = line.strip()
+                        if line.startswith("Critical Path Slack:"):
+                            slack = line.split("Critical Path Slack:")[1].strip()
+                        elif line.startswith("Cell Area:"):
+                            area = line.split("Cell Area:")[1].strip()
+
+            # Power report
+            rpt_power = os.path.join(sol_dir, "gate_synthesis_dc", "reports", "report_power.rpt")
+            total_power = None
+            if os.path.isfile(rpt_power):
+                with open(rpt_power, "r") as f:
+                    header_found = False
+                    for line in f:
+                        line = line.strip()
+                        if not line:
+                            continue
+                        if line.startswith("Hierarchy"):
+                            header_found = True
+                            continue
+                        if header_found:
+                            if line.startswith("-"):  # skip separator
+                                continue
+                            parts = line.split()
+                            if len(parts) >= 5:
+                                # 0=module, 1=Switch, 2=Int, 3=Leak, 4=Total, 5=% 
+                                total_power = parts[4]
+                            break
+
+            data[os.path.basename(sol_dir)] = {
+                "slack": slack,
+                "area": area,
+                "power": total_power
+            }
+
+    return data
+
 def parse_sol_name(sol_name):    
     # bw   ->  "sol"
     # mod  ->  "sol"
@@ -194,11 +241,15 @@ def derive_all_attr(parsed_raw_attrs, table_info):
     def to_float(val):
         return None if val in (None, "") else round(float(val), 2)
 
+    def to_float_prec(val):
+        return None if val in (None, "") else float(val)
+    
     results = []
     for sol, a in parsed_raw_attrs.items():
         cycles = round(float(a.get("cycles"))) if a.get("cycles") else None
-        period = float(a.get("period")) if a.get("period") else None
-        slack = float(a.get("slack")) if a.get("slack") else None
+        period = to_float_prec(a.get("period"))
+        slack = to_float_prec(a.get("slack"))
+        power = to_float_prec(a.get("power"))
         ii, area = to_float(a.get("ii")), to_float(a.get("area"))
         sol_info = parse_sol_name(sol)
         
@@ -209,9 +260,9 @@ def derive_all_attr(parsed_raw_attrs, table_info):
             all_info[k] = v2 if v2 is not None else v1
 
         period = period if period else all_info["target_period"]
-        minclkprd = period-slack if (period and slack) else None
+        minclkprd = period-slack if (period is not None and slack is not None) else None
         latency = None
-        if period and slack:
+        if (period is not None and slack is not None):
             if cycles > 0:
                 latency = round(cycles*(period-slack), 2)
             else:
@@ -241,6 +292,7 @@ def derive_all_attr(parsed_raw_attrs, table_info):
             "latency": latency,
             "ii": ii,
             "area": area,
+            "power": f"{power:.2e}" if power else None,
         }
 
         if all_info['tech_type'] in ASIC_TECH_TYPES:
@@ -387,7 +439,7 @@ def sort_key(row):
         row.get("tech_type") or "",
         row.get("curve_type") or "",
         row.get("a") or "",
-        row.get("target_period") or float("inf"),
+        # row.get("target_period") or float("inf"),
         row.get("ii") or float("inf"),
         row.get("q_type") or "",
         row.get("mt") or "",
@@ -411,6 +463,7 @@ if __name__ == "__main__":
     parser.add_argument("--freq", action="store_true", help="show freq metrics")
     parser.add_argument("--period", type=str, help="Filter results by clock period value")
     parser.add_argument("--curve", type=str, help="Filter results by curve type")
+    parser.add_argument("--no-syn", action="store_true", help="Do not include synthesis results")
     args = parser.parse_args()
 
     kernel = os.path.basename(os.path.normpath(args.kernel))
@@ -427,14 +480,29 @@ if __name__ == "__main__":
                 continue
             
             fp = os.path.join(catapult_dir, fn)
+            proj_sweep_key = fn.split("table_")[-1].split(".")[0]
+            catapult_proj_dir_fp = os.path.join(catapult_dir, f"Catapult_{proj_sweep_key}")
             table_info = parse_table_name(fn)
+            syn_raw_attrs = {}
 
             if tech_type == "asic" and not table_info["tech_type"] in ASIC_TECH_TYPES:
                 continue
             if tech_type == "fpga" and not table_info["tech_type"] in FPGA_TECH_TYPES:
                 continue
 
-            all_metrics += derive_all_attr(parse_table_csv(fp), table_info)
+            if table_info["tech_type"] in ASIC_TECH_TYPES:
+                syn_raw_attrs = parse_dc_reports(catapult_proj_dir_fp)
+
+            parsed_raw_attrs = parse_table_csv(fp)
+
+            # override catapult data with dc reports
+            if not args.no_syn:
+                for sol in syn_raw_attrs:
+                    for attr in syn_raw_attrs[sol]:
+                        if syn_raw_attrs[sol][attr]:
+                            parsed_raw_attrs[sol][attr] = syn_raw_attrs[sol][attr]
+
+            all_metrics += derive_all_attr(parsed_raw_attrs, table_info)
 
         # filter and clean
         all_metrics = filter_mp(all_metrics, mp)

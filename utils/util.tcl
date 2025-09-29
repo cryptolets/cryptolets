@@ -24,7 +24,7 @@ proc set_tech_lib {tech_type root_dir} {
     if {$tech_type eq "45nm"} {
         set custom_dc_script_path [file normalize "$root_dir/dc_custom_scripts"]
         options set Flows/DesignCompiler/CustomScriptDirPath "$custom_dc_script_path"
-        # options set ComponentLibs/TechLibSearchPath [file normalize "$root_dir/../freepdk-45nm"] -append
+        options set ComponentLibs/TechLibSearchPath [file normalize "$root_dir/../45nm_db"] -append
 
         solution library add nangate-45nm_beh \
             -- -rtlsyntool DesignCompiler -vendor Nangate -technology 045nm
@@ -59,7 +59,7 @@ proc set_tech_lib {tech_type root_dir} {
             -family VERSAL-hbm -speed -3HP \
             -part xcvh1782-lsva4737-3HP-e-S
 
-        # Virtex Ultra+ used by other papers
+        # # Virtex Ultra+ used by other papers
         # solution library add mgc_Xilinx-VIRTEX-uplus-1_beh \
         #     -- -rtlsyntool Vivado -manufacturer Xilinx \
         #     -family VIRTEX-uplus -speed -1 \
@@ -299,29 +299,48 @@ proc get_mul_val {mul_type} {
 proc remove_broken_mul_libs { tech_type } {
     # Make sure mgc_mul's with blank MinClkPrd are not used
 
-    # Don't use mgc_mul or mgc_sqr > 64b, up till 2999b
-    for {set i 7} {$i <= 9} {incr i 1} {
-        directive set "/.../*mgc_mul(${i}?,*)" -match glob -QUANTITY 0
-        directive set "/.../*mgc_sqr(${i}?,*)" -match glob -QUANTITY 0
-        directive set "/.../*mgc_mul_pipe(${i}?,*,2,0,1)" -match glob -QUANTITY 0
-        directive set "/.../*mgc_sqr_pipe(${i}?,*,2,0,1)" -match glob -QUANTITY 0
-    }
+    if {$tech_type eq "gf12" || $tech_type eq "45nm" || $tech_type eq "saed32" || $tech_type eq "saed14"} {
+        # Don't use mgc_mul or mgc_sqr > 64b, up till 2999b
+        for {set i 7} {$i <= 9} {incr i 1} {
+            directive set "/.../*mgc_mul(${i}?,*)" -match glob -QUANTITY 0
+            directive set "/.../*mgc_sqr(${i}?,*)" -match glob -QUANTITY 0
+            directive set "/.../*mgc_mul_pipe(${i}?,*,2,0,1)" -match glob -QUANTITY 0
+            directive set "/.../*mgc_sqr_pipe(${i}?,*,2,0,1)" -match glob -QUANTITY 0
 
-    for {set i 1} {$i <= 9} {incr i 1} {
-        directive set "/.../*mgc_mul(${i}??,*)" -match glob -QUANTITY 0
-        directive set "/.../*mgc_sqr(${i}??,*)" -match glob -QUANTITY 0
-        directive set "/.../*mgc_mul_pipe(${i}??,*,2,0,1)" -match glob -QUANTITY 0
-        directive set "/.../*mgc_sqr_pipe(${i}??,*,2,0,1)" -match glob -QUANTITY 0
-    }
+            if {$tech_type eq "45nm"} {
+                directive set "/.../*mgc_mul_pipe(${i}?,*,2,0,2)" -match glob -QUANTITY 0
+                directive set "/.../*mgc_sqr_pipe(${i}?,*,2,0,2)" -match glob -QUANTITY 0
+            }
+        }
 
-    directive set "/.../*mgc_mul(1???,*)" -match glob -QUANTITY 0
-    directive set "/.../*mgc_mul(2???,*)" -match glob -QUANTITY 0
-    directive set "/.../*mgc_sqr(1???,*)" -match glob -QUANTITY 0
-    directive set "/.../*mgc_sqr(2???,*)" -match glob -QUANTITY 0
-    directive set "/.../*mgc_mul_pipe(1???,*,2,0,1)" -match glob -QUANTITY 0
-    directive set "/.../*mgc_mul_pipe(2???,*,2,0,1)" -match glob -QUANTITY 0
-    directive set "/.../*mgc_sqr_pipe(1???,*,2,0,1)" -match glob -QUANTITY 0
-    directive set "/.../*mgc_sqr_pipe(2???,*,2,0,1)" -match glob -QUANTITY 0
+        for {set i 1} {$i <= 9} {incr i 1} {
+            directive set "/.../*mgc_mul(${i}??,*)" -match glob -QUANTITY 0
+            directive set "/.../*mgc_sqr(${i}??,*)" -match glob -QUANTITY 0
+            directive set "/.../*mgc_mul_pipe(${i}??,*,2,0,1)" -match glob -QUANTITY 0
+            directive set "/.../*mgc_sqr_pipe(${i}??,*,2,0,1)" -match glob -QUANTITY 0
+
+            if {$tech_type eq "45nm"} {
+                directive set "/.../*mgc_mul_pipe(${i}??,*,2,0,2)" -match glob -QUANTITY 0
+                directive set "/.../*mgc_sqr_pipe(${i}??,*,2,0,2)" -match glob -QUANTITY 0
+            }
+        }
+
+        directive set "/.../*mgc_mul(1???,*)" -match glob -QUANTITY 0
+        directive set "/.../*mgc_mul(2???,*)" -match glob -QUANTITY 0
+        directive set "/.../*mgc_sqr(1???,*)" -match glob -QUANTITY 0
+        directive set "/.../*mgc_sqr(2???,*)" -match glob -QUANTITY 0
+        directive set "/.../*mgc_mul_pipe(1???,*,2,0,1)" -match glob -QUANTITY 0
+        directive set "/.../*mgc_mul_pipe(2???,*,2,0,1)" -match glob -QUANTITY 0
+        directive set "/.../*mgc_sqr_pipe(1???,*,2,0,1)" -match glob -QUANTITY 0
+        directive set "/.../*mgc_sqr_pipe(2???,*,2,0,1)" -match glob -QUANTITY 0
+        
+        if {$tech_type eq "45nm"} {
+            directive set "/.../*mgc_mul_pipe(1???,*,2,0,2)" -match glob -QUANTITY 0
+            directive set "/.../*mgc_mul_pipe(2???,*,2,0,2)" -match glob -QUANTITY 0
+            directive set "/.../*mgc_sqr_pipe(1???,*,2,0,2)" -match glob -QUANTITY 0
+            directive set "/.../*mgc_sqr_pipe(2???,*,2,0,2)" -match glob -QUANTITY 0
+        }
+    }
 }
 
 # proc create_lib_f {kernel_dir lib_name} {
