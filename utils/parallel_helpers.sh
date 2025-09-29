@@ -85,6 +85,13 @@ declare -A CURVE_TO_FIELD_A_MAP=(
   [P_256]=ANEG3
   [P_521]=ANEG3
   [MNT4753]=A2
+  [BLS12_377_ED]=ANEG1
+  [MNT4753_ED]=ANEG1
+  [ED25519]=ANEG1
+  [ED_384_MONT]=ANEG1
+  [ED_511_MERS]=ANEG1
+  [ED_512_MONT]=ANEG1
+  [ED448]=AVAR
 )
 
 # Basically, so the bit nested for loop recursively and generalizes it
@@ -95,15 +102,15 @@ sweep_recurse() {
   local leaf_func=$2   # function to call at leaf
 
   if (( depth == ${#SWEEPS_PROJ_ORDER[@]} )); then
-    # skip if FIELD_AS == "AVAR" and CURVE_TYPES == "RAND_CURVE" and Q_TYPES == "fixedq"
-    if [[ -v SWEEP_STATE[FIELD_AS] ]] \
-      && [[ -v SWEEP_STATE[CURVE_TYPES] ]] \
-      && [[ -v SWEEP_STATE[Q_TYPES] ]] \
-      && [[ ${SWEEP_STATE[FIELD_AS]} == "AVAR" ]] \
-      && [[ ${SWEEP_STATE[CURVE_TYPES]} == "RAND_CURVE" ]] \
-      && [[ ${SWEEP_STATE[Q_TYPES]} == "fixedq" ]]; then
-      return
-    fi
+    # # skip if FIELD_AS == "AVAR" and CURVE_TYPES == "RAND_CURVE" and Q_TYPES == "fixedq"
+    # if [[ -v SWEEP_STATE[FIELD_AS] ]] \
+    #   && [[ -v SWEEP_STATE[CURVE_TYPES] ]] \
+    #   && [[ -v SWEEP_STATE[Q_TYPES] ]] \
+    #   && [[ ${SWEEP_STATE[FIELD_AS]} == "AVAR" ]] \
+    #   && [[ ${SWEEP_STATE[CURVE_TYPES]} == "RAND_CURVE" ]] \
+    #   && [[ ${SWEEP_STATE[Q_TYPES]} == "fixedq" ]]; then
+    #   return
+    # fi
     
     # Call the leaf function with current sweep state
     "$leaf_func"

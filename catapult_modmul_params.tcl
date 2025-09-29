@@ -1,17 +1,17 @@
 # Sweep parameters
-set BITWIDTHS {64 256} ;# 8 12 16 24 32 48 64 96 128 192 256 384 512 768 1024
+set BITWIDTHS {256} ;# 8 12 16 24 32 48 64 96 128 192 256 384 512 768 1024
 set TECH_TYPES {gf12} ;# 45nm gf12 saed32 fpga
 set TARGET_IIS {1}
-set MUL_TYPES {sb kar} ;# kar sb nor
+set MUL_TYPES {nor} ;# kar sb nor
 set TARGET_PERIODS {1} ;# in ns
-set Q_TYPES {varq fixedq} ;# in ns
+set Q_TYPES {fixedq varq} ;# in ns
 
 # curve types: 
 # RAND_CURVE
 # a=0 : BN254 BLS12_377 BLS12_381 SECP256K1
 # a=2 : MNT4753
 # a=-3 : P_256 P_521
-set CURVE_TYPES {RAND_CURVE}
+set CURVE_TYPES {BN254}
 
 set BASE_MUL_DEPTH_MAP {
     8 {8}
@@ -116,7 +116,7 @@ set SWEEPS_PROJ_ORDER {CURVE_TYPES Q_TYPES TECH_TYPES MUL_TYPES TARGET_PERIODS T
 
 # Control flags
 set SIM true ;# verify RTL
-set SYN true ;# run synthesis
+set SYN false ;# run synthesis
 set TEST true ;# test C++ code
 set TEST_ONLY false ;# only test C++ code with osci, for quick initial testing
 set NUM_TEST_SAMPLES 1000

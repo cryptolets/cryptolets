@@ -56,7 +56,8 @@ FIELD_A_TO_INT = {
     "A0": "0",
     "A2": "2",
     "ANEG3": "-3",
-    "AVAR": "var"
+    "AVAR": "var",
+    "ANEG1": "-1",
 }
 
 
@@ -268,7 +269,7 @@ def derive_all_attr(parsed_raw_attrs, table_info):
             else:
                 latency = round(period-slack, 2)        
 
-        ctime_raw = float(a.get('ctime', 0)) # total compile time
+        ctime_raw = to_float_prec(a.get("ctime")) # total compile time
 
         row = {
             "sol": sol,
@@ -284,8 +285,8 @@ def derive_all_attr(parsed_raw_attrs, table_info):
             "kar": all_info['kar'],
             "limbs": all_info['limbs'],
             "wbw": all_info['bitwidth'] // all_info['limbs'] if all_info['limbs'] else None,
-            "ctime_raw": ctime_raw,
-            "ctime": f"{int(ctime_raw) // 60}m {int(ctime_raw) % 60}s",
+            "ctime_raw": ctime_raw if ctime_raw else 0,
+            "ctime": f"{int(ctime_raw) // 60}m {int(ctime_raw) % 60}s" if ctime_raw else -1,
             "minclkprd": round(minclkprd, 2) if minclkprd else None,
             "fmax": round(1000/minclkprd, 2) if (minclkprd and minclkprd != 0) else None,
             "cycles": cycles,

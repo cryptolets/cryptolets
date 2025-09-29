@@ -20,8 +20,8 @@ source utils/parallel_helpers.sh
 load_tcl_sweep_params $PARAMS_TCL_SCRIPT # load params from tcl config file
 
 # Core allocation configuration - MODIFY THESE VALUES AS NEEDED
-TOTAL_CORES=20          # Total available cores (K)
-DESIGN_COMPILER_THREADS=4     # Cores used per process (M)
+TOTAL_CORES=35          # Total available cores (K)
+DESIGN_COMPILER_THREADS=1     # Cores used per process (M)
 export DESIGN_COMPILER_THREADS
 MAX_PARALLEL=$((TOTAL_CORES / DESIGN_COMPILER_THREADS))  # K/M parallel processes
 
@@ -36,7 +36,7 @@ echo ""
 
 # Record start time
 START_TIME=$(date +%s)
-START_TIME_HUMAN=$(date '+%Y-%m-%d %H:%M:%S')
+START_TIME_HUMAN=$(date "+%Y-%m-%d %H:%M:%S")
 echo "Synthesis started at: $START_TIME_HUMAN"
 echo ""
 
@@ -91,6 +91,7 @@ run_config() {
     local print_line="Starting:"
     local log_suffix=""
     export KERNEL_NAME="$KERNEL_NAME"
+    export PARAMS_TCL_SCRIPT="$PARAMS_TCL_SCRIPT"
 
     for k in "${SWEEPS_PROJ_ORDER[@]}"; do
       # --- export key mapping (same logic as count_configs) ---
@@ -153,7 +154,7 @@ launch_config() {
     process_start_times[$new_pid]=$(date +%s)
     ((running_count++))
 
-    current_time=$(date '+%H:%M:%S')
+    current_time=$(date "+%H:%M:%S")
     echo "[$current_time] Launched config $config_num/$total_configs (PID: $new_pid)"
     echo "Currently running: ${#active_pids[@]}/$MAX_PARALLEL processes"
   else
@@ -170,7 +171,7 @@ wait_for_finish # Wait for all remaining processes to finish
 
 # Calculate total execution time
 END_TIME=$(date +%s)
-END_TIME_HUMAN=$(date '+%Y-%m-%d %H:%M:%S')
+END_TIME_HUMAN=$(date "+%Y-%m-%d %H:%M:%S")
 TOTAL_DURATION=$((END_TIME - START_TIME))
 TOTAL_DURATION_STR=$(format_duration $TOTAL_DURATION)
 

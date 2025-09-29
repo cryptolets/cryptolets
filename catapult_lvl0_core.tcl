@@ -16,7 +16,7 @@ set root_dir [file normalize [file dirname [info script]]]
 
 # Import utilities
 source [file join $root_dir utils util.tcl]
-source [file join $root_dir catapult_lvl0_params.tcl] ;# get solution level params and control flags
+source [file join $root_dir $env(PARAMS_TCL_SCRIPT)] ;# get solution level params and control flags
 
 set kernel_dir [file join $root_dir $lvl_dir $kernel]
 set work_dir [enter_work_dir $kernel_dir] ;# move to a lvl_dir/kernel/Catapult as working dir

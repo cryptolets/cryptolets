@@ -3,8 +3,7 @@
 // Private helpers
 #if PRECISION_MODE == PREC_SINGLE
 
-wide_t modmul_mont_core(const wide_t x, const wide_t y, const wide_t q, const wide_t q_prime) {
-    wide_2x_t t = mul_f(x, y);
+wide_t mont_reduction(wide_2x_t t, const wide_t q, const wide_t q_prime) {
     wide_t t_red = t.slc<BITWIDTH>(0);      // t & (R-1)
 
     // (t_red * q_prime) & (R-1)
@@ -21,22 +20,14 @@ wide_t modmul_mont_core(const wide_t x, const wide_t y, const wide_t q, const wi
     return (!diff[BITWIDTH]) ? (wide_t)diff : (wide_t)u;
 }
 
+wide_t modmul_mont_core(const wide_t x, const wide_t y, const wide_t q, const wide_t q_prime) {
+    wide_2x_t t = mul_f(x, y);
+    return mont_reduction(t, q, q_prime);
+}
+
 wide_t modsq_mont_core(const wide_t x, const wide_t q, const wide_t q_prime) {
     wide_2x_t t = sq_f(x);
-    wide_t t_red = t.slc<BITWIDTH>(0);      // t & (R-1)
-
-    // (t_red * q_prime) & (R-1)
-#if Q_TYPE == FIXED_Q 
-    wide_t m_red = (t_red * Q_PRIME).slc<BITWIDTH>(0);
-#else
-    wide_t m_red = mul_f(t_red, q_prime);
-#endif
-
-    wide_2x_t mq = mul_f(m_red, q);
-    wide_2x_1_t t_mq = t + mq;
-    wide_1_t u = t_mq >> BITWIDTH;
-    wide_signed_t diff = u - q;
-    return (!diff[BITWIDTH]) ? (wide_t)diff : (wide_t)u;
+    return mont_reduction(t, q, q_prime);
 }
 
 #else // PREC_MULTI
@@ -88,15 +79,23 @@ wide_t modmul_mont_core(const wide_t x, const wide_t y, const wide_t q, const wi
     return (!A_minus_q[((LIMBS+1)*WBW)]) ? (wide_t)A_minus_q : (wide_t)A;
 }
 
-// TODO:
 wide_t modsq_mont_core(const wide_t x, const wide_t q, const wide_t q_prime) {
     return modmul_mont_core(x, x, q, q_prime);
 }
 
 #endif
 
-// Public API (fixed-q wrappers)
+// special case where we are multiplying by a const
+// either x or y should be a const
+wide_t modmul_mont_const(const wide_t x, const wide_t y, const wide_t q, const wide_t q_prime) {
+    wide_2x_t t = x * y; // compile to constant multiplier
+    return mont_reduction(t, q, q_prime);
+}
+
+
+// Public API (fixed-q)
 #if Q_TYPE == FIXED_Q
+
 wide_t modmul_mont(const wide_t x, const wide_t y) {
     return modmul_mont_core(x, y, Q, Q_PRIME);
 }
@@ -108,13 +107,11 @@ wide_t modsq_mont(const wide_t x) {
 #else
 
 // Public API (variable-q)
-wide_t modmul_mont(const wide_t x, const wide_t y,
-                   const wide_t q, const wide_t q_prime) {
+wide_t modmul_mont(const wide_t x, const wide_t y, const wide_t q, const wide_t q_prime) {
     return modmul_mont_core(x, y, q, q_prime);
 }
 
-wide_t modsq_mont(const wide_t x,
-                  const wide_t q, const wide_t q_prime) {
+wide_t modsq_mont(const wide_t x, const wide_t q, const wide_t q_prime) {
     return modsq_mont_core(x, q, q_prime);
 }
 

@@ -179,9 +179,6 @@ def write_csv_files(curve_type, total_samples, json_file, samples_path=None, gol
     bitwidth = get_field_const(curve_type, "bitwidth", json_file)
     a = get_field_const(curve_type, "a", json_file)
     b = get_field_const(curve_type, "b", json_file)
-
-    valid_a = a == (0 % q) or a == (2 % q) or a == (-3 % q) or a == 5
-    assert valid_a, f"Error: a={a}, must be a=0, a=2, a={-3 % q}, or a=5 (variable a)"
     E = ShortWeierstrass(q, a=a, b=b)
 
     # default paths

@@ -25,7 +25,7 @@ set include_dirs {
 
 set kernel $env(KERNEL_NAME)
 set root_dir [file normalize [file dirname [info script]]]
-source [file join $root_dir catapult_padd_params.tcl] ;# get solution level params and control flags
+source [file join $root_dir $env(PARAMS_TCL_SCRIPT)] ;# get solution level params and control flags
 
 # Import utilities
 source [file join $root_dir utils util.tcl]

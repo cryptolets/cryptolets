@@ -56,7 +56,15 @@
 #define VAR_Q   1
 
 #ifndef Q_TYPE
-#define Q_TYPE VAR_Q
+  #define Q_TYPE VAR_Q
+#endif
+
+// Modmul type
+#define MODMUL_TYPE_MONT 0
+#define MODMUL_TYPE_BARRET 1
+
+#ifndef MODMUL_TYPE
+  #define MODMUL_TYPE MODMUL_TYPE_MONT
 #endif
 
 // -------------------------------------------------------------------
@@ -83,12 +91,13 @@
 
 // Assumptions about a
 #define A0 0 // a=0
+#define ANEG1 1 // a=-1
 #define A2 2 // a=2
 #define ANEG3 3 // a=-3
 #define AVAR 4 // variable a
 
 #ifndef FIELD_A
-#define FIELD_A A_0
+  #define FIELD_A A_0
 #endif
 
 #endif // _PARAMS_H_

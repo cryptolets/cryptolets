@@ -1,23 +1,27 @@
 # For Short Weierstrass curve = "point_add" kernel
 # Sweep parameters
-set BITWIDTHS {254 256 377 384} ;# 8 12 16 24 32 48 64 96 128 192 256 384 512 768 1024
+set BITWIDTHS {64 96 254 256} ;# 8 12 16 24 32 48 64 96 128 192 256 384 512 768 1024
+# 256 377 381 384
+# 64 96 128 192 254 256 377 381 384 : clock 1ns and mod_ops_period ratio = 0.95
+# 448 512 521 : clock at 1.1 and mod_ops_period ratio = 0.90
+# 753 768 : 1.4 and mod_ops_period ratio = 0.90
 
 set TECH_TYPES {gf12} ;# 45nm gf12 saed32 fpga
 set TARGET_IIS {1}
-set MUL_TYPES {sb kar} ;# kar sb nor
+set MUL_TYPES {nor} ;# kar sb nor
 set TARGET_PERIODS {1} ;# in ns
-set Q_TYPES {fixedq} ;# fixedq varq
+set Q_TYPES {fixedq varq} ;# fixedq varq
 
 # curve types: 
 # RAND_CURVE
 # a=0 : BN254 BLS12_377 BLS12_381 SECP256K1
 # a=2 : MNT4753
 # a=-3 : P_256 P_521
-set CURVE_TYPES {BN254 BLS12_377}
+set CURVE_TYPES {BN254 BLS12_377 RAND_CURVE}
 
 # for RAND_CURVE can select what "a" to pick which will specify what formula will be used
 # for other CURVE_TYPE's this value will be overrided
-set FIELD_AS {A0} ;# A0: a=0, A2: a=2, ANEG3: a=-3, AVAR: variable a
+set FIELD_AS {A0 A2 ANEG3 AVAR} ;# A0: a=0, A2: a=2, ANEG3: a=-3, AVAR: variable a
 
 set BASE_MUL_DEPTH_MAP {
     8 {8}
@@ -121,7 +125,7 @@ set SWEEPS_PROJ_ORDER {CURVE_TYPES FIELD_AS Q_TYPES TECH_TYPES MUL_TYPES TARGET_
 
 # Control flags
 set SIM true ;# verify RTL
-set SYN true
+set SYN false
 set TEST true ;# test C++ code
 set TEST_ONLY false ;# only test C++ code with osci, for quick initial testing
 set NUM_TEST_SAMPLES 1000
