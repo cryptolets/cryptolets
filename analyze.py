@@ -51,7 +51,7 @@ ATTR_TO_COL_NAME = {
 }
 
 ASIC_TECH_TYPES = ["45nm", "gf12", "saed32"]
-FPGA_TECH_TYPES = ["fpga"]
+FPGA_TECH_TYPES = ["fpga", "fpgahbm"]
 FIELD_A_TO_INT = {
     "A0": "0",
     "A2": "2",

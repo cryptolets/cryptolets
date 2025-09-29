@@ -11,6 +11,7 @@ set include_dirs {
     utils/include
 }
 
+set MAX_SYN_THREADS $env(DESIGN_COMPILER_THREADS)
 set kernel $env(KERNEL_NAME)
 set root_dir [file normalize [file dirname [info script]]]
 

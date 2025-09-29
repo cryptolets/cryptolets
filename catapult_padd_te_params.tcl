@@ -1,22 +1,22 @@
 # For Short Weierstrass curve = "point_add" kernel
 # Sweep parameters
-set BITWIDTHS {64 96} ;# 8 12 16 24 32 48 64 96 128 192 256 384 512 768
+set BITWIDTHS {64 96 128 192 254 256 377 381 384} ;# 8 12 16 24 32 48 64 96 128 192 256 384 512 768
 # 256 377 381 384
 # 64 96 128 192 254 256 377 381 384 : clock 1ns and mod_ops_period ratio = 0.95
 # 448 512 521 : clock at 1.1 and mod_ops_period ratio = 0.90
 # 753 768 : 1.4 and mod_ops_period ratio = 0.90
 
-set TECH_TYPES {gf12} ;# 45nm gf12 saed32 fpga
+set TECH_TYPES {gf12} ;# 45nm gf12 saed32 fpga fpgahbm
 set TARGET_IIS {1}
-set MUL_TYPES {nor} ;# kar sb nor
+set MUL_TYPES {nor} ;# sb kar nor
 set TARGET_PERIODS {1} ;# in ns
-set Q_TYPES {fixedq varq} ;# fixedq varq
+set Q_TYPES {fixedq} ;# fixedq varq
 
 # curve types: 
 # RAND_CURVE
 # a=-1 : ED25519 ED_384_MONT ED_511_MERS ED_512_MONT MNT4753_ED (BLS12_377_ED doesn't work - wrong params)
 # variable 1 = ED448
-set CURVE_TYPES {ED25519 ED448 ED_384_MONT RAND_CURVE}
+set CURVE_TYPES {ED25519 ED_384_MONT}
 
 # for RAND_CURVE can select what "a" to pick which will specify what formula will be used
 # for other CURVE_TYPE's this value will be overrided

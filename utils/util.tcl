@@ -17,6 +17,7 @@ proc override_default_options {} {
     options set /Input/TargetPlatform x86_64
     options set Flows/SCVerify/MAX_ERROR_CNT 1
     options set Flows/DesignCompiler/OutNetlistFormat verilog
+    options set Flows/Vivado/XILINX_VIVADO /eda/xilinx//Vivado/2024.2/
 }
 
 proc set_tech_lib {tech_type root_dir} {
@@ -50,20 +51,18 @@ proc set_tech_lib {tech_type root_dir} {
 
         solution library add saed32lvt_tt0p78v125c_beh \
             -- -rtlsyntool DesignCompiler -vendor SAED32 -technology {lvt tt0p78v125c}        
-    } else {
-        options set Flows/Vivado/XILINX_VIVADO /eda/xilinx//Vivado/2024.2/
-
+    } elseif {$tech_type eq "fpgahbm"} {
         # Top of the line Versal HBM
         solution library add mgc_Xilinx-VERSAL-hbm-3HP_beh \
             -- -rtlsyntool Vivado -manufacturer Xilinx \
             -family VERSAL-hbm -speed -3HP \
             -part xcvh1782-lsva4737-3HP-e-S
-
+    } elseif {$tech_type eq "fpga"} {
         # # Virtex Ultra+ used by other papers
-        # solution library add mgc_Xilinx-VIRTEX-uplus-1_beh \
-        #     -- -rtlsyntool Vivado -manufacturer Xilinx \
-        #     -family VIRTEX-uplus -speed -1 \
-        #     -part xcvu9p-flga2104-1-e
+        solution library add mgc_Xilinx-VIRTEX-uplus-1_beh \
+            -- -rtlsyntool Vivado -manufacturer Xilinx \
+            -family VIRTEX-uplus -speed -1 \
+            -part xcvu9p-flga2104-1-e
     }
 }
 
@@ -228,11 +227,43 @@ proc run_scverify {kernel_dir work_dir bitwidth SIM} {
     }
 }
 
+proc inject_threads_vivado {syn_file_path} {
+    global MAX_SYN_THREADS
+
+    # Read file
+    set fh [open $syn_file_path r]
+    set content [read $fh]
+    close $fh
+
+    # Block to inject
+    set thread_block "# --- injected by Catapult wrapper ---
+set_param general.maxThreads $MAX_SYN_THREADS
+set_param synth.maxThreads   $MAX_SYN_THREADS
+puts \"MAX THREADS: general=\[get_param general.maxThreads\] synth=\[get_param synth.maxThreads\]\"
+# --- end injection ---"
+
+    # Prepend
+    set new_content "$thread_block\n\n$content"
+
+    # Write back
+    set fh [open $syn_file_path w]
+    puts $fh $new_content
+    close $fh
+}
+
 proc run_syn {tech_type SYN root_dir {RTL_FILE "rtl"}} {
     if {$SYN} {
-        if {$tech_type eq "fpga"} {
+        if {$tech_type eq "fpga" || $tech_type eq "fpgahbm"} {
             puts "Syn: Running FPGA Vivado synthesis"
-            go synthesize
+
+            # Fixes issue with running Vivado for Versal HBM fpga
+            set ::env(LD_LIBRARY_PATH) "/eda/xilinx/Vivado/2024.2/lib/lnx64.o"
+            catch {unset ::env(LD_PRELOAD)}
+            puts "LD_LIBRARY_PATH is now: $::env(LD_LIBRARY_PATH)"
+
+            set syn_file_path [file join [solution get /SOLUTION_DIR] "vivado_v" "${RTL_FILE}.v.xv"]
+            inject_threads_vivado $syn_file_path
+            flow run /Vivado/synthesize -shell $syn_file_path
         } elseif {$tech_type eq "45nm" || $tech_type eq "saed32" || $tech_type eq "gf12"} {
             puts "Syn: Running Design Compiler for $tech_type"
             

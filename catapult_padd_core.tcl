@@ -24,6 +24,7 @@ set include_dirs {
     lvl1_modops/include
 }
 
+set MAX_SYN_THREADS $env(DESIGN_COMPILER_THREADS)
 set kernel $env(KERNEL_NAME)
 set root_dir [file normalize [file dirname [info script]]]
 source [file join $root_dir $env(PARAMS_TCL_SCRIPT)] ;# get solution level params and control flags

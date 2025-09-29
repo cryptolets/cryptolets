@@ -10,6 +10,7 @@ set bitwidth $env(BITWIDTH)
 set bm $env(BASE_MUL_DEPTH)
 set kar $env(KAR_MUL_DEPTH)
 
+set MAX_SYN_THREADS $env(DESIGN_COMPILER_THREADS)
 set kernel $env(KERNEL_NAME)
 set root_dir [file normalize [file dirname [info script]]]
 
