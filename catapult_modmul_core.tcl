@@ -153,7 +153,7 @@ project save
 solution table export -file [file join $work_dir $table_name]
 
 run_scverify $kernel_dir $work_dir $bitwidth $SIM
-run_syn $tech_type $SYN $root_dir
+run_syn $tech_type $SYN $root_dir $rtl_file
 solution table export -file [file join $work_dir $table_name]
 
 # solution remove -solution "${sol_name_test_only}.v1" -delete
