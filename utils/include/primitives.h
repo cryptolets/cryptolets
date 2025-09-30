@@ -2,7 +2,6 @@
 #define _PRIMITIVES_H_
 
 #include "params.h"
-#include "tmp_const.h"
 #include <ac_int.h>
 
 typedef ac_int<BITWIDTH, false>         wide_t;
@@ -51,6 +50,9 @@ typedef struct {
     wide_t u;
 } EC_point_EA;
 
+
+#if __has_include("tmp_const.h")
+#include "tmp_const.h"
 // --- Fixed modulus values (for const-Q optimizations) ---
 #if Q_TYPE == FIXED_Q
 
@@ -68,5 +70,6 @@ static const wide_t FIELD_A_MONT = ac::bit_fill_hex<wide_2x_t>(FIELD_A_MONT_HEX)
 static const wide_t FIELD_D_MONT = ac::bit_fill_hex<wide_2x_t>(FIELD_D_MONT_HEX);
 static const wide_t FIELD_K_MONT = ac::bit_fill_hex<wide_2x_t>(FIELD_K_MONT_HEX);
 
+#endif
 
 #endif // _PRIMITIVES_H_
