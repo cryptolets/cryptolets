@@ -1,10 +1,10 @@
 # Sweep parameters
-set BITWIDTHS {448 512 521 753 768 1024} ;# 8 12 16 24 32 48 64 96 128 192 256 384 512 768 1024
+set BITWIDTHS {12 16 24 32 48 64 96 128 192 254 256 377 381 384} ;# 8 12 16 24 32 48 64 96 128 192 256 384 512 768 1024
 # 448 512 521 753 768 1024 : clock at 1.349
-set TECH_TYPES {45nm} ;# 45nm gf12 saed32 fpga fpgahbm
+set TECH_TYPES {gf12} ;# 45nm gf12 saed32 fpga fpgahbm
 set TARGET_IIS {1}
-set MUL_TYPES {nor} ;# kar sb nor
-set TARGET_PERIODS {5} ;# in ns
+set MUL_TYPES {nor sb kar} ;# kar sb nor
+set TARGET_PERIODS {1 1.25 1.66} ;# in ns
 
 set BASE_MUL_DEPTH_MAP {
     8 {8}
@@ -32,21 +32,21 @@ set BASE_MUL_DEPTH_MAP {
 }
 
 set KAR_MUL_DEPTH_MAP {
-    8 {8}
-    12 {12}
-    16 {8}
+    8 {}
+    12 {}
+    16 {}
     24 {12}
     32 {16}
     48 {24}
-    64 {32}
-    96 {48 24}
-    128 {64 32}
-    192 {96 48 24}
-    254 {127 63}
-    256 {128 64}
-    377 {188 94 47}
-    381 {190 95 47}
-    384 {192 96 48}
+    64 {32 16}
+    96 {48 24 12}
+    128 {64 32 16}
+    192 {96 48 24 12}
+    254 {127 63 31 15}
+    256 {128 64 32 16}
+    377 {188 94 47 23 11}
+    381 {190 95 47 23 11}
+    384 {192 96 48 24 12}
     448 {224 112 56}
     512 {256 128 64}
     521 {260 130 65}

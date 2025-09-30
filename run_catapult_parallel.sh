@@ -21,7 +21,7 @@ load_tcl_sweep_params $PARAMS_TCL_SCRIPT # load params from tcl config file
 
 # Core allocation configuration - MODIFY THESE VALUES AS NEEDED
 TOTAL_CORES=40          # Total available cores (K)
-DESIGN_COMPILER_THREADS=4     # Cores used per process (M) / Also for Vivado
+DESIGN_COMPILER_THREADS=2     # Cores used per process (M) / Also for Vivado
 export DESIGN_COMPILER_THREADS
 MAX_PARALLEL=$((TOTAL_CORES / DESIGN_COMPILER_THREADS))  # K/M parallel processes
 

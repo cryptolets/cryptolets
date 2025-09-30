@@ -9,6 +9,7 @@ set mul_type $env(MUL_TYPE)
 set bitwidth $env(BITWIDTH)
 set bm $env(BASE_MUL_DEPTH)
 set kar $env(KAR_MUL_DEPTH)
+set rtl_file $env(RTL_FILE)
 
 set MAX_SYN_THREADS $env(DESIGN_COMPILER_THREADS)
 set kernel $env(KERNEL_NAME)
@@ -95,7 +96,7 @@ project save
 solution table export -file [file join $work_dir $table_name]
 
 run_scverify $kernel_dir $work_dir $bitwidth $SIM
-run_syn $tech_type $SYN $root_dir
+run_syn $tech_type $SYN $root_dir $rtl_file
 solution table export -file [file join $work_dir $table_name]
 
 project save

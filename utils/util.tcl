@@ -261,7 +261,7 @@ proc run_syn {tech_type SYN root_dir {RTL_FILE "rtl"}} {
             catch {unset ::env(LD_PRELOAD)}
             puts "LD_LIBRARY_PATH is now: $::env(LD_LIBRARY_PATH)"
 
-            set syn_file_path [file join [solution get /SOLUTION_DIR] "vivado_v" "${RTL_FILE}.v.xv"]
+            set syn_file_path [file join [solution get /SOLUTION_DIR] "vivado_v" "rtl.v.xv"]
             inject_threads_vivado $syn_file_path
             flow run /Vivado/synthesize -shell $syn_file_path
         } elseif {$tech_type eq "45nm" || $tech_type eq "saed32" || $tech_type eq "gf12"} {
