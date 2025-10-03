@@ -3,7 +3,7 @@ set design [getenv "RTL_FILE"]
 sh mkdir -p reports
 sh mkdir -p netlist
 
-write_file -hierarchy -format verilog -output "./netlist/${design}.v"
+# write_file -hierarchy -format verilog -output "./netlist/${design}.v"
 write_sdc "./netlist/${design}.sdc"
 
 redirect ./reports/report_timing.rpt {
