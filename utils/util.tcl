@@ -57,6 +57,11 @@ proc set_tech_lib {tech_type root_dir} {
             -- -rtlsyntool Vivado -manufacturer Xilinx \
             -family VERSAL-hbm -speed -3HP \
             -part xcvh1782-lsva4737-3HP-e-S
+    } elseif {$tech_type eq "fpgahbmvhk158"} {
+        solution library add mgc_Xilinx-VERSAL-hbm-2MP_beh \
+            -- -rtlsyntool Vivado -manufacturer Xilinx \
+            -family VERSAL-hbm -speed -2MP \
+            -part xcvh1582-vsva3697-2MP-e-S
     } elseif {$tech_type eq "fpga"} {
         # # Virtex Ultra+ used by other papers
         solution library add mgc_Xilinx-VIRTEX-uplus-1_beh \
@@ -253,7 +258,7 @@ puts \"MAX THREADS: general=\[get_param general.maxThreads\] synth=\[get_param s
 
 proc run_syn {tech_type SYN root_dir {RTL_FILE "rtl"}} {
     if {$SYN} {
-        if {$tech_type eq "fpga" || $tech_type eq "fpgahbm"} {
+        if {$tech_type eq "fpga" || $tech_type eq "fpgahbm" || $tech_type eq "fpgahbmvhk158"} {
             puts "Syn: Running FPGA Vivado synthesis"
 
             # Fixes issue with running Vivado for Versal HBM fpga

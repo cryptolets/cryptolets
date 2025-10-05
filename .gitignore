@@ -28,3 +28,4 @@ OLD_*
 results/
 
 vivado*
+tmp.sh

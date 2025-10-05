@@ -51,7 +51,7 @@ ATTR_TO_COL_NAME = {
 }
 
 ASIC_TECH_TYPES = ["45nm", "gf12", "saed32"]
-FPGA_TECH_TYPES = ["fpga", "fpgahbm"]
+FPGA_TECH_TYPES = ["fpga", "fpgahbm", "fpgahbmvhk158"]
 FIELD_A_TO_INT = {
     "A0": "0",
     "A2": "2",
@@ -440,11 +440,11 @@ def sort_key(row):
         row.get("tech_type") or "",
         row.get("curve_type") or "",
         row.get("a") or "",
-        # row.get("target_period") or float("inf"),
+        row.get("target_period") or float("inf"),
         row.get("ii") or float("inf"),
         row.get("q_type") or "",
-        row.get("mt") or "",
         row.get("bitwidth") or float("inf"),
+        row.get("mt") or "",
         -row.get("bm") if row.get("bm") else float("inf"),
         -row.get("kar") if row.get("kar") else float("inf"),
     )
