@@ -61,7 +61,6 @@ append flags " -DQ_TYPE=[get_q_val $q_type]"
 append flags " -DMUL_TYPE=[get_mul_val $mul_type]"
 append flags " -DKAR_BASE_MUL_WIDTH=$kar"
 append flags " -DBASE_MUL_WIDTH=$bm"
-append flags " -DCURVE_TYPE=$curve_type"
 options set /Input/CompilerFlags "$include_flags $flags"
 
 # we want only verilog output

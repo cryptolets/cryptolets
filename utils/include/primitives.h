@@ -2,6 +2,7 @@
 #define _PRIMITIVES_H_
 
 #include "params.h"
+#include "tmp_params.h"
 #include <ac_int.h>
 
 typedef ac_int<BITWIDTH, false>         wide_t;
@@ -11,13 +12,17 @@ typedef ac_int<(BITWIDTH*2)+1, false>   wide_2x_1_t;
 typedef ac_int<(BITWIDTH*2)+2, false>   wide_2x_2_t;
 typedef ac_int<BITWIDTH+1, true>        wide_signed_t;
 
-#if PRECISION_MODE == PREC_MULTI
-typedef ac_int<WBW,false>       word_t;
-typedef ac_int<WBW+1,false>     word_1_t;
-typedef ac_int<WBW*2,false>     word_2x_t;
-typedef ac_int<(WBW*2)+1,false> word_2x_1_t;
-typedef ac_int<(WBW*2)+2,false> word_2x_2_t;
-typedef ac_int<WBW+1,true>      word_signed_t;
+#ifdef PREC_TYPE
+    #if PREC_TYPE == MULTI_PREC
+        #define WBW (BITWIDTH / LIMBS)
+
+        typedef ac_int<WBW,false>       word_t;
+        typedef ac_int<WBW+1,false>     word_1_t;
+        typedef ac_int<WBW*2,false>     word_2x_t;
+        typedef ac_int<(WBW*2)+1,false> word_2x_1_t;
+        typedef ac_int<(WBW*2)+2,false> word_2x_2_t;
+        typedef ac_int<WBW+1,true>      word_signed_t;
+    #endif
 #endif
 
 // EC Points
@@ -51,25 +56,36 @@ typedef struct {
 } EC_point_EA;
 
 
-#if __has_include("tmp_const.h")
-#include "tmp_const.h"
 // --- Fixed modulus values (for const-Q optimizations) ---
-#if Q_TYPE == FIXED_Q
+#ifdef Q_TYPE
+    #if Q_TYPE == FIXED_Q
+        #ifdef Q_HEX
+            static const wide_t Q = ac::bit_fill_hex<wide_t>(Q_HEX);
+        #endif
 
-static const wide_t Q = ac::bit_fill_hex<wide_t>(Q_HEX);
+        // Montgomery constant
+        #ifdef Q_PRIME_HEX
+            static const wide_t Q_PRIME = ac::bit_fill_hex<wide_t>(Q_PRIME_HEX);
+        #endif
 
-// Montgomery constant
-static const wide_t Q_PRIME = ac::bit_fill_hex<wide_t>(Q_PRIME_HEX);
 
-// Barrett constant
-static const wide_2x_t MU = ac::bit_fill_hex<wide_2x_t>(MU_HEX);
-
+        // Barrett constant
+        #ifdef MU_HEX
+            static const wide_2x_t MU = ac::bit_fill_hex<wide_2x_t>(MU_HEX);
+        #endif
+    #endif
 #endif
 
-static const wide_t FIELD_A_MONT = ac::bit_fill_hex<wide_2x_t>(FIELD_A_MONT_HEX);
-static const wide_t FIELD_D_MONT = ac::bit_fill_hex<wide_2x_t>(FIELD_D_MONT_HEX);
-static const wide_t FIELD_K_MONT = ac::bit_fill_hex<wide_2x_t>(FIELD_K_MONT_HEX);
+#ifdef FIELD_A_MONT_HEX
+    static const wide_t FIELD_A_MONT = ac::bit_fill_hex<wide_2x_t>(FIELD_A_MONT_HEX);
+#endif
 
+#ifdef FIELD_D_MONT_HEX
+    static const wide_t FIELD_D_MONT = ac::bit_fill_hex<wide_2x_t>(FIELD_D_MONT_HEX);
+#endif
+
+#ifdef FIELD_K_MONT_HEX
+    static const wide_t FIELD_K_MONT = ac::bit_fill_hex<wide_2x_t>(FIELD_K_MONT_HEX);
 #endif
 
 #endif // _PRIMITIVES_H_

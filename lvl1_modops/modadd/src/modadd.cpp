@@ -2,7 +2,7 @@
 
 // Core implementation (shared by both fixed and variable Q)
 
-#if PRECISION_MODE == PREC_SINGLE
+#if PREC_TYPE == SINGLE_PREC
 
 wide_t modadd_core(const wide_t a, const wide_t b, const wide_t q) {
     wide_1_t adder_out = a + b;
@@ -20,7 +20,7 @@ wide_t moddouble_core(const wide_t a, const wide_t q) {
     return (!reduced_out[BITWIDTH]) ? (wide_t)reduced_out : (wide_t)adder_out;
 }
 
-#else // PREC_MULTI
+#elif PREC_TYPE == MULTI_PREC
 
 wide_t modadd_core(
     const wide_t a, 

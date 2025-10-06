@@ -1,6 +1,6 @@
 #include "sub_f.h"
 
-#if PRECISION_MODE == PREC_SINGLE
+#if PREC_TYPE == SINGLE_PREC
 
 wide_signed_t sub_f(
     const wide_t a,
@@ -9,7 +9,7 @@ wide_signed_t sub_f(
     return a - b;
 }
 
-#else // PREC_MULTI
+#elif PREC_TYPE == MULTI_PREC
 
 wide_signed_t sub_f(
     const wide_t x,

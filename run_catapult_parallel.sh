@@ -1,178 +1,181 @@
 #!/bin/bash
-
 # run_catapult_parallel.sh
-# Parallel execution of Catapult synthesis for mul_f configurations
-# with controlled parallelism based on core allocation
-#
-# This script implements a job queue system that:
-# 1. Calculates max parallel processes as K/M (total cores / cores per process)
-# 2. Maintains exactly that many processes running at all times
-# 3. Waits for a slot to free up before starting the next job
-# 4. Tracks completion and provides detailed progress reporting
-
-CORE_CATAPULT_SCRIPT=$1
-PARAMS_TCL_SCRIPT=$2
-KERNEL_NAME=$3
-DRY_RUN_ARG=$4
-GUI_ARG=$5
+# Parallel Catapult execution from JSON configs produced by generate_sweep.py
 
 source utils/parallel_helpers.sh
-load_tcl_sweep_params $PARAMS_TCL_SCRIPT # load params from tcl config file
 
-# Core allocation configuration - MODIFY THESE VALUES AS NEEDED
-TOTAL_CORES=40          # Total available cores (K)
-DESIGN_COMPILER_THREADS=4     # Cores used per process (M) / Also for Vivado
-export DESIGN_COMPILER_THREADS
-MAX_PARALLEL=$((TOTAL_CORES / DESIGN_COMPILER_THREADS))  # K/M parallel processes
+CORE_CATAPULT_SCRIPT=$1
+KERNEL_NAME=$2
+CONFIG_FILE=$3
+TOTAL_THREADS=$4
+THREADS_PER_PROCESS=$5
+RTL_FILE=$6
+DRY_RUN_FLAG=${7:-}
+GUI_FLAG=${8:-}
 
-RTL_FILE="rtl" # or "concat_rtl"
+MAX_PARALLEL=$((TOTAL_THREADS / THREADS_PER_PROCESS))
+
+export KERNEL_NAME
 export RTL_FILE
+export THREADS_PER_PROCESS
 
 echo "========================================="
-echo "Controlled Parallel Catapult Synthesis"
+echo "Controlled Parallel Catapult Execution"
 echo "========================================="
+echo "Core TCL script: $CORE_CATAPULT_SCRIPT"
+echo "Kernel: $KERNEL_NAME"
+echo "Config file: $CONFIG_FILE"
+echo "RTL mode: $RTL_FILE"
+echo "Flags:"
+echo "  Dry run: ${DRY_RUN_FLAG:-false}"
+echo "  GUI mode: ${GUI_FLAG:-false}"
+echo ""
 echo "Core allocation:"
-echo "  Total cores: $TOTAL_CORES"
-echo "  Cores per process: $DESIGN_COMPILER_THREADS"
+echo "  Total threads: $TOTAL_THREADS"
+echo "  Threads per process: $THREADS_PER_PROCESS"
 echo "  Max parallel processes: $MAX_PARALLEL"
+echo "========================================="
 echo ""
 
-# Record start time
-START_TIME=$(date +%s)
-START_TIME_HUMAN=$(date "+%Y-%m-%d %H:%M:%S")
-echo "Synthesis started at: $START_TIME_HUMAN"
+# --- Load configs and control flags ---
+command -v jq >/dev/null || { echo "jq not found"; exit 1; }
+[ -f "$CONFIG_FILE" ] || { echo "Missing config file: $CONFIG_FILE"; exit 1; }
+
+# --- Load and export control flags ---
+echo "Exporting control flags..."
+while IFS="=" read -r key val; do
+  # Skip empty lines
+  [ -z "$key" ] && continue
+  
+  # Normalize booleans to lowercase true/false
+  case "$val" in
+    true|True|TRUE)  val=true ;;
+    false|False|FALSE) val=false ;;
+  esac
+
+  export "$key"="$val"
+  echo "  $key=$val"
+done < <(jq -r '.control_flags | to_entries[] | "\(.key)=\(.value)"' "$CONFIG_FILE")
 echo ""
 
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)" # Get the script directory
+CONFIGS=($(jq -r '.sweep_configs[] | @base64' "$CONFIG_FILE"))
+TOTAL_CONFIGS=${#CONFIGS[@]}
+
+echo "Loaded control flags and $TOTAL_CONFIGS configuration(s)"
+echo ""
+
+# --- GUI mode constraint ---
+if [ "$GUI_FLAG" = "--gui" ] && [ "$TOTAL_CONFIGS" -gt 1 ]; then
+  echo "Error: GUI mode supports only one configuration."
+  echo "Current sweep has $TOTAL_CONFIGS configurations."
+  echo "Please reduce sweep parameters to a single config."
+  exit 1
+fi
+
+# --- Setup directories and counters ---
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 LOGS_DIR="$ROOT_DIR/logs/$KERNEL_NAME"
-mkdir -p $LOGS_DIR # Create logs directory if it doesn't exist
+mkdir -p "$LOGS_DIR"
+
+START_TIME=$(date +%s)
+START_HUMAN=$(date "+%Y-%m-%d %H:%M:%S")
+
+echo "Logs directory: $LOGS_DIR"
+echo "Start time: $START_HUMAN"
+echo ""
 
 # Initialize counters and tracking arrays
 declare -a active_pids=()
 declare -A process_start_times=()  # Associative array to track start times by PID
 
-total_configs=0
 completed_count=0
 failed_count=0
 running_count=0
+config_num=0
 
 echo "Starting controlled parallel Catapult synthesis..."
-echo "Configurations to run:"
-
-# Count total configurations and display them
-sweep_recurse 0 count_configs
-
-echo "Total configurations: $total_configs"
-
-# Check GUI mode constraints
-if [ "$GUI_ARG" = "--gui" ] && [ "$total_configs" -gt 1 ]; then
-    echo "Error: GUI mode can only be used with a single configuration."
-    echo "Current sweep produces $total_configs configurations."
-    echo "Please modify the parameters to generate only 1 configuration."
-    exit 1
-fi
-
-echo "Will run with max $MAX_PARALLEL parallel processes"
+echo "========================================="
 echo ""
 
-# What suffix to use for which paramter in the log file name
-declare -A SWEEP_KEY_LOG_MAP=(
-  [BITWIDTHS]=BW # bitwidth
-  [TECH_TYPES]=TT # tech type
-  [TARGET_IIS]=II # ii
-  [MUL_TYPES]=MT # mul type
-  [TARGET_PERIODS]=P # period
-  [Q_TYPES]=QT # q_type
-  [CURVE_TYPES]=CT # curve type
-  [FIELD_AS]=FA # field a
-  [BASE_MUL_DEPTH_MAP]=BM # base mul depth
-  [KAR_MUL_DEPTH_MAP]=KAR # kar mul depth
-)
-
-# Function to run a single configuration
+# --- Run a single configuration (decode + execute) ---
 run_config() {
-    local print_line="Starting:"
-    local log_suffix=""
-    export KERNEL_NAME="$KERNEL_NAME"
-    export PARAMS_TCL_SCRIPT="$PARAMS_TCL_SCRIPT"
+  local SWEEP_KEY="$1"
+	local log_file="$LOGS_DIR/catapult_${SWEEP_KEY}.log"
+	export SWEEP_KEY
 
-    for k in "${SWEEPS_PROJ_ORDER[@]}"; do
-      # --- export key mapping (same logic as count_configs) ---
-      local exp_key
-      case "$k" in
-        BASE_MUL_DEPTH_MAP) exp_key="BASE_MUL_DEPTH" ;;
-        KAR_MUL_DEPTH_MAP)  exp_key="KAR_MUL_DEPTH"  ;;
-        *)                  exp_key="${k::-1}"       ;;  # strip trailing s
-      esac
+	if [ "$DRY_RUN_FLAG" != "--dry-run" ]; then
+		if [ "$GUI_FLAG" = "--gui" ]; then
+			catapult -f "$ROOT_DIR/$CORE_CATAPULT_SCRIPT"
+		else
+			catapult -shell -f "$ROOT_DIR/$CORE_CATAPULT_SCRIPT" > "$log_file" 2>&1
+		fi
+	fi
 
-      # --- log key mapping (explicit map, fallback to raw) ---
-      local log_key="${SWEEP_KEY_LOG_MAP[$k]:-$k}"
-
-      local val="${SWEEP_STATE[$k]}"
-
-      export "${exp_key}"="$val"   # export for core catapult script
-
-      print_line+=" $exp_key=$val"
-      log_suffix+="${log_key^^}_${val}_"
-    done
-    local log_file="$LOGS_DIR/catapult_${log_suffix%_}.log"
-    
-    echo "$print_line"
-    if [ "$DRY_RUN_ARG" = "--dry-run" ]; then 
-      if [ "$GUI_ARG" = "--gui" ]; then
-        echo "[DRY RUN] Would run: catapult -f $ROOT_DIR/$CORE_CATAPULT_SCRIPT"
-      else
-        echo "[DRY RUN] Would run: catapult -shell -f $ROOT_DIR/$CORE_CATAPULT_SCRIPT > $log_file 2>&1"
-      fi
-    else
-      if [ "$GUI_ARG" = "--gui" ]; then
-        catapult -f "$ROOT_DIR/$CORE_CATAPULT_SCRIPT"
-      else
-        catapult -shell -f "$ROOT_DIR/$CORE_CATAPULT_SCRIPT" > "$log_file" 2>&1
-      fi
-    fi
-
-    # Note: exit code will be checked by wait_for_slot function
+  # Note: exit code will be checked by wait_for_slot function
 }
 
-# Launch configurations with controlled parallelism
+# --- Launch one configuration with controlled parallelism ---
 launch_config() {
-  ((config_num++))
+	((config_num++))
 
-  # Wait for an available slot
-  wait_for_slot
+	local cfg_b64="$1"
+	local config_params_print=""
+	local log_suffix=""
 
-  # Build args in the defined order
-  local args=()
-  for k in "${SWEEPS_PROJ_ORDER[@]}"; do
-    args+=("${SWEEP_STATE[$k]}")
-  done
+	# Build a JSON object for this config
+	local json_str="{"
+	for kv in $(decode_config "$cfg_b64"); do
+		key="${kv%%=*}"
+		val="${kv#*=}"
+		export "$kv"
+		json_str+="\"$key\": \"$val\","
 
-  # Launch command in background
-  run_config "${args[@]}" &
-  new_pid=$!
+		short_key=$(python3 -c "from utils.naming_short import short; print(short('$key'))") 
+		short_val=$(python3 -c "from utils.naming_short import short; print(short('$key', '$val'))")
+		config_params_print+=" ${short_key}=${short_val}"
+	done
+	json_str="${json_str%,}}"  # remove trailing comma
 
-  if [ -n "$new_pid" ]; then
-    active_pids+=("$new_pid")
-    process_start_times[$new_pid]=$(date +%s)
-    ((running_count++))
+	# Use Python encoder() to generate short form name
+	sweep_key=$(python3 -c "import json; from utils.naming_short import encoder; print(encoder(json.loads('''$json_str''')))")
 
-    current_time=$(date "+%H:%M:%S")
-    echo "[$current_time] Launched config $config_num/$total_configs (PID: $new_pid)"
-    echo "Currently running: ${#active_pids[@]}/$MAX_PARALLEL processes"
-  else
-    echo "ERROR: Failed to launch config $config_num/$total_configs"
-    ((failed_count++))
-  fi
-  echo ""
+	# Wait for an available slot
+	wait_for_slot
+
+	run_config "$sweep_key" &
+	new_pid=$!
+
+	if [ -n "$new_pid" ]; then
+		active_pids+=("$new_pid")
+		process_start_times[$new_pid]=$(date +%s)
+		((running_count++))
+
+		current_time=$(date "+%H:%M:%S")
+		echo "[$current_time][PID: $new_pid] Launched config: $config_num/$TOTAL_CONFIGS, Currently running: ${#active_pids[@]}/$MAX_PARALLEL processes"
+		echo "  Config Params: $config_params_print"
+		if [ "$DRY_RUN_FLAG" = "--dry-run" ]; then
+			if [ "$GUI_FLAG" = "--gui" ]; then
+				echo "  [DRY RUN]	catapult -f $ROOT_DIR/$CORE_CATAPULT_SCRIPT"
+			else
+				echo "  [DRY RUN] catapult -shell -f $ROOT_DIR/$CORE_CATAPULT_SCRIPT > $log_file 2>&1"
+			fi
+		fi
+	else
+		echo "ERROR: Failed to launch config $config_num/$TOTAL_CONFIGS"
+		((failed_count++))
+	fi
+	echo ""
 }
 
-sweep_recurse 0 launch_config
+# --- Controlled parallel execution loop ---
+for cfg_b64 in "${CONFIGS[@]}"; do
+    launch_config "$cfg_b64"
+done
 
 echo "All configurations launched. Waiting for remaining processes to complete..."
-wait_for_finish # Wait for all remaining processes to finish
+wait_for_finish
 
-# Calculate total execution time
+# --- Summary ---
 END_TIME=$(date +%s)
 END_TIME_HUMAN=$(date "+%Y-%m-%d %H:%M:%S")
 TOTAL_DURATION=$((END_TIME - START_TIME))
@@ -180,35 +183,32 @@ TOTAL_DURATION_STR=$(format_duration $TOTAL_DURATION)
 
 echo ""
 echo "========================================="
-echo "Controlled parallel synthesis completed!"
+echo "Parallel Catapult synthesis completed!"
 echo "========================================="
 echo "Execution Summary:"
-echo "  Started at: $START_TIME_HUMAN"
+echo "  Started at: $START_HUMAN"
 echo "  Ended at: $END_TIME_HUMAN"
 echo "  Total execution time: $TOTAL_DURATION_STR"
 echo ""
 echo "Results Summary:"
-echo "  Total configurations: $total_configs"
+echo "  Total configurations: $TOTAL_CONFIGS"
 echo "  Completed successfully: $completed_count"
 echo "  Failed configurations: $failed_count"
-echo "  Success rate: $(( (completed_count * 100) / total_configs ))%"
+echo "  Success rate: $(( (completed_count * 100) / TOTAL_CONFIGS ))%"
 echo ""
 echo "Performance Summary:"
-echo "  Average time per config: $(format_duration $((TOTAL_DURATION / total_configs)))"
+echo "  Average time per config: $(format_duration $((TOTAL_DURATION / TOTAL_CONFIGS)))"
 if [ $completed_count -gt 0 ]; then
     echo "  Average time per successful config: $(format_duration $((TOTAL_DURATION / completed_count)))"
 fi
+echo "Core Utilization:"
+echo "  Total threads: $TOTAL_THREADS"
+echo "  Threads per process: $THREADS_PER_PROCESS"
+echo "  Max parallel processes: $MAX_PARALLEL"
+echo "  Peak thread usage: $((MAX_PARALLEL * THREADS_PER_PROCESS))"
 echo "========================================="
 echo ""
-echo "Core utilization summary:"
-echo "  Total cores available: $TOTAL_CORES"
-echo "  Cores per process: $DESIGN_COMPILER_THREADS"
-echo "  Max parallel processes: $MAX_PARALLEL"
-echo "  Peak core usage: $((MAX_PARALLEL * DESIGN_COMPILER_THREADS)) cores"
+echo "Logs directory: $LOGS_DIR"
 echo ""
-
-# # Show log files location
-# echo "Log files are available in: $ROOT_DIR/logs/"
-# echo "Use 'ls -la logs/' to see individual log files"
 
 exit $failed_count

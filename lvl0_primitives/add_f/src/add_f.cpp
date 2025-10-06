@@ -1,6 +1,6 @@
 #include "add_f.h"
 
-#if PRECISION_MODE == PREC_SINGLE
+#if PREC_TYPE == SINGLE_PREC
 
 wide_1_t add_f(
     const wide_t x,
@@ -9,7 +9,7 @@ wide_1_t add_f(
     return x + y;
 }
 
-#else // PREC_MULTI
+#elif PREC_TYPE == MULTI_PREC
 
 wide_1_t add_f(
     const wide_t x,
@@ -36,6 +36,5 @@ wide_1_t add_f(
     w[BITWIDTH] = c; // 3. w_(n+1) <- c
     return w; // 4.
 }
-
 
 #endif

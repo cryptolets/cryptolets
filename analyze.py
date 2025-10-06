@@ -110,11 +110,11 @@ def parse_table_csv(csv_fn):
 
     return parsed_raw_attrs
 
-def parse_dc_reports(catapult_proj_dir_fp):
+def parse_dc_reports(catapult_proj_dir_fp, kernel):
     data = {}
     for d in os.listdir(catapult_proj_dir_fp):
         sol_dir = os.path.join(catapult_proj_dir_fp, d)
-        if os.path.isdir(sol_dir) and d.startswith("sol.v"):
+        if os.path.isdir(sol_dir) and d.startswith(f"{kernel}.v"):
             # QoR report
             rpt_qor = os.path.join(sol_dir, "gate_synthesis_dc", "reports", "report_qor.rpt")
             slack, area = None, None
@@ -157,48 +157,11 @@ def parse_dc_reports(catapult_proj_dir_fp):
 
     return data
 
-def parse_sol_name(sol_name):    
-    # bw   ->  "sol"
-    # mod  ->  "sol"
-    # mul  ->  "sol_bm${bm}_kar${kar}"
-    # padd ->  "sol_bm${bm}_kar${kar}"
-
-    # mp ->  starts with "sol_limbs${limbs}" instead of "sol"
-
-    sol_name = sol_name.split(".")[0] # remove version
-    parts = sol_name.split("_")
-    info = {
-        "limbs": None,
-        "bm": None,
-        "kar": None,
-        "q_type": None,
-    }
-
-    if parts[0].startswith("sol_limbs"):
-        info["limbs"] = int(parts[0].replace("sol_limbs", ""))
-
-    for p in parts:
-        if p.startswith("bm"):
-            info["bm"] = int(p[2:])
-        elif p.startswith("kar"):
-            info["kar"] = int(p[3:])
-        elif p.startswith("qt"):
-            info["q_type"] = p[2:]
-        elif p.startswith("limbs"):
-            info["limbs"] = int(p.replace("limbs", ""))
-
-    return info
-
-
+# TODO: better integration with naming_short.py functions
 def parse_table_name(table_name):
-    # bw   ->  "table_bw${bitwidth}_${tech_type}_ii${target_ii}_f${period}ns.csv"
-    # mod  ->  "table_bw${bitwidth}_${tech_type}_ii${target_ii}_qt${q_type}_f${period}ns.csv"
-    # mul  ->  "table_bw${bitwidth}_${tech_type}_ii${target_ii}_mt${mul_type}_f${period}ns.csv"
-    # padd ->  "table_bw${bitwidth}_${tech_type}_ii${target_ii}_mt${mul_type}_f${period}ns.csv"
-
     # mp -> starts with "table_mp_" instead of "table_
     name = table_name.replace(".csv", "")
-    parts = name.split("_")
+    parts = name.split("__")
     info = {
         "bitwidth": None,
         "limbs": None,
@@ -209,36 +172,43 @@ def parse_table_name(table_name):
         "mul_type": None,
         "target_freq": None,
         "target_period": None,
-        "a": None
+        "a": None,
+        "bm": None,
+        "kar": None,
+        "curve_type": None,
+        "limbs": None
     }
 
     for p in parts:
-        if p.startswith("bw"):
-            info["bitwidth"] = int(p[2:])
-        elif p.startswith("ii"):
-            info["target_ii"] = int(p[2:])
-        elif p.startswith("qt"):
-            info["q_type"] = p[2:]
-        elif p.startswith("mt"):
-            info["mul_type"] = p[2:]
-        elif p.startswith("tt"):
-            info["tech_type"] = p[2:]
-        elif p.startswith("fa"):
-            info["a"] = FIELD_A_TO_INT.get(p[2:], None)
-        elif p.startswith("f"):
-            info["target_freq"] = float(p[1:].replace("MHz", ""))
-        elif p.startswith("p"):
-            info["target_period"] = float(p[1:].replace("ns", ""))
-        elif p.startswith("bm"):
-            info["bm"] = int(p[2:])
-        elif p.startswith("kar"):
-            info["kar"] = int(p[3:])
-        elif p.startswith("ct"):
-            info["curve_type"] = name.split("_ct")[-1]
+        if p.startswith("bw_"):
+            info["bitwidth"] = int(p[3:])
+        elif p.startswith("ii_"):
+            info["target_ii"] = int(p[3:])
+        elif p.startswith("qt_"):
+            info["q_type"] = p[3:]
+        elif p.startswith("mt_"):
+            info["mul_type"] = p[3:]
+        elif p.startswith("tt_"):
+            info["tech_type"] = p[3:]
+        elif p.startswith("fa_"):
+            info["a"] = FIELD_A_TO_INT.get(p[3:], None)
+        # elif p.startswith("f"):
+        #     info["target_freq"] = float(p[1:].replace("MHz", ""))
+        elif p.startswith("p_"):
+            # info["target_period"] = float(p[1:].replace("ns", "").replace("_", "."))
+            info["target_period"] = float(p[2:].replace("_", "."))
+        elif p.startswith("bm_"):
+            info["bm"] = int(p[3:])
+        elif p.startswith("kar_"):
+            info["kar"] = int(p[4:])
+        elif p.startswith("ct_"):
+            info["curve_type"] = p[3:]
+        elif p.startswith("l_"):
+            info["limbs"] = int(p[2:])
 
     return info
 
-def derive_all_attr(parsed_raw_attrs, table_info):
+def derive_all_attr(parsed_raw_attrs, all_info):
     def to_float(val):
         return None if val in (None, "") else round(float(val), 2)
 
@@ -252,13 +222,6 @@ def derive_all_attr(parsed_raw_attrs, table_info):
         slack = to_float_prec(a.get("slack"))
         power = to_float_prec(a.get("power"))
         ii, area = to_float(a.get("ii")), to_float(a.get("area"))
-        sol_info = parse_sol_name(sol)
-        
-        all_info = {}
-        for k in set(table_info) | set(sol_info):
-            v1 = table_info.get(k)
-            v2 = sol_info.get(k)
-            all_info[k] = v2 if v2 is not None else v1
 
         period = period if period else all_info["target_period"]
         minclkprd = period-slack if (period is not None and slack is not None) else None
@@ -491,8 +454,8 @@ if __name__ == "__main__":
             if tech_type == "fpga" and not table_info["tech_type"] in FPGA_TECH_TYPES:
                 continue
 
-            if table_info["tech_type"] in ASIC_TECH_TYPES:
-                syn_raw_attrs = parse_dc_reports(catapult_proj_dir_fp)
+            if table_info["tech_type"] in ASIC_TECH_TYPES and os.path.isdir(catapult_proj_dir_fp):
+                syn_raw_attrs = parse_dc_reports(catapult_proj_dir_fp, kernel)
 
             parsed_raw_attrs = parse_table_csv(fp)
 
@@ -534,7 +497,7 @@ if __name__ == "__main__":
         if not args.tech_type:
             all_metrics = drop_column(all_metrics, "tech_type")
 
-        only_top = [row for row in all_metrics if row["sol"].startswith("sol")]
+        only_top = [row for row in all_metrics if row["sol"].startswith(kernel)]
         num_runs = len(only_top)
 
         if not args.ccore:

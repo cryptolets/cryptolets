@@ -1,7 +1,7 @@
 #include "modsub.h"
 
 // Core implementation (shared by both fixed and variable Q)
-#if PRECISION_MODE == PREC_SINGLE
+#if PREC_TYPE == SINGLE_PREC
 
 wide_t modsub_core(const wide_t a, const wide_t b, const wide_t q) {
     wide_signed_t diff = a - b;
@@ -9,7 +9,7 @@ wide_t modsub_core(const wide_t a, const wide_t b, const wide_t q) {
     return (!diff[BITWIDTH]) ? (wide_t)diff : (wide_t)adder_out;
 }
 
-#else // PREC_MULTI
+#elif PREC_TYPE == MULTI_PREC
 
 wide_t modsub_core(
     const wide_t a, 

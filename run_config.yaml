@@ -1,0 +1,32 @@
+# --- System configuration defaults ---
+TOTAL_THREADS: 40
+THREADS_PER_PROCESS: 4
+RTL_FILE: "rtl" # rtl and rtl_concat
+DRY_RUN: false
+GUI_MODE: false
+
+# --- Multi-kernel batch mode ---
+MULTIPLE_KERNELS: ["add_f", "sub_f", "mul_f"]
+
+# --- Kernel registry ---
+KERNELS: [
+  "add_f", "sub_f", "cmul_f",
+  "mul_f", "sq_f",
+  "modadd", "modsub"
+  ]
+
+# --- Parameter sweep grouping ---
+SWEEP_GROUP_MAP:
+  lvl0: ["add_f", "sub_f", "cmul_f"]
+  mul: ["mul_f", "sq_f"]
+  lvl1: ["modadd", "modsub"]
+  modmul: ["modmul_mont"]
+  padd: ["point_add"]
+
+# --- Core architecture grouping ---
+CORE_GROUP_MAP:
+  lvl0: ["add_f", "sub_f", "cmul_f"]
+  mul: ["mul_f", "sq_f"]
+  lvl1: ["modadd", "modsub"]
+  modmul: ["modmul_mont"]
+  padd: ["point_add"]

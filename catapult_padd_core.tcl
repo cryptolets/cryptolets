@@ -13,7 +13,6 @@ set curve_type $env(CURVE_TYPE)
 set bm $env(BASE_MUL_DEPTH)
 set kar $env(KAR_MUL_DEPTH)
 set field_a $env(FIELD_A)
-set rtl_file $env(RTL_FILE)
 
 set include_dirs {
     utils/include
@@ -25,6 +24,7 @@ set include_dirs {
     lvl1_modops/include
 }
 
+set rtl_file $env(RTL_FILE)
 set MAX_SYN_THREADS $env(DESIGN_COMPILER_THREADS)
 set kernel $env(KERNEL_NAME)
 set root_dir [file normalize [file dirname [info script]]]
@@ -64,7 +64,6 @@ append flags " -DQ_TYPE=[get_q_val $q_type]"
 append flags " -DMUL_TYPE=[get_mul_val $mul_type]"
 append flags " -DKAR_BASE_MUL_WIDTH=$kar"
 append flags " -DBASE_MUL_WIDTH=$bm"
-append flags " -DCURVE_TYPE=$curve_type"
 append flags " -DFIELD_A=$field_a"
 
 options set /Input/CompilerFlags "$include_flags $flags"
