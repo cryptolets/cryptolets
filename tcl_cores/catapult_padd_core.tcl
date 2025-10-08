@@ -5,7 +5,7 @@ source [file join $ROOT_DIR utils util.tcl] ;# Import utilities
 
 # parameter names
 set config_params {
-    CURVE_TYPE Q_TYPE PREC_TYPE TECH_TYPE TARGET_PERIOD 
+    CURVE_TYPE FIELD_A Q_TYPE PREC_TYPE TECH_TYPE TARGET_PERIOD 
     CCORE_PERIOD_RATIO MUL_TYPE TARGET_II BITWIDTH LIMBS 
     BASE_MUL_WIDTH KAR_BASE_MUL_WIDTH
 }
@@ -44,7 +44,8 @@ set sol_name_test_only "${sol_name}_test_only"
 open_or_create_proj $proj_name
 puts "\n=== Starting project $proj_name ==="
 
-set tmp_params_h_dir [gen_tmp_params_h $config_params $CURVE_TYPE]
+set json_file [gen_field_consts $FIELD_A]
+set tmp_params_h_dir [gen_tmp_params_h $config_params $json_file $CURVE_TYPE]
 
 open_or_create_solution $sol_name_test_only
 puts "  -> Opening solution: $sol_name_test_only"

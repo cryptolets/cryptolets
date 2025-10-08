@@ -23,6 +23,7 @@ set RTL_FILE $env(RTL_FILE)
 
 set SWEEP_KEY $env(SWEEP_KEY)
 set CURVE_TYPE ""
+set json_file ""
 
 set KERNEL_DIR [file join $ROOT_DIR $LVL_DIR $KERNEL_NAME]
 set WORK_DIR [enter_work_dir] ;# move to a lvl_dir/kernel/Catapult as working dir
@@ -43,13 +44,14 @@ set sol_name $KERNEL_NAME
 set flags ""
 if {$KERNEL_NAME eq "cmul_f"} {
     set CURVE_TYPE "RAND_CURVE"
+    set json_file [gen_field_consts] 
     append flags " -DQ_TYPE=FIXED_Q" 
 }
 
 open_or_create_proj $proj_name
 puts "\n=== Starting project $proj_name ==="
 
-set tmp_params_h_dir [gen_tmp_params_h $config_params $CURVE_TYPE]
+set tmp_params_h_dir [gen_tmp_params_h $config_params $json_file $CURVE_TYPE]
 
 open_or_create_solution $sol_name
 puts "  -> Opening solution: $sol_name"

@@ -161,18 +161,11 @@ proc gen_field_consts {{FIELD_A "A0"}} {
     return $json_file
 }
 
-proc gen_tmp_params_h {config_params {CURVE_TYPE ""}} {
+proc gen_tmp_params_h {config_params {json_file ""} {CURVE_TYPE ""}} {
     global ROOT_DIR
 
     set proj_dir [project get /PROJECT_DIR]
     set py_exec [file join $ROOT_DIR .venv/bin/ python]
-
-    # Call field constant generator only if curve is given
-    if {$CURVE_TYPE ne ""} {
-        set json_file [gen_field_consts]
-    } else {
-        set json_file ""
-    }
 
     set gen_params_h_py [file join $ROOT_DIR utils gen_params_h.py]
     set tmp_params_dir [file join $proj_dir include]

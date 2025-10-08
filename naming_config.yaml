@@ -39,11 +39,11 @@ VALUE:
   Q_TYPE:
     FIXED_Q: fixedq
     VAR_Q: varq
-  FIELD_A:
-    AVAR: var
-    AN1: n1
-    AN3: n3
-    A0: "0"
+  # FIELD_A:
+  #   AVAR: var
+  #   AN1: n1
+  #   AN3: n3
+  #   A0: "0"
   PREC_TYPE:
     SINGLE_PREC: sp
     MULTI_PREC: mp
