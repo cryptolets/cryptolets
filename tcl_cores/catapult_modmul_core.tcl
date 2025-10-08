@@ -1,0 +1,162 @@
+# Sweep script for bw group (modmul_mont)
+set LVL_DIR "lvl1_modops"
+set ROOT_DIR [file normalize [file join [file dirname [info script]] ..]]
+source [file join $ROOT_DIR utils util.tcl] ;# Import utilities
+
+# parameter names
+set config_params {
+    CURVE_TYPE Q_TYPE PREC_TYPE TECH_TYPE TARGET_PERIOD 
+    CCORE_PERIOD_RATIO MUL_TYPE TARGET_II BITWIDTH LIMBS 
+    BASE_MUL_WIDTH KAR_BASE_MUL_WIDTH
+}
+assign_from_env $config_params
+
+# control flags
+set SIM $env(SIM)
+set SYN $env(SYN)
+set TEST $env(TEST)
+set TEST_ONLY $env(TEST_ONLY)
+set NUM_TEST_SAMPLES $env(NUM_TEST_SAMPLES)
+set GEN_SAMPLES $env(GEN_SAMPLES)
+set CCORE_TOP $env(CCORE_TOP)
+set CCORE_MUL_F $env(CCORE_MUL_F)
+
+# run config
+set THREADS_PER_PROCESS $env(THREADS_PER_PROCESS)
+set KERNEL_NAME $env(KERNEL_NAME)
+set RTL_FILE $env(RTL_FILE)
+
+set SWEEP_KEY $env(SWEEP_KEY)
+
+set KERNEL_DIR [file join $ROOT_DIR $LVL_DIR $KERNEL_NAME]
+set WORK_DIR [enter_work_dir] ;# move to a lvl_dir/kernel/Catapult as working dir
+
+assert {!(($CCORE_TOP && $TEST) || $CCORE_TOP && $SIM)} "top cannot be ccore for sim or test"
+assert {!($CCORE_TOP && $PREC_TYPE eq "MULTI_PREC")} "top cannot be ccore for multi-precision"
+
+set TEST [expr {$SIM || $TEST}]
+set CCORE_TOP [expr {$CCORE_TOP && $TARGET_II <= 1}]
+
+override_default_options ;# Reset tool options
+
+set proj_name "Catapult_${SWEEP_KEY}"
+set table_name "table_${SWEEP_KEY}.csv"
+set sol_name $KERNEL_NAME
+set sol_name_test_only "${sol_name}_test_only"
+
+open_or_create_proj $proj_name
+puts "\n=== Starting project $proj_name ==="
+
+set tmp_params_h_dir [gen_tmp_params_h $config_params $CURVE_TYPE]
+
+open_or_create_solution $sol_name_test_only
+puts "  -> Opening solution: $sol_name_test_only"
+
+set include_dirs {
+    utils/include
+    lvl0_primitives/mul_f/include
+    lvl0_primitives/sq_f/include
+}
+
+lappend include_dirs [file join $LVL_DIR $KERNEL_NAME include]
+lappend include_dirs [file join $tmp_params_h_dir]
+set include_flags [build_include_flags $include_dirs]
+options set /Input/CompilerFlags "$include_flags"
+
+# Add kernel + dependencies
+solution file add $KERNEL_DIR/src/${KERNEL_NAME}.cpp
+solution file add $KERNEL_DIR/src/${KERNEL_NAME}_tb.cpp -exclude true
+solution file add [file join $ROOT_DIR utils/src/csvparser.cpp] -exclude true
+solution file add [file join $ROOT_DIR lvl0_primitives/mul_f/src/mul_f.cpp]
+solution file add [file join $ROOT_DIR lvl0_primitives/sq_f/src/sq_f.cpp]
+
+go analyze
+solution design set $KERNEL_NAME -top
+
+go compile
+run_osci_test $CURVE_TYPE
+if {$TEST_ONLY} { exit }
+
+directive set -OPT_CONST_MULTS full
+if {$PREC_TYPE eq "SINGLE_PREC"} {
+    directive set -PIPELINE_INIT_INTERVAL $TARGET_II
+}
+directive set -DESIGN_GOAL latency
+directive set -CCORE_TYPE sequential
+directive set -OUTPUT_REGISTERS false
+set_tech_lib $TECH_TYPE ;# set libraries
+
+
+if {$CCORE_MUL_F} {
+    # I think it should be safe to use diff clock periods, 
+    # since this is what ccore points does
+    set mul_period [expr $TARGET_PERIOD * $CCORE_PERIOD_RATIO]
+
+    proc mul_op_run { mul_op mul_period} {
+        glob TECH_TYPE
+
+        set mul_op_sol_name "${mul_op}"
+        if {[catch {project get /SOLUTION/$mul_op_sol_name.v* -match glob} err]} {
+            go new
+            set_clock $mul_period
+            solution design set $mul_op -top -ccore
+            solution rename $mul_op_sol_name
+            go architect
+            remove_broken_mul_libs $TECH_TYPE
+            go schedule
+
+            branch_if_ccore_comb $mul_op 
+            go extract
+            project save
+
+            return "[solution get /name].[solution get /VERSION]"
+        } else {
+            set l [project get /SOLUTION/$mul_op_sol_name.v*/VERSION -match glob]
+            return "${mul_op_sol_name}.[lindex $l [expr [llength $l] - 1]]"
+        }
+    }
+
+    if {$MUL_TYPE ne "MUL_NORMAL"} {
+        set mul_f_sol [mul_op_run mul_f $mul_period]
+        solution table export -file [file join $WORK_DIR $table_name]
+
+        # set sq_f_sol [mul_op_run sq_f $mul_period]
+        # solution table export -file [file join $WORK_DIR $table_name]
+    }
+}
+
+# modmul_mont
+set modmul_mont_sol_name $sol_name
+go new
+
+set_clock $TARGET_PERIOD
+solution design set $KERNEL_NAME -top
+if {$CCORE_TOP} {
+    solution design set  $KERNEL_NAME -ccore
+}
+if {$CCORE_MUL_F && $MUL_TYPE ne "MUL_NORMAL"} {
+    solution design set mul_f -ccore
+}
+solution rename $modmul_mont_sol_name
+go analyze
+
+if {$CCORE_MUL_F && $MUL_TYPE ne "MUL_NORMAL"} {
+    solution library add "\[CCORE\] $mul_f_sol" 
+}
+go libraries
+
+if {$CCORE_MUL_F && $MUL_TYPE ne "MUL_NORMAL"} { 
+    directive set /$KERNEL_NAME/mul_f -MAP_TO_MODULE "\[CCORE\] $mul_f_sol" 
+}
+go architect
+
+remove_broken_mul_libs $TECH_TYPE
+
+go extract
+project save
+solution table export -file [file join $WORK_DIR $table_name]
+run_scverify
+run_syn $TECH_TYPE
+
+solution table export -file [file join $WORK_DIR $table_name]
+project save

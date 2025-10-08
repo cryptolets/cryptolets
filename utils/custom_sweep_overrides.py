@@ -7,17 +7,33 @@ from pathlib import Path
 
 ROOT_DIR = Path(__file__).resolve().parent.parent
 
+CURVE_TO_FIELD_A_MAP = {
+    "BN254": "A0",
+    "BLS12_377": "A0",
+    "BLS12_381": "A0",
+    "SECP256K1": "A0",
+    "P_256": "ANEG3",
+    "P_521": "ANEG3",
+    "MNT4753": "A2",
+    "BLS12_377_ED": "ANEG1",
+    "MNT4753_ED": "ANEG1",
+    "ED25519": "ANEG1",
+    "ED_384_MONT": "ANEG1",
+    "ED_511_MERS": "ANEG1",
+    "ED_512_MONT": "ANEG1",
+    "ED448": "AVAR",
+}
+
 # --- value overrides ---
 def override_values(name, state, values):
     """
     Called before expanding each parameter.
     Modify 'values' based on partial state, or return unchanged list.
     """
-    # # Example: FIELD_A depends on CURVE_TYPE
-    # if name == "FIELD_A" and "CURVE_TYPE" in state:
-    #     if state["CURVE_TYPE"] != "RAND_CURVE":
-    #         curve_map = {"BN254": "AVAR", "BLS12_381": "AFIX"}
-    #         return [curve_map.get(state["CURVE_TYPE"], "AVAR")]
+    # Example: FIELD_A depends on CURVE_TYPE
+    if name == "FIELD_A" and "CURVE_TYPE" in state:
+        if state["CURVE_TYPE"] != "RAND_CURVE":
+            return [CURVE_TO_FIELD_A_MAP.get(state["CURVE_TYPE"], "AVAR")]
 
     # BITWIDTH depends on CURVE_TYPE
     if name == "BITWIDTH" and "CURVE_TYPE" in state:
@@ -50,9 +66,14 @@ def override_skip(state, kernel):
     Similar to early 'if' filters in the Bash sweep function.
     """
     # if (
-    #     state.get("FIELD_A") == "AVAR"
-    #     and state.get("CURVE_TYPE") == "RAND_CURVE"
+    #     state.get("CURVE_TYPE") == "RAND_CURVE"
     #     and state.get("Q_TYPE") == "FIXED_Q"
+    # ):
+    #     return True
+
+    # if (
+    #     state.get("CURVE_TYPE") != "RAND_CURVE"
+    #     and state.get("Q_TYPE") == "VAR_Q"
     # ):
     #     return True
 

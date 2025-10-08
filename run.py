@@ -14,7 +14,7 @@ def run_cmd(cmd):
 
 
 def invert(mapping: dict) -> dict:
-    """Invert group→kernels map into kernel→group."""
+    """Invert group -> kernels map into kernel -> group."""
     inv = {}
     for group, kernels in mapping.items():
         for k in kernels:
@@ -75,8 +75,10 @@ def main():
     pgrp = sweep_map[k]
     cgrp = core_map[k]
     sweep_file = f"{pgrp}_sweep.yaml"
-    out_file   = f"tmp_{k}_configs.json"
+    out_file = f"tmp_configs/{k}_configs.json"
     core_script = f"tcl_cores/catapult_{cgrp}_core.tcl"
+    
+    Path(out_file).parent.mkdir(parents=True, exist_ok=True)
 
     # --- handle run modes ---
     if args.run_only and not Path(out_file).exists():

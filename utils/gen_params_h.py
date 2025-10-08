@@ -1,7 +1,14 @@
 #!/usr/bin/env python3
 import argparse, json, pathlib, re, sys
 
-FIELD_CONTS = ["a", "b", "q", "q_prime", "mu", "k", "d"]
+MODMUL_CONST = [
+    "q", "q_prime", "mu"
+]
+
+FIELD_CONTS = [
+    "a", "b", "k", "d",
+    "a_mont", "b_mont", "k_mont", "d_mont"
+]
 
 def is_int(v): return re.fullmatch(r"-?\d+", v)
 def is_bool(v): return v.lower() in {"true", "false"}
@@ -40,9 +47,12 @@ out = pathlib.Path(a.out)
 out.parent.mkdir(parents=True, exist_ok=True)
 lines = ["#ifndef TMP_PARAMS_H", "#define TMP_PARAMS_H", ""]
 
-for k, v in consts.items():
-    if k in FIELD_CONTS:
-        lines.append(f'#define {k.upper()}_HEX "{v}"')
+for k in FIELD_CONTS:
+    v = consts.get(k, "0")
+    lines.append(f'#define FIELD_{k.upper()}_HEX "{v}"')
+
+for k in MODMUL_CONST:
+    lines.append(f'#define {k.upper()}_HEX "{consts[k]}"')
 
 for k, v in params.items():
     lines.append(f"#define {k.upper()} {v}")

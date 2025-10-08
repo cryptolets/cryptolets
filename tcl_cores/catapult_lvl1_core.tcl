@@ -78,11 +78,13 @@ go libraries
 set_clock $TARGET_PERIOD
 go assembly
 
-directive set -PIPELINE_INIT_INTERVAL $TARGET_II
+if {$PREC_TYPE eq "SINGLE_PREC"} {
+    directive set -PIPELINE_INIT_INTERVAL $TARGET_II
+}
 directive set -DESIGN_GOAL latency
 go schedule
 
-if {$CCORE_TOP} { branch_if_ccore_comb $kernel }
+if {$CCORE_TOP} { branch_if_ccore_comb $KERNEL_NAME }
 
 go extract
 project save

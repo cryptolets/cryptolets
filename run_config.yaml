@@ -12,7 +12,8 @@ MULTIPLE_KERNELS: ["add_f", "sub_f", "mul_f"]
 KERNELS: [
   "add_f", "sub_f", "cmul_f",
   "mul_f", "sq_f",
-  "modadd", "modsub"
+  "modadd", "modsub", "modmul_mont",
+  "point_add", "point_add_te"
   ]
 
 # --- Parameter sweep grouping ---
@@ -21,7 +22,8 @@ SWEEP_GROUP_MAP:
   mul: ["mul_f", "sq_f"]
   lvl1: ["modadd", "modsub"]
   modmul: ["modmul_mont"]
-  padd: ["point_add"]
+  padd_sw: ["point_add"]
+  padd_te: ["point_add_te"]
 
 # --- Core architecture grouping ---
 CORE_GROUP_MAP:
@@ -29,4 +31,4 @@ CORE_GROUP_MAP:
   mul: ["mul_f", "sq_f"]
   lvl1: ["modadd", "modsub"]
   modmul: ["modmul_mont"]
-  padd: ["point_add"]
+  padd: ["point_add", point_add_te]

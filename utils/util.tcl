@@ -27,8 +27,8 @@ proc override_default_options {} {
     options defaults
     options set /Input/CppStandard c++14
     options set /Input/TargetPlatform x86_64
-    options set Output/OutputVHDL false
-    options set Output/RTLSchem false
+    options set Output/OutputVHDL false ;# we want only verilog output
+    options set Output/RTLSchem false ;# rtl schematics take up a ton of space
     options set Flows/SCVerify/MAX_ERROR_CNT 1
     options set Flows/DesignCompiler/OutNetlistFormat verilog
     options set Flows/Vivado/XILINX_VIVADO /eda/xilinx//Vivado/2024.2/

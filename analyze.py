@@ -1,6 +1,7 @@
 import csv
 import os
 import math
+from utils.naming_short import decoder
 
 # things we want to extract from the tables
 ATTR_TO_COL_NAME = {
@@ -50,16 +51,8 @@ ATTR_TO_COL_NAME = {
     ]
 }
 
-ASIC_TECH_TYPES = ["45nm", "gf12", "saed32"]
+ASIC_TECH_TYPES = ["45nm", "gf12", "saed32", "saed14"]
 FPGA_TECH_TYPES = ["fpga", "fpgahbm", "fpgahbmvhk158"]
-FIELD_A_TO_INT = {
-    "A0": "0",
-    "A2": "2",
-    "ANEG3": "-3",
-    "AVAR": "var",
-    "ANEG1": "-1",
-}
-
 
 def parse_table_csv(csv_fn):
     flows = []
@@ -157,64 +150,36 @@ def parse_dc_reports(catapult_proj_dir_fp, kernel):
 
     return data
 
-# TODO: better integration with naming_short.py functions
 def parse_table_name(table_name):
-    # mp -> starts with "table_mp_" instead of "table_
-    name = table_name.replace(".csv", "")
-    parts = name.split("__")
-    info = {
-        "bitwidth": None,
-        "limbs": None,
-        "wbw": None,
-        "tech_type": None,
-        "target_ii": None,
-        "q_type": None,
-        "mul_type": None,
-        "target_freq": None,
-        "target_period": None,
-        "a": None,
-        "bm": None,
-        "kar": None,
-        "curve_type": None,
-        "limbs": None
-    }
-
-    for p in parts:
-        if p.startswith("bw_"):
-            info["bitwidth"] = int(p[3:])
-        elif p.startswith("ii_"):
-            info["target_ii"] = int(p[3:])
-        elif p.startswith("qt_"):
-            info["q_type"] = p[3:]
-        elif p.startswith("mt_"):
-            info["mul_type"] = p[3:]
-        elif p.startswith("tt_"):
-            info["tech_type"] = p[3:]
-        elif p.startswith("fa_"):
-            info["a"] = FIELD_A_TO_INT.get(p[3:], None)
-        # elif p.startswith("f"):
-        #     info["target_freq"] = float(p[1:].replace("MHz", ""))
-        elif p.startswith("p_"):
-            # info["target_period"] = float(p[1:].replace("ns", "").replace("_", "."))
-            info["target_period"] = float(p[2:].replace("_", "."))
-        elif p.startswith("bm_"):
-            info["bm"] = int(p[3:])
-        elif p.startswith("kar_"):
-            info["kar"] = int(p[4:])
-        elif p.startswith("ct_"):
-            info["curve_type"] = p[3:]
-        elif p.startswith("l_"):
-            info["limbs"] = int(p[2:])
-
-    return info
-
-def derive_all_attr(parsed_raw_attrs, all_info):
-    def to_float(val):
-        return None if val in (None, "") else round(float(val), 2)
-
-    def to_float_prec(val):
-        return None if val in (None, "") else float(val)
+    # strip prefix/suffix
+    tag = table_name.replace(".csv", "").replace("table_", "")
     
+    # decode using naming_short (medium-form keys)
+    decoded = decoder(tag, key_type="med")
+
+    # cast numeric values
+    result = {}
+    for k, v in decoded.items():
+        if v is None:
+            result[k] = None
+            continue
+        try:
+            if "." in str(v):
+                result[k] = float(v)
+            else:
+                result[k] = int(v)
+        except ValueError:
+            result[k] = v
+
+    return result
+
+def to_float(val):
+    return None if val in (None, "") else round(float(val), 2)
+
+def to_float_prec(val):
+    return None if val in (None, "") else float(val)
+
+def derive_all_attr(parsed_raw_attrs, all_info):    
     results = []
     for sol, a in parsed_raw_attrs.items():
         cycles = round(float(a.get("cycles"))) if a.get("cycles") else None
@@ -236,18 +201,18 @@ def derive_all_attr(parsed_raw_attrs, all_info):
 
         row = {
             "sol": sol,
-            "tech_type": all_info.get("tech_type", None),
-            "curve_type": all_info.get("curve_type", None),
-            "a": all_info.get("a", None),
-            "target_period": round(period, 2) if period else all_info["target_period"],
+            "tech_type": all_info.get("tech_type"),
+            "curve_type": all_info.get("curve_type"),
+            "a": all_info.get("a"),
+            "target_period": round(period, 2) if period else all_info.get("target_period"),
             "target_freq": round(1000/period, 2) if period else None,
-            "q_type": all_info['q_type'],
-            "bitwidth": all_info['bitwidth'],
-            "mt": all_info['mul_type'],
-            "bm": all_info['bm'],
-            "kar": all_info['kar'],
-            "limbs": all_info['limbs'],
-            "wbw": all_info['bitwidth'] // all_info['limbs'] if all_info['limbs'] else None,
+            "q_type": all_info.get('q_type'),
+            "bitwidth": all_info.get('bitwidth'),
+            "mt": all_info.get('mul_type'),
+            "bm": all_info.get('bm'),
+            "kar": all_info.get('kar'),
+            "limbs": all_info.get('limbs'),
+            "wbw": all_info.get('bitwidth') // all_info.get('limbs') if all_info.get('limbs') else None,
             "ctime_raw": ctime_raw if ctime_raw else 0,
             "ctime": f"{int(ctime_raw) // 60}m {int(ctime_raw) % 60}s" if ctime_raw else -1,
             "minclkprd": round(minclkprd, 2) if minclkprd else None,
@@ -259,7 +224,7 @@ def derive_all_attr(parsed_raw_attrs, all_info):
             "power": f"{power:.2e}" if power else None,
         }
 
-        if all_info['tech_type'] in ASIC_TECH_TYPES:
+        if all_info.get('tech_type') in ASIC_TECH_TYPES:
             row["area (mm^2)"] = round(area/1e6, 2) if area else area
             row["reg"] = to_float(a.get("reg"))
             row["memory"] = to_float(a.get("memory"))
@@ -449,9 +414,9 @@ if __name__ == "__main__":
             table_info = parse_table_name(fn)
             syn_raw_attrs = {}
 
-            if tech_type == "asic" and not table_info["tech_type"] in ASIC_TECH_TYPES:
+            if tech_type == "asic" and not table_info.get("tech_type") in ASIC_TECH_TYPES:
                 continue
-            if tech_type == "fpga" and not table_info["tech_type"] in FPGA_TECH_TYPES:
+            if tech_type == "fpga" and not table_info.get("tech_type") in FPGA_TECH_TYPES:
                 continue
 
             if table_info["tech_type"] in ASIC_TECH_TYPES and os.path.isdir(catapult_proj_dir_fp):

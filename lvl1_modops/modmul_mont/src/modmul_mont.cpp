@@ -1,8 +1,6 @@
 #include "modmul_mont.h"
 
-// Private helpers
-#if PREC_TYPE == SINGLE_PREC
-
+// Mont Reduction helper function
 wide_t mont_reduction(wide_2x_t t, const wide_t q, const wide_t q_prime) {
     wide_t t_red = t.slc<BITWIDTH>(0);      // t & (R-1)
 
@@ -19,6 +17,9 @@ wide_t mont_reduction(wide_2x_t t, const wide_t q, const wide_t q_prime) {
     wide_signed_t diff = u - q;
     return (!diff[BITWIDTH]) ? (wide_t)diff : (wide_t)u;
 }
+
+// Private helpers
+#if PREC_TYPE == SINGLE_PREC
 
 wide_t modmul_mont_core(const wide_t x, const wide_t y, const wide_t q, const wide_t q_prime) {
     wide_2x_t t = mul_f(x, y);

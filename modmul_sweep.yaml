@@ -1,0 +1,75 @@
+# Sweep parameters
+BITWIDTH: [128, 256]
+LIMBS: [2, 4]
+TECH_TYPE: [gf12]  # gf12 45nm saed32 fpga fpgahbm fpgahbmvhk158
+TARGET_II: [1]
+TARGET_PERIOD: [1]  # in ns
+MUL_TYPE: [MUL_NORMAL, MUL_SCHOOLBOOK] # MUL_NORMAL, MUL_SCHOOLBOOK, MUL_KARATSUBA
+Q_TYPE: [VAR_Q, FIXED_Q] # VAR_Q, FIXED_Q
+CURVE_TYPE: [RAND_CURVE]
+PREC_TYPE: [SINGLE_PREC, MULTI_PREC]  # SINGLE_PREC, MULTI_PREC
+CCORE_PERIOD_RATIO: [0.95]
+
+BASE_MUL_WIDTH:
+  8: [8]
+  12: [12]
+  16: [16]
+  24: [24]
+  32: [32]
+  48: [48]
+  64: [64]
+  96: [48]
+  128: [64]
+  192: [48]
+  254: [63]
+  255: [63]
+  256: [64]
+  377: [47]
+  381: [47]
+  384: [48]
+  448: [56]
+  512: [64]
+  521: [65]
+  753: [47]
+  768: [48]
+  1024: [64]
+
+KAR_BASE_MUL_WIDTH:
+  8: [8]
+  12: [12]
+  16: [16]
+  24: [12]
+  32: [16]
+  48: [24]
+  64: [32]
+  96: [48, 24]
+  128: [64, 32]
+  192: [96, 48]
+  254: [127, 63]
+  256: [128, 64]
+  377: [188, 94, 47]
+  381: [190, 95, 47]
+  384: [192, 96, 48]
+  448: [224, 112, 56]
+  512: [256, 128, 64]
+  521: [260, 130, 65]
+  753: [376, 188, 94, 47]
+  768: [384, 192, 96, 48]
+  1024: [512, 256, 128, 64]
+
+# Control flags
+SIM: true           # verify RTL
+SYN: false
+TEST: true          # test C++ code
+TEST_ONLY: false    # only test C++ code with osci
+NUM_TEST_SAMPLES: 1000
+GEN_SAMPLES: true   # off if custom samples
+CCORE_TOP: false    # cannot be true when SIM or TEST are true
+CCORE_MUL_F: false  # make mul_f ccore, false = more compile time, better design latency
+
+# Defines order of params before project split
+SWEEP_ORDER: [
+  CURVE_TYPE, Q_TYPE, PREC_TYPE, TECH_TYPE, 
+  TARGET_PERIOD, TARGET_II, MUL_TYPE, CCORE_PERIOD_RATIO,
+  BITWIDTH, LIMBS, BASE_MUL_WIDTH, KAR_BASE_MUL_WIDTH
+  ]
