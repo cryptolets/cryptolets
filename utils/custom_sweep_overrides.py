@@ -32,8 +32,7 @@ mp_unsupported_kernels = ["cmul_f", "modsq", "sq_f"]
 def config_override(lvl, state, params, order, sweep_bw_maps):    
     # FIELD_A depends on CURVE_TYPE for specifc curves
     if (
-        order[lvl-1] == "FIELD_A" 
-        and "CURVE_TYPE" in state 
+        order[lvl-1] == "CURVE_TYPE" 
         and state["CURVE_TYPE"] != "RAND_CURVE"
     ):
         params["FIELD_A"] = [CURVE_TO_FIELD_A_MAP.get(state["CURVE_TYPE"], "AVAR")]
@@ -124,6 +123,12 @@ def override_skip(state, kernel):
         if state.get("CURVE_TYPE") and state.get("CURVE_TYPE") != "RAND_CURVE":
             print(msg.format(
                 f"{state.get('CURVE_TYPE')} does not support MULTI_PREC"
+            ))
+            return True
+
+        if state.get("MUL_TYPE") and state.get("MUL_TYPE") != "MUL_NORMAL":
+            print(msg.format(
+                f"{state.get('MUL_TYPE')} does not support MULTI_PREC"
             ))
             return True
 

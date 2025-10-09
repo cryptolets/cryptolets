@@ -115,7 +115,6 @@ if {$CCORE_MUL_F} {
             branch_if_ccore_comb $mul_op 
             go extract
             project save
-
             return "[solution get /name].[solution get /VERSION]"
         } else {
             set l [project get /SOLUTION/$mul_op_sol_name.v*/VERSION -match glob]
@@ -168,8 +167,11 @@ proc modmul_run {modmul_name mod_ops_period} {
 
         go architect
         remove_broken_mul_libs $TECH_TYPE
+        go schedule
 
+        branch_if_ccore_comb $modmul_name
         go extract
+        project save
         return "[solution get /name].[solution get /VERSION]"
     } else {
         # get latest version name
@@ -193,7 +195,10 @@ if {$CCORE_MODADDSUB} {
             set_clock $mod_ops_period
             solution design set "${mod_op}_core" -top -ccore -combinational
             solution rename $mod_op
+            go schedule
+            branch_if_ccore_comb $mod_op
             go extract
+            project save
             return "[solution get /name].[solution get /VERSION]"
         } else {
             # get latest version name

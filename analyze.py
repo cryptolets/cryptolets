@@ -220,6 +220,7 @@ def derive_all_attr(parsed_raw_attrs, all_info):
             "ctime_raw": ctime_raw if ctime_raw else 0,
             "ctime": f"{int(ctime_raw) // 60}m {int(ctime_raw) % 60}s" if ctime_raw else -1,
             "minclkprd": round(minclkprd, 2) if minclkprd else None,
+            "cpr": all_info.get('cpr', 0),
             "fmax": round(1000/minclkprd, 2) if (minclkprd and minclkprd != 0) else None,
             "cycles": cycles,
             "latency": latency,

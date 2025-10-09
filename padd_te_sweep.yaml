@@ -1,23 +1,23 @@
 # Sweep parameters for Twisted Edwards Point Addition
-BITWIDTH: [64, 256]
+BITWIDTH: [254, 256, 377, 448, 521, 768]
 # 64 96 128 192 254 256 377 381 384 : clock 1ns and mod_ops_period ratio = 0.95
 # 448 512 521 : clock at 1.1 and mod_ops_period ratio = 0.90
 # 753 768 : 1.4 and mod_ops_period ratio = 0.90
 
-WBW: [32, 64]
+WBW: [32, 64, 128]
 TECH_TYPE: [gf12]  # gf12 45nm saed32 fpga fpgahbm fpgahbmvhk158
 TARGET_II: [1]
-TARGET_PERIOD: [1]  # in ns
-MUL_TYPE: [MUL_NORMAL, MUL_SCHOOLBOOK] # MUL_NORMAL, MUL_SCHOOLBOOK, MUL_KARATSUBA
-Q_TYPE: [VAR_Q, FIXED_Q] # VAR_Q, FIXED_Q
+TARGET_PERIOD: [1.5, 2, 3]  # in ns
+MUL_TYPE: [MUL_NORMAL, MUL_SCHOOLBOOK, MUL_KARATSUBA] # MUL_NORMAL, MUL_SCHOOLBOOK, MUL_KARATSUBA
+Q_TYPE: [VAR_Q] # VAR_Q, FIXED_Q
 
 # curve types: 
 # RAND_CURVE
 # a=-1 : ED25519 ED_384_MONT ED_511_MERS ED_512_MONT MNT4753_ED (BLS12_377_ED doesn't work - wrong params)
 # variable 1 = ED448
-CURVE_TYPE: [RAND_CURVE, ED25519]
+CURVE_TYPE: [RAND_CURVE]
 
-PREC_TYPE: [MULTI_PREC, SINGLE_PREC]  # SINGLE_PREC, MULTI_PREC
+PREC_TYPE: [MULTI_PREC]  # SINGLE_PREC, MULTI_PREC
 CCORE_PERIOD_RATIO: [0.95]
 
 # for RAND_CURVE can select what "a" to pick which will specify what formula will be used

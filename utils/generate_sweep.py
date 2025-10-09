@@ -96,14 +96,14 @@ def main():
     print("===========================================")
     print("Generated Sweep Configurations")
     print("===========================================")
-    print(f"TOTAL CONFIGS: {len(configs)}")
-    print(f"JSON Output: {a.out}")
     if a.verbose:
         print("-------------------------------------------")
         for i, cfg in enumerate(configs):
             cfg_str = ", ".join(f"{k}={v}" for k, v in cfg.items())
             print(f"[{i+1:03d}] {cfg_str}")
         print("-------------------------------------------")
+    print(f"TOTAL CONFIGS: {len(configs)}")
+    print(f"JSON Output: {a.out}")
     print("[OK] Sweep generation complete.")
 
 if __name__ == "__main__":
