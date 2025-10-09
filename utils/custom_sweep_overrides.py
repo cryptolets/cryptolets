@@ -83,8 +83,6 @@ def config_override(lvl, state, params, order, sweep_bw_maps):
     if state.get("PREC_TYPE") == "SINGLE_PREC":
         order = [x for x in order if x != "WBW"]
 
-    if state.get("MUL_TYPE") == "MUL_NORMAL":
-        order = [x for x in order if x != "KAR_BASE_MUL_WIDTH"]
 
     return state, params, order
 

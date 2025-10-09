@@ -63,7 +63,7 @@ SYN: false
 TEST: true          # test C++ code
 TEST_ONLY: true    # only test C++ code with osci
 NUM_TEST_SAMPLES: 1000
-GEN_SAMPLES: true   # off if custom samples
+
 CCORE_TOP: false    # cannot be true when SIM or TEST are true
 CCORE_MUL_F: false  # make mul_f ccore, false = more compile time, better design latency
 

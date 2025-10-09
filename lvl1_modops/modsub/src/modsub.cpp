@@ -18,14 +18,14 @@ wide_t modsub_core(
 ) {
     // using algorithms implemented in mp_add and mp_sub kernels
     wide_t diff;
-    ac_int<1, true> c_0 = 0;
+    ac_int<1, false> c_0 = 0;
 
     wide_t adder_out;
     ac_int<1, false> c_1 = 0;
     
     for (int i = 0; i < LIMBS; i++) {
         // 1. diff = a - b;
-        word_signed_t w_i_ext_0 = a.slc<WBW>(i * WBW) - b.slc<WBW>(i * WBW) + c_0;
+        word_signed_t w_i_ext_0 = a.slc<WBW>(i * WBW) - b.slc<WBW>(i * WBW) - c_0;
         diff.set_slc(i*WBW, w_i_ext_0.slc<WBW>(0));
         c_0 = w_i_ext_0[WBW];
 

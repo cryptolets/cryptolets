@@ -1,10 +1,10 @@
 # Sweep parameters
-BITWIDTH: [256, 254]
-WBW: [32, 64]
+BITWIDTH: [128, 192, 254, 256, 377, 381]
+WBW: [16, 32, 64, 128]
 TECH_TYPE: [gf12]  # gf12 45nm saed32 fpga fpgahbm fpgahbmvhk158
 TARGET_II: [1]
-TARGET_PERIOD: [1.1]  # in ns
-MUL_TYPE: [MUL_NORMAL, MUL_SCHOOLBOOK, MUL_KARATSUBA] # MUL_NORMAL, MUL_SCHOOLBOOK, MUL_KARATSUBA
+TARGET_PERIOD: [1]  # in ns
+MUL_TYPE: [MUL_NORMAL] # MUL_NORMAL, MUL_SCHOOLBOOK, MUL_KARATSUBA
 PREC_TYPE: [SINGLE_PREC, MULTI_PREC]  # SINGLE_PREC, MULTI_PREC
 
 BASE_MUL_WIDTH:
@@ -60,7 +60,6 @@ SYN: false
 TEST: true          # test C++ code
 TEST_ONLY: false    # only test C++ code with osci
 NUM_TEST_SAMPLES: 1000
-GEN_SAMPLES: true   # off if custom samples
 CCORE_TOP: false    # cannot be true when SIM or TEST are true
 
 # Defines order of params before project split

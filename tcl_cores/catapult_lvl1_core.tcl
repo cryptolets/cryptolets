@@ -16,7 +16,6 @@ set SYN $env(SYN)
 set TEST $env(TEST)
 set TEST_ONLY $env(TEST_ONLY)
 set NUM_TEST_SAMPLES $env(NUM_TEST_SAMPLES)
-set GEN_SAMPLES $env(GEN_SAMPLES)
 set CCORE_TOP $env(CCORE_TOP)
 
 # run config

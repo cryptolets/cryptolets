@@ -199,7 +199,7 @@ proc gen_tmp_params_h {config_params {json_file ""} {CURVE_TYPE ""}} {
 }
 
 proc run_osci_test {{CURVE_TYPE ""}} {
-    global TEST BITWIDTH KERNEL_DIR ROOT_DIR NUM_TEST_SAMPLES GEN_SAMPLES
+    global TEST BITWIDTH KERNEL_DIR ROOT_DIR NUM_TEST_SAMPLES
     # generate samples csv file and run initial C++ tests
     if {$TEST} {
         set proj_dir [project get /PROJECT_DIR]
@@ -212,27 +212,25 @@ proc run_osci_test {{CURVE_TYPE ""}} {
         set output_fp [file join $outputs_dir output_${BITWIDTH}.csv]
         set golden_fp [file join $proj_dir goldens/golden_${BITWIDTH}.csv]
 
-        if {$GEN_SAMPLES} {
-            set py_exec [file join $ROOT_DIR .venv/bin/ python]
-            set cmd [list $py_exec [file join $KERNEL_DIR gen_samples.py] \
-              --bw $BITWIDTH \
-              --n $NUM_TEST_SAMPLES \
-              --samples-file $sample_fp \
-              --golden-file $golden_fp]
+        set py_exec [file join $ROOT_DIR .venv/bin/ python]
+        set cmd [list $py_exec [file join $KERNEL_DIR gen_samples.py] \
+            --bw $BITWIDTH \
+            --n $NUM_TEST_SAMPLES \
+            --samples-file $sample_fp \
+            --golden-file $golden_fp]
 
-            if {$CURVE_TYPE ne ""} {
-                if {$CURVE_TYPE ne "RAND_CURVE"} {
-                    set json_file [file join $ROOT_DIR field_const.json]
-                } else {
-                    set json_file [file join $proj_dir field_const.json]
-                }
-
-                lappend cmd --curve_type $CURVE_TYPE
-                lappend cmd --json-file $json_file
+        if {$CURVE_TYPE ne ""} {
+            if {$CURVE_TYPE ne "RAND_CURVE"} {
+                set json_file [file join $ROOT_DIR field_const.json]
+            } else {
+                set json_file [file join $proj_dir field_const.json]
             }
 
-            exec tcsh -c "$cmd"
+            lappend cmd --curve_type $CURVE_TYPE
+            lappend cmd --json-file $json_file
         }
+
+        exec tcsh -c "$cmd"
 
         flow package require /SCVerify
         flow package option set /SCVerify/INVOKE_ARGS "$sample_fp $output_fp"

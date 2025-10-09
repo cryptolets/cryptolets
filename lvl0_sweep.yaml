@@ -12,7 +12,6 @@ SYN: false
 TEST: true          # test C++ code
 TEST_ONLY: false    # only test C++ code with osci
 NUM_TEST_SAMPLES: 1000
-GEN_SAMPLES: true   # off if custom samples
 CCORE_TOP: false    # cannot be true when SIM or TEST are true
 
 # Defines order of params before project split
