@@ -4,7 +4,10 @@ set ROOT_DIR [file normalize [file join [file dirname [info script]] ..]]
 source [file join $ROOT_DIR utils util.tcl] ;# Import utilities
 
 # parameter names
-set config_params {PREC_TYPE TECH_TYPE TARGET_PERIOD TARGET_II BITWIDTH LIMBS Q_TYPE CURVE_TYPE}
+set config_params {
+    PREC_TYPE TECH_TYPE TARGET_PERIOD TARGET_II 
+    BITWIDTH WBW MASK_BITS Q_TYPE CURVE_TYPE
+}
 assign_from_env $config_params
 
 # control flags

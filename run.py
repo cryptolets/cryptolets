@@ -93,7 +93,8 @@ def main():
             "python3", "utils/generate_sweep.py",
             "--sweep", sweep_file,
             "--out", out_file,
-            "--kernel", k
+            "--kernel", k,
+            "--verbose"
         ]
         run_cmd(cmd)
         if args.gen_only:

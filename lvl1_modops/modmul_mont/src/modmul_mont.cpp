@@ -53,7 +53,6 @@ wide_t modmul_mont_core(const wide_t x, const wide_t y, const wide_t q, const wi
         word_t x_i = x.slc<WBW>(i*WBW);
         word_t y_0 = y.slc<WBW>(0);
 
-        // TODO: we can do const mul + reduce optimization here
         word_t axy = (a_0 + mul_f_gen<WBW>(x_i, y_0)).slc<WBW>(0);
         word_t u_i = mul_f_gen<WBW>(axy, q_prime_0).slc<WBW>(0); // 2.1
 

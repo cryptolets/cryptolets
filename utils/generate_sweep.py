@@ -2,7 +2,7 @@
 import yaml, json, argparse
 from pathlib import Path
 from custom_sweep_overrides import \
-    override_values, override_skip, override_sweep_order
+    config_override, override_skip
 
 SWEEP_BITWIDTH_ARRAY_MAPS = ["BASE_MUL_WIDTH", "KAR_BASE_MUL_WIDTH"]
 
@@ -18,8 +18,10 @@ def validate(sweep):
         raise ValueError("SWEEP_ORDER must be a non-empty list.")
 
     # --- extract maps explicitly ---
-    bm_map = sweep.get("BASE_MUL_WIDTH", {})
-    kar_map  = sweep.get("KAR_BASE_MUL_WIDTH", {})
+    sweep_bw_maps = {}
+    for k in SWEEP_BITWIDTH_ARRAY_MAPS:
+        if sweep.get(k):
+            sweep_bw_maps[k] = sweep.get(k, {})
 
     # --- classify sweep entries ---
     params = {
@@ -47,32 +49,33 @@ def validate(sweep):
     if extra:
         print(f"[WARNING] extra parameters not in SWEEP_ORDER -> {extra}")
 
-    return order, params, flags, bm_map, kar_map
+    return order, params, flags, sweep_bw_maps
 
 
-def expand(order, params, kernel, bm_map, kar_map, lvl=0, base=None):
-    if base is None:
-        base = {}
+def expand(order, params, kernel, sweep_bw_maps, lvl=0, state=None):
+    if state is None:
+        state = {}
+    
+    # for debugging
+    # print("  "*lvl, "state", state)
+
+    state, params, order = config_override(lvl, state, params, order, sweep_bw_maps)
+
     if lvl == len(order):
-        if override_skip(base, kernel):
+        if override_skip(state, kernel):
             return []
-        return [base]
+        return [state]
 
-    key = order[lvl]
-
-    if key == "BASE_MUL_WIDTH":
-        params[key] = bm_map[base["BITWIDTH"]]
-    if key == "KAR_BASE_MUL_WIDTH":
-        params[key] = kar_map[base["BITWIDTH"]]
-        
-    order = override_sweep_order(order, base)
-    vals = override_values(key, base, params[key])
-
+    cur = order[lvl]
     out = []
-    for v in vals:
-        b = base.copy()
-        b[key] = v
-        out.extend(expand(order, params, kernel, bm_map, kar_map, lvl + 1, b))
+
+    for v in params[cur]:
+        s = state.copy()
+        s[cur] = v
+        out.extend(expand(order.copy(), params.copy(), kernel, sweep_bw_maps, lvl + 1, s))
+    
+    # for debugging
+    # print("  "*lvl, "out", out)
     return out
 
 def main():
@@ -84,8 +87,8 @@ def main():
     a = p.parse_args()
 
     sweep = load_yaml(a.sweep)
-    order, params, flags, bm_map, kar_map = validate(sweep)
-    configs = expand(order, params, a.kernel, bm_map, kar_map)
+    order, params, flags, sweep_bw_maps = validate(sweep)
+    configs = expand(order, params, a.kernel, sweep_bw_maps)
 
     with open(a.out, "w") as f:
         json.dump({"control_flags": flags, "sweep_configs": configs}, f, indent=2)

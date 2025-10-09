@@ -198,7 +198,11 @@ def derive_all_attr(parsed_raw_attrs, all_info):
                 latency = round(period-slack, 2)        
 
         ctime_raw = to_float_prec(a.get("ctime")) # total compile time
-
+        bitwidth = all_info.get('bitwidth')
+        mb = all_info.get('mb', 0)
+        bitwidth, masked_bw = (bitwidth - mb), bitwidth
+        if bitwidth == masked_bw: masked_bw = None
+        
         row = {
             "sol": sol,
             "tech_type": all_info.get("tech_type"),
@@ -207,12 +211,12 @@ def derive_all_attr(parsed_raw_attrs, all_info):
             "target_period": round(period, 2) if period else all_info.get("target_period"),
             "target_freq": round(1000/period, 2) if period else None,
             "q_type": all_info.get('q_type'),
-            "bitwidth": all_info.get('bitwidth'),
+            "bitwidth": bitwidth,
+            "masked_bw": masked_bw,
             "mt": all_info.get('mul_type'),
             "bm": all_info.get('bm'),
             "kar": all_info.get('kar'),
-            "limbs": all_info.get('limbs'),
-            "wbw": all_info.get('bitwidth') // all_info.get('limbs') if all_info.get('limbs') else None,
+            "wbw": all_info.get('wbw'),
             "ctime_raw": ctime_raw if ctime_raw else 0,
             "ctime": f"{int(ctime_raw) // 60}m {int(ctime_raw) % 60}s" if ctime_raw else -1,
             "minclkprd": round(minclkprd, 2) if minclkprd else None,
@@ -282,11 +286,11 @@ def get_tot(data, col="ctime_raw"):
 
 def filter_mp(data, mp=False):
     if mp:
-        # keep only MP rows (limbs is not None)
-        return [row for row in data if row.get("limbs") is not None]
+        # keep only MP rows (wbw is not None)
+        return [row for row in data if row.get("wbw") is not None]
     else:
-        # keep only non-MP rows (limbs is None)
-        return [row for row in data if row.get("limbs") is None]
+        # keep only non-MP rows (wbw is None)
+        return [row for row in data if row.get("wbw") is None]
 
 def find_max_area_min_latency_by_q(data):
     """

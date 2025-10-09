@@ -25,6 +25,8 @@ def short(k, v=None):
         return SHORT_KEY.get(k, k)
     return VALUE.get(k, {}).get(v, v)
 
+def print_short(config):
+    return " ".join(f"{short(k)}={short(v)}" for k, v in config.items())
 
 def encoder(config, dot=False):
     """Encode a config dict into a compact, filename-safe string."""

@@ -6,7 +6,7 @@ source [file join $ROOT_DIR utils util.tcl] ;# Import utilities
 # parameter names
 set config_params {
     PREC_TYPE TECH_TYPE TARGET_PERIOD MUL_TYPE TARGET_II 
-    BITWIDTH LIMBS BASE_MUL_WIDTH KAR_BASE_MUL_WIDTH
+    BITWIDTH WBW MASK_BITS BASE_MUL_WIDTH KAR_BASE_MUL_WIDTH
 }
 assign_from_env $config_params
 

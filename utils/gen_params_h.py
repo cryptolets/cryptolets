@@ -52,7 +52,8 @@ for k in FIELD_CONTS:
     lines.append(f'#define FIELD_{k.upper()}_HEX "{v}"')
 
 for k in MODMUL_CONST:
-    lines.append(f'#define {k.upper()}_HEX "{consts[k]}"')
+    v = consts.get(k, "0")
+    lines.append(f'#define {k.upper()}_HEX "{v}"')
 
 for k, v in params.items():
     lines.append(f"#define {k.upper()} {v}")

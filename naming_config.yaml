@@ -13,8 +13,9 @@ SHORT_KEY:
   CURVE_TYPE: ct
   FIELD_A: fa
   PREC_TYPE: pt
-  LIMBS: l
+  WBW: wbw
   CCORE_PERIOD_RATIO: cpr
+  MASK_BITS: mb
   
 MED_KEY:
   BITWIDTH: bitwidth
@@ -28,8 +29,9 @@ MED_KEY:
   CURVE_TYPE: curve_type
   FIELD_A: a
   PREC_TYPE: prec_type
-  LIMBS: limbs
+  WBW: wbw
   CCORE_PERIOD_RATIO: cpr
+  MASK_BITS: mb
 
 VALUE:
   MUL_TYPE:

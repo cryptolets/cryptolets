@@ -6,7 +6,7 @@ DRY_RUN: false
 GUI_MODE: false
 
 # --- Multi-kernel batch mode ---
-MULTIPLE_KERNELS: ["add_f", "sub_f", "mul_f"]
+MULTIPLE_KERNELS: ["add_f", "sub_f", "cmul_f"]
 
 # --- Kernel registry ---
 KERNELS: [

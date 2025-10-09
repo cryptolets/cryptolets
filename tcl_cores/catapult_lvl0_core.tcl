@@ -4,7 +4,7 @@ set ROOT_DIR [file normalize [file join [file dirname [info script]] ..]]
 source [file join $ROOT_DIR utils util.tcl] ;# Import utilities
 
 # parameter names
-set config_params {PREC_TYPE TECH_TYPE TARGET_PERIOD TARGET_II BITWIDTH LIMBS}
+set config_params {PREC_TYPE TECH_TYPE TARGET_PERIOD TARGET_II BITWIDTH WBW MASK_BITS}
 assign_from_env $config_params
 
 # control flags
@@ -40,6 +40,9 @@ set proj_name "Catapult_${SWEEP_KEY}"
 set table_name "table_${SWEEP_KEY}.csv"
 set sol_name $KERNEL_NAME
 
+open_or_create_proj $proj_name
+puts "\n=== Starting project $proj_name ==="
+
 # Compiler flags
 set flags ""
 if {$KERNEL_NAME eq "cmul_f"} {
@@ -47,10 +50,7 @@ if {$KERNEL_NAME eq "cmul_f"} {
     set json_file [gen_field_consts] 
     append flags " -DQ_TYPE=FIXED_Q" 
 }
-
-open_or_create_proj $proj_name
-puts "\n=== Starting project $proj_name ==="
-
+puts "JSON FILE = $json_file"
 set tmp_params_h_dir [gen_tmp_params_h $config_params $json_file $CURVE_TYPE]
 
 open_or_create_solution $sol_name

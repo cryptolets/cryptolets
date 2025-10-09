@@ -1,11 +1,11 @@
 # Sweep parameters for Short Weierstrass Point Addition
-BITWIDTH: [64]
+BITWIDTH: [64, 128]
 # 256 377 381 384
 # 64 96 128 192 254 256 377 381 384 : clock 1ns and mod_ops_period ratio = 0.95
 # 448 512 521 : clock at 1.1 and mod_ops_period ratio = 0.90
 # 753 768 : 1.4 and mod_ops_period ratio = 0.90
 
-LIMBS: [2, 4]
+WBW: [32, 64]
 TECH_TYPE: [gf12]  # gf12 45nm saed32 fpga fpgahbm fpgahbmvhk158
 TARGET_II: [1]
 TARGET_PERIOD: [1]  # in ns
@@ -17,7 +17,7 @@ Q_TYPE: [VAR_Q, FIXED_Q] # VAR_Q, FIXED_Q
 # a=0 : BN254 BLS12_377 BLS12_381 SECP256K1
 # a=2 : MNT4753
 # a=-3 : P_256 P_521
-CURVE_TYPE: [BN254]
+CURVE_TYPE: [RAND_CURVE, BN254]
 
 PREC_TYPE: [SINGLE_PREC]  # SINGLE_PREC, MULTI_PREC
 CCORE_PERIOD_RATIO: [0.95]
@@ -88,5 +88,5 @@ HAS_MODSQ: true
 SWEEP_ORDER: [
   CURVE_TYPE, FIELD_A, Q_TYPE, PREC_TYPE, TECH_TYPE, 
   TARGET_PERIOD, TARGET_II, MUL_TYPE, CCORE_PERIOD_RATIO,
-  BITWIDTH, LIMBS, BASE_MUL_WIDTH, KAR_BASE_MUL_WIDTH
+  BITWIDTH, WBW, BASE_MUL_WIDTH, KAR_BASE_MUL_WIDTH
   ]
