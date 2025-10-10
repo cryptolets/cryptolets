@@ -220,7 +220,7 @@ def derive_all_attr(parsed_raw_attrs, all_info):
             "ctime_raw": ctime_raw if ctime_raw else 0,
             "ctime": f"{int(ctime_raw) // 60}m {int(ctime_raw) % 60}s" if ctime_raw else -1,
             "minclkprd": round(minclkprd, 2) if minclkprd else None,
-            "cpr": all_info.get('cpr', 0),
+            "cpr": float(all_info.get('cpr', 1)),
             "fmax": round(1000/minclkprd, 2) if (minclkprd and minclkprd != 0) else None,
             "cycles": cycles,
             "latency": latency,
@@ -373,7 +373,7 @@ def sort_key(row):
         row.get("tech_type") or "",
         row.get("curve_type") or "",
         row.get("a") or "",
-        row.get("target_period") or float("inf"),
+        # row.get("target_period") or float("inf"),
         row.get("ii") or float("inf"),
         row.get("q_type") or "",
         row.get("bitwidth") or float("inf"),
@@ -477,20 +477,20 @@ if __name__ == "__main__":
         table_str = make_table_string(all_metrics)
         print(table_str)
 
-        # Find and print designs with min area and min latency by q_type
-        area_latency_results = find_max_area_min_latency_by_q(all_metrics)
-        for q_type in ["fixedq", "varq"]:
-            print(f"\nDesign with minimum area ({q_type}):")
-            if area_latency_results[q_type]['min_area']:
-                print(make_table_string([area_latency_results[q_type]['min_area']]))
-            else:
-                print("None found.")
+        # # Find and print designs with min area and min latency by q_type
+        # area_latency_results = find_max_area_min_latency_by_q(all_metrics)
+        # for q_type in ["fixedq", "varq"]:
+        #     print(f"\nDesign with minimum area ({q_type}):")
+        #     if area_latency_results[q_type]['min_area']:
+        #         print(make_table_string([area_latency_results[q_type]['min_area']]))
+        #     else:
+        #         print("None found.")
             
-            print(f"\nDesign with minimum latency ({q_type}):")
-            if area_latency_results[q_type]['min_latency']:
-                print(make_table_string([area_latency_results[q_type]['min_latency']]))
-            else:
-                print("None found.")
+        #     print(f"\nDesign with minimum latency ({q_type}):")
+        #     if area_latency_results[q_type]['min_latency']:
+        #         print(make_table_string([area_latency_results[q_type]['min_latency']]))
+        #     else:
+        #         print("None found.")
 
         if num_runs > 0:
             ctime_fmt = lambda t: f"{int(t)//3600}h {(int(t)%3600)//60}m {int(t)%60}s"

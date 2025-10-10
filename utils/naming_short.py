@@ -67,6 +67,9 @@ def decoder(tag, key_type="short", val_type="short"):
             or k_short
         )
 
+        if full_key in ("TARGET_PERIOD", "CCORE_PERIOD_RATIO"):
+            v_short = v_short.replace("_", ".", 1)
+
         # --- handle value expansion ---
         if val_type == "full":
             val = R_VALUE.get(full_key, {}).get(v_short, v_short)

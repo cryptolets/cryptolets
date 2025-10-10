@@ -38,6 +38,12 @@ def config_override(lvl, state, params, order, sweep_bw_maps):
         params["FIELD_A"] = [CURVE_TO_FIELD_A_MAP.get(state["CURVE_TYPE"], "AVAR")]
 
     if (
+        order[lvl-1] == "BITWIDTH"
+        and state.get("PREC_TYPE") == "MULTI_PREC"
+    ):
+        params["WBW"] = [wbw for wbw in params["WBW"] if wbw <= state.get("BITWIDTH")]
+
+    if (
         state.get("PREC_TYPE") == "MULTI_PREC" 
         and "BITWIDTH" in state 
         and order[lvl-1] == "WBW"

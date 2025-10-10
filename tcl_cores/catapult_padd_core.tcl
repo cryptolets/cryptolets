@@ -19,6 +19,7 @@ set TEST_ONLY $env(TEST_ONLY)
 set NUM_TEST_SAMPLES $env(NUM_TEST_SAMPLES)
 set CCORE_MUL_F $env(CCORE_MUL_F)
 set CCORE_MODADDSUB $env(CCORE_MODADDSUB)
+set CCORE_MODMUL $env(CCORE_MODMUL)
 set HAS_MODSQ $env(HAS_MODSQ)
 
 # run config
@@ -133,59 +134,61 @@ if {$CCORE_MUL_F} {
     }
 }
 
-proc modmul_run {modmul_name mod_ops_period} {
-    if {[catch {project get /SOLUTION/$modmul_name.v* -match glob} err]} {
-        global TECH_TYPE MUL_TYPE CCORE_MUL_F sq_f_sol mul_f_sol
+if {$CCORE_MODMUL} {
+    proc modmul_run {modmul_name mod_ops_period} {
+        if {[catch {project get /SOLUTION/$modmul_name.v* -match glob} err]} {
+            global TECH_TYPE MUL_TYPE CCORE_MUL_F sq_f_sol mul_f_sol
 
-        go new
-        set_clock $mod_ops_period
-        solution design set ${modmul_name}_core -top -ccore
-        if {$CCORE_MUL_F && $MUL_TYPE ne "MUL_NORMAL"} {
-            if {$modmul_name eq "modsq_mont"} {
-                solution design set sq_f -ccore
+            go new
+            set_clock $mod_ops_period
+            solution design set ${modmul_name}_core -top -ccore
+            if {$CCORE_MUL_F && $MUL_TYPE ne "MUL_NORMAL"} {
+                if {$modmul_name eq "modsq_mont"} {
+                    solution design set sq_f -ccore
+                }
+                solution design set mul_f -ccore
             }
-            solution design set mul_f -ccore
-        }
-        solution rename $modmul_name
+            solution rename $modmul_name
 
-        go analyze
-        if {$CCORE_MUL_F && $MUL_TYPE ne "MUL_NORMAL"} {
-            if {$modmul_name eq "modsq_mont"} {
-                solution library add "\[CCORE\] $sq_f_sol"
-            } else {
-                solution library add "\[CCORE\] $mul_f_sol"
+            go analyze
+            if {$CCORE_MUL_F && $MUL_TYPE ne "MUL_NORMAL"} {
+                if {$modmul_name eq "modsq_mont"} {
+                    solution library add "\[CCORE\] $sq_f_sol"
+                } else {
+                    solution library add "\[CCORE\] $mul_f_sol"
+                }
             }
-        }
 
-        go libraries
-        if {$CCORE_MUL_F && $MUL_TYPE ne "MUL_NORMAL"} {
-            if {$modmul_name eq "modsq_mont"} {
-                directive set /${modmul_name}_core/sq_f -MAP_TO_MODULE "\[CCORE\] $sq_f_sol"
+            go libraries
+            if {$CCORE_MUL_F && $MUL_TYPE ne "MUL_NORMAL"} {
+                if {$modmul_name eq "modsq_mont"} {
+                    directive set /${modmul_name}_core/sq_f -MAP_TO_MODULE "\[CCORE\] $sq_f_sol"
+                }
+                directive set /${modmul_name}_core/mul_f -MAP_TO_MODULE "\[CCORE\] $mul_f_sol"
             }
-            directive set /${modmul_name}_core/mul_f -MAP_TO_MODULE "\[CCORE\] $mul_f_sol"
+
+            go architect
+            remove_broken_mul_libs $TECH_TYPE
+            go schedule
+
+            branch_if_ccore_comb $modmul_name
+            go extract
+            project save
+            return "[solution get /name].[solution get /VERSION]"
+        } else {
+            # get latest version name
+            set l [project get /SOLUTION/$modmul_name.v*/VERSION -match glob]
+            return "${modmul_name}.[lindex $l [expr [llength $l] - 1]]"
         }
-
-        go architect
-        remove_broken_mul_libs $TECH_TYPE
-        go schedule
-
-        branch_if_ccore_comb $modmul_name
-        go extract
-        project save
-        return "[solution get /name].[solution get /VERSION]"
-    } else {
-        # get latest version name
-        set l [project get /SOLUTION/$modmul_name.v*/VERSION -match glob]
-        return "${modmul_name}.[lindex $l [expr [llength $l] - 1]]"
     }
-}
 
-set modmul_sol [modmul_run modmul_mont $mod_ops_period]
-solution table export -file [file join $WORK_DIR $table_name]
-
-if {$HAS_MODSQ} {
-    set modsq_sol [modmul_run modsq_mont $mod_ops_period]
+    set modmul_sol [modmul_run modmul_mont $mod_ops_period]
     solution table export -file [file join $WORK_DIR $table_name]
+
+    if {$HAS_MODSQ} {
+        set modsq_sol [modmul_run modsq_mont $mod_ops_period]
+        solution table export -file [file join $WORK_DIR $table_name]
+    }
 }
 
 if {$CCORE_MODADDSUB} {
@@ -195,8 +198,6 @@ if {$CCORE_MODADDSUB} {
             set_clock $mod_ops_period
             solution design set "${mod_op}_core" -top -ccore -combinational
             solution rename $mod_op
-            go schedule
-            branch_if_ccore_comb $mod_op
             go extract
             project save
             return "[solution get /name].[solution get /VERSION]"
@@ -218,9 +219,11 @@ if {$CCORE_MODADDSUB} {
 go new
 set_clock $TARGET_PERIOD
 solution design set $KERNEL_NAME -top
-solution design set modmul_mont_core -ccore
-if {$HAS_MODSQ} {
-    solution design set modsq_mont_core -ccore
+if {$CCORE_MODMUL} {
+    solution design set modmul_mont_core -ccore
+    if {$HAS_MODSQ} {
+        solution design set modsq_mont_core -ccore
+    }
 }
 if {$CCORE_MODADDSUB} {
     solution design set modadd_core -ccore
@@ -237,9 +240,13 @@ if {$HAS_MODSQ} {
     if {$CCORE_MUL_F && $MUL_TYPE ne "MUL_NORMAL"} {
         solution library add "\[CCORE\] $sq_f_sol"
     }
-    solution library add "\[CCORE\] $modsq_sol"
+    if {$CCORE_MODMUL} {
+        solution library add "\[CCORE\] $modsq_sol"
+    }
 }
-solution library add "\[CCORE\] $modmul_sol"
+if {$CCORE_MODMUL} {
+    solution library add "\[CCORE\] $modmul_sol"
+}
 if {$CCORE_MODADDSUB} {
     solution library add "\[CCORE\] $modadd_sol"
     solution library add "\[CCORE\] $modsub_sol"
@@ -248,8 +255,10 @@ if {$CCORE_MODADDSUB} {
 
 
 go libraries
-directive set /$KERNEL_NAME/modmul_mont_core -MAP_TO_MODULE "\[CCORE\] $modmul_sol"
-if {$HAS_MODSQ} { directive set /$KERNEL_NAME/modsq_mont_core -MAP_TO_MODULE "\[CCORE\] $modsq_sol" }
+if {$CCORE_MODMUL} {
+    directive set /$KERNEL_NAME/modmul_mont_core -MAP_TO_MODULE "\[CCORE\] $modmul_sol"
+    if {$HAS_MODSQ} { directive set /$KERNEL_NAME/modsq_mont_core -MAP_TO_MODULE "\[CCORE\] $modsq_sol" }
+}
 if {$CCORE_MODADDSUB} {
     directive set /$KERNEL_NAME/modadd_core -MAP_TO_MODULE "\[CCORE\] $modadd_sol"
     directive set /$KERNEL_NAME/modsub_core -MAP_TO_MODULE "\[CCORE\] $modsub_sol"
