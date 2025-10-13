@@ -36,6 +36,11 @@ def main():
                         help="Generate sweep JSON only (skip parallel run).")
     parser.add_argument("--run-only", action="store_true",
                         help="Run Catapult parallel only (requires existing tmp JSON).")
+    parser.add_argument("--sweep-file", type=str,
+                        help="Explicit sweep YAML. Must be used with --core-script.")
+    parser.add_argument("--core-script", type=str,
+                        help="Explicit Catapult core TCL. Must be used with --sweep-file.")
+
 
     args = parser.parse_args()
 
@@ -65,19 +70,26 @@ def main():
     if k not in kernels:
         raise ValueError(f"Kernel '{k}' not found in KERNELS list.")
 
-    sweep_map = invert(sweep_groups)
-    core_map  = invert(core_groups)
+    # custom files: both or neither
+    if (args.sweep_file is None) ^ (args.core_script is None):
+        raise ValueError("Provide --sweep-file and --core-script together, or omit both.")
 
-    if k not in sweep_map or k not in core_map:
-        raise KeyError(f"Kernel '{k}' missing from SWEEP_GROUP_MAP or CORE_GROUP_MAP.")
+    use_custom = args.sweep_file is not None
 
-    # --- prepare paths ---
-    pgrp = sweep_map[k]
-    cgrp = core_map[k]
-    sweep_file = f"{pgrp}_sweep.yaml"
+    if use_custom:
+        sweep_file  = args.sweep_file
+        core_script = args.core_script
+    else:
+        sweep_map = invert(sweep_groups)
+        core_map  = invert(core_groups)
+        if k not in sweep_map or k not in core_map:
+            raise KeyError(f"Kernel '{k}' missing from SWEEP_GROUP_MAP or CORE_GROUP_MAP.")
+        pgrp = sweep_map[k]
+        cgrp = core_map[k]
+        sweep_file  = f"sweeps_configs/{pgrp}_sweep.yaml"
+        core_script = f"tcl_cores/catapult_{cgrp}_core.tcl"
+
     out_file = f"tmp_configs/{k}_configs.json"
-    core_script = f"tcl_cores/catapult_{cgrp}_core.tcl"
-    
     Path(out_file).parent.mkdir(parents=True, exist_ok=True)
 
     # --- handle run modes ---

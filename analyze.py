@@ -211,6 +211,7 @@ def derive_all_attr(parsed_raw_attrs, all_info):
             "target_period": round(period, 2) if period else all_info.get("target_period"),
             "target_freq": round(1000/period, 2) if period else None,
             "q_type": all_info.get('q_type'),
+            "curve_pt": all_info.get('curve_pt'),
             "bitwidth": bitwidth,
             "masked_bw": masked_bw,
             "mt": all_info.get('mul_type'),

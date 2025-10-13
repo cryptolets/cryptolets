@@ -39,14 +39,30 @@ struct ModOps {
 #endif
     }
 
-    inline wide_t cmodmul(wide_t x, wide_t y) const {
-#if MODMUL_TYPE == MODMUL_TYPE_MONT
-        return cmodmul_mont(x, y, q, q_prime);
-#elif MODMUL_TYPE == MODMUL_TYPE_BARRETT
-        return cmodmul_barrett(x, y, q, mu);
-#endif
+// special case where we are multiplying by a const
+#ifdef FIELD_A_MONT_HEX
+    inline wide_t cmodmul_a(wide_t x) const {
+    #if MODMUL_TYPE == MODMUL_TYPE_MONT
+        return cmodmul_a_mont_core(x, q, q_prime);
+    #endif
     }
+#endif
 
+#ifdef FIELD_D_MONT_HEX
+    inline wide_t cmodmul_d(wide_t x) const {
+    #if MODMUL_TYPE == MODMUL_TYPE_MONT
+        return cmodmul_d_mont_core(x, q, q_prime);
+    #endif
+    }
+#endif
+
+#ifdef FIELD_K_MONT_HEX
+    inline wide_t cmodmul_k(wide_t x) const {
+    #if MODMUL_TYPE == MODMUL_TYPE_MONT
+        return cmodmul_k_mont_core(x, q, q_prime);
+    #endif
+    }
+#endif
 
     inline wide_t modadd(wide_t a, wide_t b) const {
         return modadd_core(a, b, q);

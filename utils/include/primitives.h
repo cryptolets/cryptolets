@@ -76,6 +76,7 @@ typedef struct {
     #endif
 #endif
 
+// #ifdef CURVE_PARAMS_TYPE
 #ifdef FIELD_A_MONT_HEX
     static const wide_t FIELD_A_MONT = ac::bit_fill_hex<wide_t>(FIELD_A_MONT_HEX);
 #endif
@@ -87,5 +88,6 @@ typedef struct {
 #ifdef FIELD_K_MONT_HEX
     static const wide_t FIELD_K_MONT = ac::bit_fill_hex<wide_t>(FIELD_K_MONT_HEX);
 #endif
+// #endif
 
 #endif // _PRIMITIVES_H_

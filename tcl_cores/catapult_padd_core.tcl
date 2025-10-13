@@ -5,7 +5,7 @@ source [file join $ROOT_DIR utils util.tcl] ;# Import utilities
 
 # parameter names
 set config_params {
-    CURVE_TYPE FIELD_A Q_TYPE PREC_TYPE TECH_TYPE TARGET_PERIOD 
+    CURVE_TYPE FIELD_A CURVE_PARAMS_TYPE Q_TYPE PREC_TYPE TECH_TYPE TARGET_PERIOD 
     CCORE_PERIOD_RATIO MUL_TYPE TARGET_II BITWIDTH WBW MASK_BITS
     BASE_MUL_WIDTH KAR_BASE_MUL_WIDTH
 }
@@ -20,7 +20,6 @@ set NUM_TEST_SAMPLES $env(NUM_TEST_SAMPLES)
 set CCORE_MUL_F $env(CCORE_MUL_F)
 set CCORE_MODADDSUB $env(CCORE_MODADDSUB)
 set CCORE_MODMUL $env(CCORE_MODMUL)
-set HAS_MODSQ $env(HAS_MODSQ)
 
 # run config
 set THREADS_PER_PROCESS $env(THREADS_PER_PROCESS)
@@ -33,6 +32,22 @@ set KERNEL_DIR [file join $ROOT_DIR $LVL_DIR $KERNEL_NAME]
 set WORK_DIR [enter_work_dir] ;# move to a lvl_dir/kernel/Catapult as working dir
 
 set TEST [expr {$SIM || $TEST}]
+set HAS_MODSQ [expr {$KERNEL_NAME eq "point_add"}] ;# only for sw, te has no modsq's
+
+# which designs have which const modmuls
+set HAS_CMODMUL_A [expr {
+    $CURVE_PARAMS_TYPE eq "FIXED_CURVE_PARAMS" && 
+    (($KERNEL_NAME eq "point_add" && $CURVE_TYPE eq "AVAR") ||
+     ($KERNEL_NAME eq "point_add_te" && $CURVE_TYPE eq "AVAR"))
+}]
+set HAS_CMODMUL_D [expr {
+    $CURVE_PARAMS_TYPE eq "FIXED_CURVE_PARAMS" &&
+    ($KERNEL_NAME eq "point_add_te" && $CURVE_TYPE eq "AVAR")
+}]
+set HAS_CMODMUL_K [expr {
+    $CURVE_PARAMS_TYPE eq "FIXED_CURVE_PARAMS" &&
+    ($KERNEL_NAME eq "point_add_te" && $CURVE_TYPE eq "ANEG1")
+}]
 
 override_default_options ;# Reset tool options
 
@@ -189,6 +204,21 @@ if {$CCORE_MODMUL} {
         set modsq_sol [modmul_run modsq_mont $mod_ops_period]
         solution table export -file [file join $WORK_DIR $table_name]
     }
+
+    if {$HAS_CMODMUL_A} {
+        set cmodmul_a_sol [modmul_run cmodmul_a_mont $mod_ops_period]
+        solution table export -file [file join $WORK_DIR $table_name]
+    }
+
+    if {$HAS_CMODMUL_D} {
+        set cmodmul_d_sol [modmul_run cmodmul_d_mont $mod_ops_period]
+        solution table export -file [file join $WORK_DIR $table_name]
+    }
+
+    if {$HAS_CMODMUL_K} {
+        set cmodmul_k_sol [modmul_run cmodmul_k_mont $mod_ops_period]
+        solution table export -file [file join $WORK_DIR $table_name]
+    }
 }
 
 if {$CCORE_MODADDSUB} {
@@ -224,6 +254,15 @@ if {$CCORE_MODMUL} {
     if {$HAS_MODSQ} {
         solution design set modsq_mont_core -ccore
     }
+    if {$HAS_CMODMUL_A} {
+        solution design set cmodmul_a_mont_core -ccore
+    }
+    if {$HAS_CMODMUL_D} {
+        solution design set cmodmul_d_mont_core -ccore
+    }
+    if {$HAS_CMODMUL_K} {
+        solution design set cmodmul_k_mont_core -ccore
+    }
 }
 if {$CCORE_MODADDSUB} {
     solution design set modadd_core -ccore
@@ -246,6 +285,15 @@ if {$HAS_MODSQ} {
 }
 if {$CCORE_MODMUL} {
     solution library add "\[CCORE\] $modmul_sol"
+    if {$HAS_CMODMUL_A} {
+        solution library add "\[CCORE\] $cmodmul_a_sol"
+    }
+    if {$HAS_CMODMUL_D} {
+        solution library add "\[CCORE\] $cmodmul_d_sol"
+    }
+    if {$HAS_CMODMUL_K} {
+        solution library add "\[CCORE\] $cmodmul_k_sol"
+    }
 }
 if {$CCORE_MODADDSUB} {
     solution library add "\[CCORE\] $modadd_sol"
@@ -258,6 +306,9 @@ go libraries
 if {$CCORE_MODMUL} {
     directive set /$KERNEL_NAME/modmul_mont_core -MAP_TO_MODULE "\[CCORE\] $modmul_sol"
     if {$HAS_MODSQ} { directive set /$KERNEL_NAME/modsq_mont_core -MAP_TO_MODULE "\[CCORE\] $modsq_sol" }
+    if {$HAS_CMODMUL_A} { directive set /$KERNEL_NAME/cmodmul_a_mont_ccore -MAP_TO_MODULE "\[CCORE\] $cmodmul_a_sol" }
+    if {$HAS_CMODMUL_D} { directive set /$KERNEL_NAME/cmodmul_d_mont_ccore -MAP_TO_MODULE "\[CCORE\] $cmodmul_d_sol" }
+    if {$HAS_CMODMUL_K} { directive set /$KERNEL_NAME/cmodmul_k_mont_ccore -MAP_TO_MODULE "\[CCORE\] $cmodmul_k_sol" }
 }
 if {$CCORE_MODADDSUB} {
     directive set /$KERNEL_NAME/modadd_core -MAP_TO_MODULE "\[CCORE\] $modadd_sol"

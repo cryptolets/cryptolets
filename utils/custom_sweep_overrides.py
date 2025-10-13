@@ -100,22 +100,40 @@ def override_skip(state, kernel):
     """
     msg = "[WARNING] Skipping - {}:\n  Config Params:" + print_short(state)
 
-    if (
-        state.get("CURVE_TYPE") == "RAND_CURVE"
-        and state.get("Q_TYPE") == "FIXED_Q"
-    ):
-        print(msg.format(
-            f"Prevents RAND_CURVE with FIXED_Q"
-        ))
-        return True
+    if state.get("CURVE_TYPE") == "RAND_CURVE":
+        if state.get("Q_TYPE") == "FIXED_Q":
+            print(msg.format(
+                f"Prevents RAND_CURVE with FIXED_Q"
+            ))
+            return True
+
+        if state.get("CURVE_PARAMS_TYPE") == "FIXED_CURVE_PARAMS":
+            print(msg.format(
+                f"Prevents RAND_CURVE with FIXED_CURVE_PARAMS"
+            ))
+            return True
+
+    if state.get("CURVE_TYPE") != "RAND_CURVE":
+        if (
+            state.get("Q_TYPE") == "VAR_Q" 
+            and state.get("CURVE_PARAMS_TYPE") == "VAR_CURVE_PARAMS"
+        ):
+            print(msg.format(
+                f"Prevents specific curves with VAR_Q and VAR_CURVE_PARAMS"
+            ))
+
+            # because we can map the same design to a RAND_CURVE design
+            return True
 
     if (
-        state.get("CURVE_TYPE") != "RAND_CURVE"
-        and state.get("Q_TYPE") == "VAR_Q"
+        state.get("CURVE_TYPE") != "RAND_CURVE" and
+        str(kernel) == "point_add" and 
+        state.get("FIELD_A") != "AVAR" and 
+        state.get("CURVE_PARAMS_TYPE") == "FIXED_CURVE_PARAMS"
     ):
         print(msg.format(
-            f"Prevents specific curves with VAR_Q"
-        ))
+                f"For point_add only FIELD_A=AVAR uses FIXED_CURVE_PARAMS in formula"
+            ))
         return True
 
     # Skip unsupported MULTI_PREC kernels

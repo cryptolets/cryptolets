@@ -86,9 +86,9 @@ EC_point_J point_dbl_2009_l_a_var(
     // t5 = a*t4
     #if FIELD_A == A2
         wide_t t5   = be.moddouble(t4);
-    #else
-        #if Q_TYPE == FIXED_Q
-            wide_t t5   = be.cmodmul(field_a, t4);
+    #else // FIELD_A == AVAR
+        #if CURVE_PARAMS_TYPE == FIXED_CURVE_PARAMS
+            wide_t t5   = be.cmodmul_a(t4);
         #else
             wide_t t5   = be.modmul(field_a, t4);
         #endif
@@ -178,49 +178,40 @@ EC_point_J point_add_core(
     return result;
 }
 
+EC_point_J point_add(
+    EC_point_J P0, EC_point_J P1
 
-#if Q_TYPE == FIXED_Q
-    EC_point_J point_add(
-        EC_point_J P0, EC_point_J P1
-    ) {
-        // Declare modops backend
-        #if MODMUL_TYPE == MODMUL_TYPE_MONT
-            ModOps be(Q, Q_PRIME);
-        #elif MODMUL_TYPE == MODMUL_TYPE_BARRETT
-            ModOps be(Q, MU);
-        #endif
-
-        return point_add_core(P0, P1, be, FIELD_A_MONT);
-    }
-#else // Q_TYPE == VAR_Q
-    #if FIELD_A == AVAR
-        EC_point_J point_add(
-            EC_point_J P0, EC_point_J P1, 
-            const wide_t q, const wide_t q_prime,
-            const wide_t field_a
-        ) {
-            // Declare modops backend
-            #if MODMUL_TYPE == MODMUL_TYPE_MONT
-                ModOps be(q, q_prime);
-            #elif MODMUL_TYPE == MODMUL_TYPE_BARRETT
-                ModOps be(q, mu);
-            #endif
-
-            return point_add_core(P0, P1, be, field_a);
-        }
-    #else
-        EC_point_J point_add(
-            EC_point_J P0, EC_point_J P1, 
-            const wide_t q, const wide_t q_prime
-        ) {
-            // Declare modops backend
-            #if MODMUL_TYPE == MODMUL_TYPE_MONT
-                ModOps be(q, q_prime);
-            #elif MODMUL_TYPE == MODMUL_TYPE_BARRETT
-                ModOps be(q, mu);
-            #endif
-
-            return point_add_core(P0, P1, be, FIELD_A_MONT);
-        }
-    #endif
+#if Q_TYPE == VAR_Q
+    , const wide_t q, const wide_t q_prime
 #endif
+
+#if (CURVE_PARAMS_TYPE == VAR_CURVE_PARAMS) && (FIELD_A == AVAR)
+    , const wide_t field_a
+#endif
+
+) {
+    #if Q_TYPE == FIXED_Q
+        const wide_t q = Q;
+    #endif
+
+    #if !((CURVE_PARAMS_TYPE == VAR_CURVE_PARAMS) && (FIELD_A == AVAR))
+        const wide_t field_a = FIELD_A_MONT;
+    #endif
+
+    // Declare modops backend
+    #if MODMUL_TYPE == MODMUL_TYPE_MONT
+        #if Q_TYPE == FIXED_Q
+            const wide_t q_prime = Q_PRIME;
+        #endif
+        
+        ModOps be(q, q_prime);
+    #elif MODMUL_TYPE == MODMUL_TYPE_BARRETT
+        #if Q_TYPE == FIXED_Q
+            const wide_2x_t mu = MU;
+        #endif
+        
+        ModOps be(q, mu);
+    #endif
+
+    return point_add_core(P0, P1, be, field_a);
+}

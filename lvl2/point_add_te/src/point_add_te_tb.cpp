@@ -70,33 +70,20 @@ CCS_MAIN(int argc, char **argv)    // required for sc verify flow in Catapult
   for (vector<STIMULUS_TYPE>::iterator it = samples.begin(); it != samples.end(); ++it) {
     STIMULUS_TYPE stimulus_element = *it;
 
-#if Q_TYPE == FIXED_Q
     stimulus_element.o_sample = CCS_DESIGN(point_add_te)(
-      stimulus_element.P0,
-      stimulus_element.P1
+      stimulus_element.P0, stimulus_element.P1
+#if Q_TYPE == VAR_Q
+      , stimulus_element.q_sample, stimulus_element.q_prime_sample
+#endif
+
+#if (CURVE_PARAMS_TYPE == VAR_CURVE_PARAMS) && (FIELD_A == AVAR)
+    , stimulus_element.field_a_sample, stimulus_element.field_d_sample
+#endif
+
+#if (CURVE_PARAMS_TYPE == VAR_CURVE_PARAMS) && (FIELD_A == ANEG1)
+    , stimulus_element.field_k_sample
+#endif
     );
-
-#else // variable q
-#if FIELD_A == ANEG1 // variable a
-    stimulus_element.o_sample = CCS_DESIGN(point_add_te)(
-          stimulus_element.P0,
-          stimulus_element.P1,
-          stimulus_element.q_sample,
-          stimulus_element.q_prime_sample,
-          stimulus_element.field_k_sample
-        );
-
-#else // variable a
-    stimulus_element.o_sample = CCS_DESIGN(point_add_te)(
-          stimulus_element.P0,
-          stimulus_element.P1,
-          stimulus_element.q_sample,
-          stimulus_element.q_prime_sample,
-          stimulus_element.field_a_sample,
-          stimulus_element.field_d_sample
-        );
-#endif
-#endif
 
     samples_out.push_back(stimulus_element);
   }

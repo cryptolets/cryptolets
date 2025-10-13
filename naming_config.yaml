@@ -16,6 +16,7 @@ SHORT_KEY:
   WBW: wbw
   CCORE_PERIOD_RATIO: cpr
   MASK_BITS: mb
+  CURVE_PARAMS_TYPE: cpt
   
 MED_KEY:
   BITWIDTH: bitwidth
@@ -32,6 +33,7 @@ MED_KEY:
   WBW: wbw
   CCORE_PERIOD_RATIO: cpr
   MASK_BITS: mb
+  CURVE_PARAMS_TYPE: curve_pt
 
 VALUE:
   MUL_TYPE:
@@ -49,3 +51,6 @@ VALUE:
   PREC_TYPE:
     SINGLE_PREC: sp
     MULTI_PREC: mp
+  CURVE_PARAMS_TYPE:
+    FIXED_CURVE_PARAMS: fixedcp
+    VAR_CURVE_PARAMS: varcp

@@ -22,7 +22,7 @@
 
 // Modmul type
 #define MODMUL_TYPE_MONT 0
-#define MODMUL_TYPE_BARRET 1
+#define MODMUL_TYPE_BARRETT 1
 
 // -------------------------------------------------------------------
 // Point Addition Curve Config
@@ -33,5 +33,9 @@
 #define A2 2 // a=2
 #define ANEG3 3 // a=-3
 #define AVAR 4 // variable a
+
+// Fixed or Variable Curve Params
+#define FIXED_CURVE_PARAMS 0
+#define VAR_CURVE_PARAMS 1
 
 #endif // _PARAMS_H_
