@@ -186,7 +186,7 @@ if {$CCORE_MODMUL} {
             remove_broken_mul_libs $TECH_TYPE
             go schedule
 
-            branch_if_ccore_comb $modmul_name
+            branch_if_ccore_comb "${modmul_name}_core"
             go extract
             project save
             return "[solution get /name].[solution get /VERSION]"
