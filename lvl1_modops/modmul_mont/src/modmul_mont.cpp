@@ -11,7 +11,13 @@ wide_t mont_reduction(wide_2x_t t, const wide_t q, const wide_t q_prime) {
     wide_t m_red = mul_f(t_red, q_prime);
 #endif
 
+#if Q_TYPE == FIXED_Q 
+    wide_2x_t mq = m_red * Q;
+#else
     wide_2x_t mq = mul_f(m_red, q);
+#endif
+
+    // wide_2x_t mq = mul_f(m_red, q);
     wide_2x_1_t t_mq = t + mq;
     wide_1_t u = t_mq >> BITWIDTH;
     wide_signed_t diff = u - q;

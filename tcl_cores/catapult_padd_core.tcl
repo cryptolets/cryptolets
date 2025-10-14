@@ -37,16 +37,16 @@ set HAS_MODSQ [expr {$KERNEL_NAME eq "point_add"}] ;# only for sw, te has no mod
 # which designs have which const modmuls
 set HAS_CMODMUL_A [expr {
     $CURVE_PARAMS_TYPE eq "FIXED_CURVE_PARAMS" && 
-    (($KERNEL_NAME eq "point_add" && $CURVE_TYPE eq "AVAR") ||
-     ($KERNEL_NAME eq "point_add_te" && $CURVE_TYPE eq "AVAR"))
+    (($KERNEL_NAME eq "point_add" && $FIELD_A eq "AVAR") ||
+     ($KERNEL_NAME eq "point_add_te" && $FIELD_A eq "AVAR"))
 }]
 set HAS_CMODMUL_D [expr {
     $CURVE_PARAMS_TYPE eq "FIXED_CURVE_PARAMS" &&
-    ($KERNEL_NAME eq "point_add_te" && $CURVE_TYPE eq "AVAR")
+    ($KERNEL_NAME eq "point_add_te" && $FIELD_A eq "AVAR")
 }]
 set HAS_CMODMUL_K [expr {
     $CURVE_PARAMS_TYPE eq "FIXED_CURVE_PARAMS" &&
-    ($KERNEL_NAME eq "point_add_te" && $CURVE_TYPE eq "ANEG1")
+    ($KERNEL_NAME eq "point_add_te" && $FIELD_A eq "ANEG1")
 }]
 
 override_default_options ;# Reset tool options
@@ -306,9 +306,9 @@ go libraries
 if {$CCORE_MODMUL} {
     directive set /$KERNEL_NAME/modmul_mont_core -MAP_TO_MODULE "\[CCORE\] $modmul_sol"
     if {$HAS_MODSQ} { directive set /$KERNEL_NAME/modsq_mont_core -MAP_TO_MODULE "\[CCORE\] $modsq_sol" }
-    if {$HAS_CMODMUL_A} { directive set /$KERNEL_NAME/cmodmul_a_mont_ccore -MAP_TO_MODULE "\[CCORE\] $cmodmul_a_sol" }
-    if {$HAS_CMODMUL_D} { directive set /$KERNEL_NAME/cmodmul_d_mont_ccore -MAP_TO_MODULE "\[CCORE\] $cmodmul_d_sol" }
-    if {$HAS_CMODMUL_K} { directive set /$KERNEL_NAME/cmodmul_k_mont_ccore -MAP_TO_MODULE "\[CCORE\] $cmodmul_k_sol" }
+    if {$HAS_CMODMUL_A} { directive set /$KERNEL_NAME/cmodmul_a_mont_core -MAP_TO_MODULE "\[CCORE\] $cmodmul_a_sol" }
+    if {$HAS_CMODMUL_D} { directive set /$KERNEL_NAME/cmodmul_d_mont_core -MAP_TO_MODULE "\[CCORE\] $cmodmul_d_sol" }
+    if {$HAS_CMODMUL_K} { directive set /$KERNEL_NAME/cmodmul_k_mont_core -MAP_TO_MODULE "\[CCORE\] $cmodmul_k_sol" }
 }
 if {$CCORE_MODADDSUB} {
     directive set /$KERNEL_NAME/modadd_core -MAP_TO_MODULE "\[CCORE\] $modadd_sol"

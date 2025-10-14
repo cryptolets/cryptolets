@@ -113,18 +113,20 @@ def override_skip(state, kernel):
             ))
             return True
 
-    if state.get("CURVE_TYPE") != "RAND_CURVE":
-        if (
-            state.get("Q_TYPE") == "VAR_Q" 
-            and state.get("CURVE_PARAMS_TYPE") == "VAR_CURVE_PARAMS"
-        ):
-            print(msg.format(
-                f"Prevents specific curves with VAR_Q and VAR_CURVE_PARAMS"
-            ))
-
-            # because we can map the same design to a RAND_CURVE design
-            return True
-
+    if (
+        state.get("CURVE_TYPE") != "RAND_CURVE" and 
+        state.get("Q_TYPE") == "VAR_Q" and
+        (
+            state.get("CURVE_PARAMS_TYPE") == None or 
+            state.get("CURVE_PARAMS_TYPE") == "VAR_CURVE_PARAMS"
+        )
+    ):
+        # because we can map the same design to a RAND_CURVE design
+        print(msg.format(
+            f"Prevents specific curves with VAR_Q and VAR_CURVE_PARAMS (if it exists)"
+        )) 
+        return True
+    
     if (
         state.get("CURVE_TYPE") != "RAND_CURVE" and
         str(kernel) == "point_add" and 
