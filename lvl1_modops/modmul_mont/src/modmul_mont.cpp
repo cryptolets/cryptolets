@@ -5,19 +5,18 @@ wide_t mont_reduction(wide_2x_t t, const wide_t q, const wide_t q_prime) {
     wide_t t_red = t.slc<BITWIDTH>(0);      // t & (R-1)
 
     // (t_red * q_prime) & (R-1)
-#if Q_TYPE == FIXED_Q 
-    wide_t m_red = (t_red * Q_PRIME).slc<BITWIDTH>(0);
+#if REDC_TYPE == FIXED_RC
+    wide_t m_red = (t_red * Q_PRIME).slc<BITWIDTH>(0); // compile to constant multiplier
 #else
     wide_t m_red = mul_f(t_red, q_prime);
 #endif
 
 #if Q_TYPE == FIXED_Q 
-    wide_2x_t mq = m_red * Q;
+    wide_2x_t mq = m_red * Q; // compile to constant multiplier
 #else
     wide_2x_t mq = mul_f(m_red, q);
 #endif
 
-    // wide_2x_t mq = mul_f(m_red, q);
     wide_2x_1_t t_mq = t + mq;
     wide_1_t u = t_mq >> BITWIDTH;
     wide_signed_t diff = u - q;
@@ -113,26 +112,47 @@ wide_t modsq_mont_core(const wide_t x, const wide_t q, const wide_t q_prime) {
 
 #endif
 
-// Public API (fixed-q)
+// Public API
+wide_t modmul_mont(
+    const wide_t x, const wide_t y
+#if Q_TYPE == VAR_Q
+    , const wide_t q
+#endif 
+
+#if REDC_TYPE == VAR_RC
+    , const wide_t q_prime
+#endif
+) {
+
 #if Q_TYPE == FIXED_Q
+    const wide_t q = Q;
+#endif 
 
-wide_t modmul_mont(const wide_t x, const wide_t y) {
-    return modmul_mont_core(x, y, Q, Q_PRIME);
-}
+#if REDC_TYPE == FIXED_RC
+    const wide_t q_prime = Q_PRIME;
+#endif
 
-wide_t modsq_mont(const wide_t x) {
-    return modsq_mont_core(x, Q, Q_PRIME);
-}
-
-#else
-
-// Public API (variable-q)
-wide_t modmul_mont(const wide_t x, const wide_t y, const wide_t q, const wide_t q_prime) {
     return modmul_mont_core(x, y, q, q_prime);
 }
 
-wide_t modsq_mont(const wide_t x, const wide_t q, const wide_t q_prime) {
+wide_t modsq_mont(
+    const wide_t x
+#if Q_TYPE == VAR_Q
+    , const wide_t q
+#endif 
+
+#if REDC_TYPE == VAR_RC
+    , const wide_t q_prime
+#endif
+) {
+
+#if Q_TYPE == FIXED_Q
+    const wide_t q = Q;
+#endif 
+
+#if REDC_TYPE == FIXED_RC
+    const wide_t q_prime = Q_PRIME;
+#endif
+
     return modsq_mont_core(x, q, q_prime);
 }
-
-#endif

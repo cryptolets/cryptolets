@@ -182,7 +182,11 @@ EC_point_J point_add(
     EC_point_J P0, EC_point_J P1
 
 #if Q_TYPE == VAR_Q
-    , const wide_t q, const wide_t q_prime
+    , const wide_t q
+#endif 
+
+#if REDC_TYPE == VAR_RC
+    , const wide_t q_prime
 #endif
 
 #if (CURVE_PARAMS_TYPE == VAR_CURVE_PARAMS) && (FIELD_A == AVAR)
@@ -195,18 +199,22 @@ EC_point_J point_add(
     #endif
 
     #if !((CURVE_PARAMS_TYPE == VAR_CURVE_PARAMS) && (FIELD_A == AVAR))
-        const wide_t field_a = FIELD_A_MONT;
+        #if MODMUL_TYPE == MODMUL_TYPE_MONT
+            const wide_t field_a = FIELD_A_MONT;
+        #else
+            const wide_t field_a = FIELD_A_INT;
+        #endif
     #endif
 
     // Declare modops backend
     #if MODMUL_TYPE == MODMUL_TYPE_MONT
-        #if Q_TYPE == FIXED_Q
+        #if REDC_TYPE == FIXED_RC
             const wide_t q_prime = Q_PRIME;
         #endif
         
         ModOps be(q, q_prime);
     #elif MODMUL_TYPE == MODMUL_TYPE_BARRETT
-        #if Q_TYPE == FIXED_Q
+        #if REDC_TYPE == FIXED_RC
             const wide_2x_t mu = MU;
         #endif
         

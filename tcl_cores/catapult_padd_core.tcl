@@ -5,7 +5,7 @@ source [file join $ROOT_DIR utils util.tcl] ;# Import utilities
 
 # parameter names
 set config_params {
-    CURVE_TYPE FIELD_A CURVE_PARAMS_TYPE Q_TYPE PREC_TYPE TECH_TYPE TARGET_PERIOD 
+    CURVE_TYPE FIELD_A CURVE_PARAMS_TYPE REDC_TYPE Q_TYPE PREC_TYPE TECH_TYPE TARGET_PERIOD 
     CCORE_PERIOD_RATIO MUL_TYPE TARGET_II BITWIDTH WBW MASK_BITS
     BASE_MUL_WIDTH KAR_BASE_MUL_WIDTH
 }
@@ -30,6 +30,8 @@ set SWEEP_KEY $env(SWEEP_KEY)
 
 set KERNEL_DIR [file join $ROOT_DIR $LVL_DIR $KERNEL_NAME]
 set WORK_DIR [enter_work_dir] ;# move to a lvl_dir/kernel/Catapult as working dir
+
+# assert {!($CCORE_MUL_F && $KERNEL_NAME eq "modmul_barrett")} "CCORE_MUL_F not supported with barrett"
 
 set TEST [expr {$SIM || $TEST}]
 set HAS_MODSQ [expr {$KERNEL_NAME eq "point_add"}] ;# only for sw, te has no modsq's
@@ -95,7 +97,7 @@ solution design set $KERNEL_NAME -top
 
 go compile
 run_osci_test $CURVE_TYPE
-if {$TEST_ONLY} { exit }
+if {$TEST_ONLY} { exit 0 }
 
 directive set -OPT_CONST_MULTS full
 if {$PREC_TYPE eq "SINGLE_PREC"} {
@@ -205,18 +207,19 @@ if {$CCORE_MODMUL} {
         solution table export -file [file join $WORK_DIR $table_name]
     }
 
+    set cmodmul_period [expr $mod_ops_period * 0.99] ;# custom tuning for edge cases
     if {$HAS_CMODMUL_A} {
-        set cmodmul_a_sol [modmul_run cmodmul_a_mont $mod_ops_period]
+        set cmodmul_a_sol [modmul_run cmodmul_a_mont $cmodmul_period]
         solution table export -file [file join $WORK_DIR $table_name]
     }
 
     if {$HAS_CMODMUL_D} {
-        set cmodmul_d_sol [modmul_run cmodmul_d_mont $mod_ops_period]
+        set cmodmul_d_sol [modmul_run cmodmul_d_mont $cmodmul_period]
         solution table export -file [file join $WORK_DIR $table_name]
     }
 
     if {$HAS_CMODMUL_K} {
-        set cmodmul_k_sol [modmul_run cmodmul_k_mont $mod_ops_period]
+        set cmodmul_k_sol [modmul_run cmodmul_k_mont $cmodmul_period]
         solution table export -file [file join $WORK_DIR $table_name]
     }
 }

@@ -101,9 +101,9 @@ def override_skip(state, kernel):
     msg = "[WARNING] Skipping - {}:\n  Config Params:" + print_short(state)
 
     if state.get("CURVE_TYPE") == "RAND_CURVE":
-        if state.get("Q_TYPE") == "FIXED_Q":
+        if state.get("Q_TYPE") == "FIXED_Q" or state.get("REDC_TYPE") == "FIXED_RC":
             print(msg.format(
-                f"Prevents RAND_CURVE with FIXED_Q"
+                f"Prevents RAND_CURVE with FIXED_Q or FIXED_RC"
             ))
             return True
 
@@ -115,7 +115,8 @@ def override_skip(state, kernel):
 
     if (
         state.get("CURVE_TYPE") != "RAND_CURVE" and 
-        state.get("Q_TYPE") == "VAR_Q" and
+        state.get("Q_TYPE") == "VAR_Q" and 
+        state.get("REDC_TYPE") == "VAR_RC" and
         (
             state.get("CURVE_PARAMS_TYPE") == None or 
             state.get("CURVE_PARAMS_TYPE") == "VAR_CURVE_PARAMS"
@@ -123,7 +124,7 @@ def override_skip(state, kernel):
     ):
         # because we can map the same design to a RAND_CURVE design
         print(msg.format(
-            f"Prevents specific curves with VAR_Q and VAR_CURVE_PARAMS (if it exists)"
+            f"Prevents specific curves with VAR_Q and VAR_RC and VAR_CURVE_PARAMS (if it exists)"
         )) 
         return True
     

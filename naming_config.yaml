@@ -7,6 +7,7 @@ SHORT_KEY:
   TARGET_PERIOD: p
   MUL_TYPE: mt
   Q_TYPE: qt
+  REDC_TYPE: rct
   KAR_BASE_MUL_WIDTH: kar
   BASE_MUL_WIDTH: bm
   TECH_TYPE: tt
@@ -24,6 +25,7 @@ MED_KEY:
   TARGET_PERIOD: target_period
   MUL_TYPE: mul_type
   Q_TYPE: q_type
+  REDC_TYPE: rc_type
   KAR_BASE_MUL_WIDTH: kar
   BASE_MUL_WIDTH: bm
   TECH_TYPE: tech_type
@@ -43,6 +45,9 @@ VALUE:
   Q_TYPE:
     FIXED_Q: fixedq
     VAR_Q: varq
+  REDC_TYPE:
+    FIXED_RC: fixedrc
+    VAR_RC: varrc
   # FIELD_A:
   #   AVAR: var
   #   AN1: n1

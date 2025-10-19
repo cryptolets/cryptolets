@@ -76,7 +76,7 @@ go compile
 
 
 run_osci_test
-if {$TEST_ONLY} { exit }
+if {$TEST_ONLY} { exit 0 }
 
 set_tech_lib $TECH_TYPE ;# set libraries
 go libraries

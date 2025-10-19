@@ -73,7 +73,7 @@ if {$CCORE_TOP} {
 go compile
 
 run_osci_test $CURVE_TYPE
-if {$TEST_ONLY} { exit }
+if {$TEST_ONLY} { exit 0 }
 
 set_tech_lib $TECH_TYPE ;# set libraries
 go libraries

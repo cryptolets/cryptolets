@@ -143,6 +143,7 @@ if __name__ == "__main__":
     parser.add_argument("--samples-file", type=str, help="Optional path for samples CSV file.")
     parser.add_argument("--golden-file", type=str, help="Optional path for golden CSV file.")
     parser.add_argument("--json-file", type=str, help="json file to get field constant from.")
+    # parser.add_argument("--mont-domain", type=bool, help="json file to get field constant from.")
     args = parser.parse_args()
 
     write_csv_files(args.curve_type, args.n, args.json_file, args.samples_file, args.golden_file)

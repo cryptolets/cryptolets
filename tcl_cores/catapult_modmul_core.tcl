@@ -1,11 +1,11 @@
-# Sweep script for bw group (modmul_mont)
+# Sweep script for bw group (modmul_mont, modmul_barrett)
 set LVL_DIR "lvl1_modops"
 set ROOT_DIR [file normalize [file join [file dirname [info script]] ..]]
 source [file join $ROOT_DIR utils util.tcl] ;# Import utilities
 
 # parameter names
 set config_params {
-    CURVE_TYPE Q_TYPE PREC_TYPE TECH_TYPE TARGET_PERIOD 
+    CURVE_TYPE REDC_TYPE Q_TYPE PREC_TYPE TECH_TYPE TARGET_PERIOD 
     CCORE_PERIOD_RATIO MUL_TYPE TARGET_II BITWIDTH WBW MASK_BITS
     BASE_MUL_WIDTH KAR_BASE_MUL_WIDTH
 }
@@ -32,6 +32,7 @@ set WORK_DIR [enter_work_dir] ;# move to a lvl_dir/kernel/Catapult as working di
 
 assert {!(($CCORE_TOP && $TEST) || $CCORE_TOP && $SIM)} "top cannot be ccore for sim or test"
 assert {!($CCORE_TOP && $PREC_TYPE eq "MULTI_PREC")} "top cannot be ccore for multi-precision"
+assert {!($CCORE_MUL_F && $KERNEL_NAME eq "modmul_barrett")} "CCORE_MUL_F not supported with barrett"
 
 set TEST [expr {$SIM || $TEST}]
 set CCORE_TOP [expr {$CCORE_TOP && $TARGET_II <= 1}]
@@ -75,7 +76,7 @@ solution design set $KERNEL_NAME -top
 
 go compile
 run_osci_test $CURVE_TYPE
-if {$TEST_ONLY} { exit }
+if {$TEST_ONLY} { exit 0 }
 
 directive set -OPT_CONST_MULTS full
 if {$PREC_TYPE eq "SINGLE_PREC"} {
@@ -125,19 +126,18 @@ if {$CCORE_MUL_F} {
     }
 }
 
-# modmul_mont
-set modmul_mont_sol_name $sol_name
+set modmul_sol_name $sol_name
 go new
 
 set_clock $TARGET_PERIOD
 solution design set $KERNEL_NAME -top
 if {$CCORE_TOP} {
-    solution design set  $KERNEL_NAME -ccore
+    solution design set $KERNEL_NAME -ccore
 }
 if {$CCORE_MUL_F && $MUL_TYPE ne "MUL_NORMAL"} {
     solution design set mul_f -ccore
 }
-solution rename $modmul_mont_sol_name
+solution rename $modmul_sol_name
 go analyze
 
 if {$CCORE_MUL_F && $MUL_TYPE ne "MUL_NORMAL"} {

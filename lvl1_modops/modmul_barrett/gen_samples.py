@@ -3,25 +3,29 @@ import argparse
 import csv
 import random
 import os
-import sys
 from pathlib import Path
 
-sys.set_int_max_str_digits(8600)
+import sys
+sys.path.append(str(Path(__file__).resolve().parents[2]))
+from utils.field_helpers import get_field_const
 
-def mul_f_ref(a, b):
-    return a * b  # change this if needed
+def modmul_barrett_ref(a, b, q):
+    return (a * b) % q
 
-def generate_samples(bitwidth, total_samples, seed=42):
-    max_val = (1 << bitwidth) - 1
-    mid_val = max_val // 2
+def generate_samples(bitwidth, total_samples, curve_type, json_file, seed=42):
+    q = get_field_const(curve_type, "q", json_file)
+    mu = get_field_const(curve_type, "mu", json_file)
+    
+    max_val = ((1 << bitwidth) - 1) % q
+    mid_val = (max_val // 2) % q
 
     # Edge cases
     samples = [
-        (0, 0),
-        (max_val, max_val),
-        (0, max_val),
-        (max_val, 0),
-        (mid_val, mid_val)
+        (0, 0, q, mu),
+        (max_val, max_val, q, mu),
+        (0, max_val, q, mu),
+        (max_val, 0, q, mu),
+        (mid_val, mid_val, q, mu)
     ]
 
     # Remaining random samples, distributed across sub-bitwidth ranges
@@ -32,13 +36,19 @@ def generate_samples(bitwidth, total_samples, seed=42):
         for i in range(num_random):
             sub_bw = sub_bitwidths[i % len(sub_bitwidths)]
             sub_max = (1 << sub_bw) - 1
-            a = random.randint(0, sub_max)
-            b = random.randint(0, sub_max)
-            samples.append((a, b))
+            a = random.randint(0, sub_max) % q
+            b = random.randint(0, sub_max) % q
+            samples.append((a, b, q, mu))
 
     return samples
 
 def write_csv_files(samples, bitwidth, samples_path=None, golden_path=None):
+    R = pow(2, bitwidth)
+
+    samples_barrett = []
+    for a, b, q, mu in samples:
+        samples_barrett.append((a, b, q, mu))
+
     # default paths
     samples_file = Path(samples_path) if samples_path else Path("samples") / f"samples_{bitwidth}.csv"
     golden_file  = Path(golden_path)  if golden_path  else Path("goldens") / f"golden_{bitwidth}.csv"
@@ -49,24 +59,30 @@ def write_csv_files(samples, bitwidth, samples_path=None, golden_path=None):
 
     with samples_file.open("w", newline="") as f:
         writer = csv.writer(f)
-        writer.writerow(["a_sample", "b_sample"])
-        writer.writerows(samples)
+        writer.writerow(["a_sample", "b_sample", "q_sample", "mu_sample"])
+        writer.writerows(samples_barrett)
 
     with golden_file.open("w", newline="") as f:
         writer = csv.writer(f, lineterminator=os.linesep)
         writer.writerow(["o_sample"])
-        for a, b in samples:
-            writer.writerow([mul_f_ref(a, b)])
+        for a, b, q, mu in samples:
+            writer.writerow([modmul_barrett_ref(a, b, q)])
 
     print(f"Generated {samples_file} and {golden_file}")
 
+
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Generate samples and golden output for given bitwidth.")
+    parser = argparse.ArgumentParser(description="Generate samples and golden output for given bitwidth and curve.")
     parser.add_argument("--bw", type=int, required=True, help="Bitwidth of inputs.")
     parser.add_argument("--n", type=int, default=10, help="Total number of samples (including edge cases).")
+    parser.add_argument("--curve_type", type=str, default="RAND_CURVE",
+                        help="Curve type (e.g., BN128, SECP256K1, BLS12_381).")
     parser.add_argument("--samples-file", type=str, help="Optional path for samples CSV file.")
     parser.add_argument("--golden-file", type=str, help="Optional path for golden CSV file.")
+    parser.add_argument("--json-file", type=str, help="json file to get field constant from.")
     args = parser.parse_args()
 
-    samples = generate_samples(args.bw, args.n)
+    samples = generate_samples(args.bw, args.n, args.curve_type, args.json_file)
     write_csv_files(samples, args.bw, args.samples_file, args.golden_file)
+
+

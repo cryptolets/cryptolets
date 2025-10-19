@@ -20,6 +20,9 @@
 #define FIXED_Q 0
 #define VAR_Q   1
 
+#define FIXED_RC 0
+#define VAR_RC   1
+
 // Modmul type
 #define MODMUL_TYPE_MONT 0
 #define MODMUL_TYPE_BARRETT 1

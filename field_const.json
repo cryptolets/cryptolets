@@ -29,6 +29,16 @@
     "mu": "2760d74bcf32791738a0406c331e9ae8a46e09d07fda82a52f7d1dc780a19de74e65c59e8163c701ec4f881fd59646e8",
     "bitwidth": 381
   },
+  "BLS12_381_R": {
+    "form": "N/A",
+    "desc": "Use r from https://docs.rs/ark-bls12-381/latest/ark_bls12_381/ as the prime",
+    "a": "0",
+    "b": "0",
+    "q": "73eda753299d7d483339d80809a1d80553bda402fffe5bfeffffffff00000001",
+    "q_prime": "3d443ab0d7bf2839181b2c170004ec0653ba5bfffffe5bfdfffffffeffffffff",
+    "mu": "8d54253b7fb78ddf0e2d772dc1f823b4d9410fad2f92eb5c509cde80830358e4",
+    "bitwidth": 255
+  },
   "SECP256K1": {
     "form": "Weierstrass",
     "desc": "A Koblitz curve.",

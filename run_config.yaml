@@ -12,7 +12,7 @@ MULTIPLE_KERNELS: ["add_f", "sub_f", "cmul_f"]
 KERNELS: [
   "add_f", "sub_f", "cmul_f",
   "mul_f", "sq_f",
-  "modadd", "modsub", "modmul_mont",
+  "modadd", "modsub", "modmul_mont", "modmul_barrett",
   "point_add", "point_add_te"
   ]
 
@@ -21,7 +21,7 @@ SWEEP_GROUP_MAP:
   lvl0: ["add_f", "sub_f", "cmul_f"]
   mul: ["mul_f", "sq_f"]
   lvl1: ["modadd", "modsub"]
-  modmul: ["modmul_mont"]
+  modmul: ["modmul_mont", "modmul_barrett"]
   padd_sw: ["point_add"]
   padd_te: ["point_add_te"]
 
@@ -30,5 +30,5 @@ CORE_GROUP_MAP:
   lvl0: ["add_f", "sub_f", "cmul_f"]
   mul: ["mul_f", "sq_f"]
   lvl1: ["modadd", "modsub"]
-  modmul: ["modmul_mont"]
+  modmul: ["modmul_mont", "modmul_barrett"]
   padd: ["point_add", point_add_te]

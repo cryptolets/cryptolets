@@ -1,4 +1,4 @@
-#include "point_add.h"
+#include "modmul_barrett.h"
 
 // Include utility headers
 #include <iostream>
@@ -13,12 +13,11 @@ using namespace std;
 
 // Define types used by this program
 struct STIMULUS_TYPE {
-  EC_point_J P0;
-  EC_point_J P1;
+  wide_t a_sample;
+  wide_t b_sample;
   wide_t q_sample;
-  wide_t q_prime_sample;
-  wide_t field_a_sample;
-  EC_point_J o_sample;
+  wide_2x_t mu_sample;
+  wide_t o_sample;
 };
 
 typedef vector<STIMULUS_TYPE> samplesVector_t;
@@ -41,7 +40,7 @@ ac_int<W, false> parse_ac_int(const std::string &str) {
 
 //=============================================================================
 // Function: main
-//   Test the point_add() function using data from CSV files
+//   Test the modmul_barrett() function using data from CSV files
 //-----------------------------------------------------------------------------
 CCS_MAIN(int argc, char **argv)    // required for sc verify flow in Catapult
 {
@@ -68,19 +67,14 @@ CCS_MAIN(int argc, char **argv)    // required for sc verify flow in Catapult
   for (vector<STIMULUS_TYPE>::iterator it = samples.begin(); it != samples.end(); ++it) {
     STIMULUS_TYPE stimulus_element = *it;
 
-    stimulus_element.o_sample = CCS_DESIGN(point_add)(
-      stimulus_element.P0, stimulus_element.P1
-
+    stimulus_element.o_sample = CCS_DESIGN(modmul_barrett)(
+      stimulus_element.a_sample,
+      stimulus_element.b_sample
 #if Q_TYPE == VAR_Q
-    , stimulus_element.q_sample
+      , stimulus_element.q_sample
 #endif
-
 #if REDC_TYPE == VAR_RC
-    , stimulus_element.q_prime_sample
-#endif
-
-#if (CURVE_PARAMS_TYPE == VAR_CURVE_PARAMS) && (FIELD_A == AVAR)
-    , stimulus_element.field_a_sample
+      , stimulus_element.mu_sample
 #endif
     );
 
@@ -93,6 +87,13 @@ CCS_MAIN(int argc, char **argv)    // required for sc verify flow in Catapult
   CCS_RETURN(0);
 }
 
+//=============================================================================
+// Function: ReadCSV_Samples
+//   Reads testbench sample data from a CSV file formatted as
+//     a_sample,b_sample
+//   Values are returned in the vector passed by reference.
+//   Returns -1 on error, else returns the number of samples read in.
+//-----------------------------------------------------------------------------
 int ReadCSV_Samples(string filename, samplesVector_t &samples)
 {
   CsvParser  *csvparser = CsvParser_new(filename.c_str(), ",", 1);
@@ -103,25 +104,17 @@ int ReadCSV_Samples(string filename, samplesVector_t &samples)
     cerr << CsvParser_getErrorMessage(csvparser) << endl;
     return -1;
   }
-  // CSV file is expected to have 4 columns: X1,Y1,Z1,X2,Y2,Z2,q_sample,q_prime_sample
-  assert(CsvParser_getNumFields(header)== 9);
+  // CSV file is expected to have 4 columns: a_sample,b_sample,q_sample, mu_sample
+  assert(CsvParser_getNumFields(header)== 4);
 
   const char **headerFields = CsvParser_getFields(header);
   while ((row = CsvParser_getRow(csvparser)) ) {
     const char **rowFields = CsvParser_getFields(row);
     STIMULUS_TYPE stimulus_element;
-    stimulus_element.P0.X = parse_ac_int<wide_t::width>(rowFields[0]);
-    stimulus_element.P0.Y = parse_ac_int<wide_t::width>(rowFields[1]);
-    stimulus_element.P0.Z = parse_ac_int<wide_t::width>(rowFields[2]);
-
-    stimulus_element.P1.X = parse_ac_int<wide_t::width>(rowFields[3]);
-    stimulus_element.P1.Y = parse_ac_int<wide_t::width>(rowFields[4]);
-    stimulus_element.P1.Z = parse_ac_int<wide_t::width>(rowFields[5]);
-
-    stimulus_element.q_sample = parse_ac_int<wide_t::width>(rowFields[6]);
-    stimulus_element.q_prime_sample = parse_ac_int<wide_t::width>(rowFields[7]);
-    stimulus_element.field_a_sample = parse_ac_int<wide_t::width>(rowFields[8]);
-
+    stimulus_element.a_sample = parse_ac_int<wide_t::width>(rowFields[0]);
+    stimulus_element.b_sample = parse_ac_int<wide_t::width>(rowFields[1]);
+    stimulus_element.q_sample = parse_ac_int<wide_t::width>(rowFields[2]);
+    stimulus_element.mu_sample = parse_ac_int<wide_2x_t::width>(rowFields[3]);
     samples.push_back(stimulus_element);
     CsvParser_destroy_row(row);
   }
@@ -131,6 +124,10 @@ int ReadCSV_Samples(string filename, samplesVector_t &samples)
 }
 
 
+// Function: WriteCSV_Samples
+//   Writes testbench output sample data to a CSV file formatted as
+//     o_sample
+//
 bool WriteCSV_Samples(string oFileName, samplesVector_t &samples)
 {
   // create output csv file with results:
@@ -141,9 +138,9 @@ bool WriteCSV_Samples(string oFileName, samplesVector_t &samples)
     cerr << __FILE__ << ":" << __LINE__ << " - CSV output file '" << oFileName << "' could not be created." << endl;
     return false;
   }
-  oSampleFile << "X3,Y3,Z3" << endl;
+  oSampleFile << "o_sample" << endl;
   for (samplesVector_t::iterator it = samples.begin(); it != samples.end(); ++it) {
-    oSampleFile << (*it).o_sample.X << "," << (*it).o_sample.Y <<  "," << (*it).o_sample.Z << endl;
+    oSampleFile << (*it).o_sample << endl;
   }
   oSampleFile.close();
   return true;
