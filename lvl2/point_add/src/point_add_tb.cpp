@@ -17,6 +17,7 @@ struct STIMULUS_TYPE {
   EC_point_J P1;
   wide_t q_sample;
   wide_t q_prime_sample;
+  wide_2x_t mu_sample;
   wide_t field_a_sample;
   EC_point_J o_sample;
 };
@@ -76,7 +77,11 @@ CCS_MAIN(int argc, char **argv)    // required for sc verify flow in Catapult
 #endif
 
 #if REDC_TYPE == VAR_RC
-    , stimulus_element.q_prime_sample
+    #if MODMUL_TYPE == MODMUL_TYPE_MONT
+        , stimulus_element.q_prime_sample
+    #elif MODMUL_TYPE == MODMUL_TYPE_BARRETT
+        , stimulus_element.mu_sample
+    #endif
 #endif
 
 #if (CURVE_PARAMS_TYPE == VAR_CURVE_PARAMS) && (FIELD_A == AVAR)
@@ -119,7 +124,13 @@ int ReadCSV_Samples(string filename, samplesVector_t &samples)
     stimulus_element.P1.Z = parse_ac_int<wide_t::width>(rowFields[5]);
 
     stimulus_element.q_sample = parse_ac_int<wide_t::width>(rowFields[6]);
+
+  #if MODMUL_TYPE == MODMUL_TYPE_BARRETT
+    stimulus_element.mu_sample = parse_ac_int<wide_2x_t::width>(rowFields[7]);
+  #else
     stimulus_element.q_prime_sample = parse_ac_int<wide_t::width>(rowFields[7]);
+  #endif
+
     stimulus_element.field_a_sample = parse_ac_int<wide_t::width>(rowFields[8]);
 
     samples.push_back(stimulus_element);

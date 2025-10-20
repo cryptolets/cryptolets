@@ -11,6 +11,7 @@ MUL_TYPE: [MUL_NORMAL] # MUL_NORMAL, MUL_SCHOOLBOOK, MUL_KARATSUBA
 Q_TYPE: [VAR_Q] # VAR_Q, FIXED_Q
 REDC_TYPE: [VAR_RC] # VAR_RC, FIXED_RC
 CURVE_PARAMS_TYPE: [VAR_CURVE_PARAMS] # FIXED_CURVE_PARAMS, VAR_CURVE_PARAMS
+MODMUL_TYPE: [MODMUL_TYPE_MONT, MODMUL_TYPE_BARRETT] # MODMUL_TYPE_MONT, MODMUL_TYPE_BARRETT
 
 # curve types: 
 # RAND_CURVE
@@ -79,7 +80,7 @@ KAR_BASE_MUL_WIDTH:
 SIM: true           # verify RTL
 SYN: false
 TEST: true          # test C++ code
-TEST_ONLY: false    # only test C++ code with osci
+TEST_ONLY: true    # only test C++ code with osci
 NUM_TEST_SAMPLES: 1000
 CCORE_MUL_F: false  # make mul_f ccore, false = more compile time, better design latency
 CCORE_MODADDSUB: false # make modadd,modsub,moddouble ccore, false = more compile time, better design latency
@@ -87,7 +88,7 @@ CCORE_MODMUL: false   # false is good for multi-prec
 
 # Defines order of params before project split
 SWEEP_ORDER: [
-  CURVE_TYPE, FIELD_A, CURVE_PARAMS_TYPE, REDC_TYPE, Q_TYPE, PREC_TYPE, TECH_TYPE, 
+  TECH_TYPE, MODMUL_TYPE, CURVE_TYPE, FIELD_A, CURVE_PARAMS_TYPE, REDC_TYPE, Q_TYPE, PREC_TYPE,
   TARGET_PERIOD, TARGET_II, MUL_TYPE, CCORE_PERIOD_RATIO,
   BITWIDTH, WBW, BASE_MUL_WIDTH, KAR_BASE_MUL_WIDTH
   ]

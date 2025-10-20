@@ -13,7 +13,11 @@ EC_point_EP point_add_te(
 #endif
 
 #if REDC_TYPE == VAR_RC
-    , const wide_t q_prime
+    #if MODMUL_TYPE == MODMUL_TYPE_MONT
+        , const wide_t q_prime
+    #elif MODMUL_TYPE == MODMUL_TYPE_BARRETT
+        , const wide_2x_t mu
+    #endif
 #endif
 
 #if (CURVE_PARAMS_TYPE == VAR_CURVE_PARAMS) && (FIELD_A == AVAR)

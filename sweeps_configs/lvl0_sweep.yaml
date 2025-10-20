@@ -15,4 +15,4 @@ NUM_TEST_SAMPLES: 1000
 CCORE_TOP: false    # cannot be true when SIM or TEST are true
 
 # Defines order of params before project split
-SWEEP_ORDER: [PREC_TYPE, TECH_TYPE, TARGET_PERIOD, TARGET_II, BITWIDTH, WBW]
+SWEEP_ORDER: [TECH_TYPE, PREC_TYPE, TARGET_PERIOD, TARGET_II, BITWIDTH, WBW]

@@ -4,23 +4,26 @@
 #include "modadd.h"
 #include "modsub.h"
 #include "modmul_mont.h"
+#include "modmul_barrett.h"
 #include "primitives.h"
 
 // Backend to abstract away modops specific logic from point add code
+// Don't have to pass q and q_prime, mu over and over, 
+// also allows cleaner code for montgomery and barrett differences
 
 struct ModOps {
     wide_t q;
 #if MODMUL_TYPE == MODMUL_TYPE_MONT
     wide_t q_prime;
 #elif MODMUL_TYPE == MODMUL_TYPE_BARRETT
-    wide_t mu;
+    wide_2x_t mu;
 #endif
 
     // Constructor
 #if MODMUL_TYPE == MODMUL_TYPE_MONT
     ModOps(wide_t q_, wide_t qp_) : q(q_), q_prime(qp_) {}
 #elif MODMUL_TYPE == MODMUL_TYPE_BARRETT
-    ModOps(wide_t q_, wide_t mu_) : q(q_), mu(mu_) {}
+    ModOps(wide_t q_, wide_2x_t mu_) : q(q_), mu(mu_) {}
 #endif
 
     inline wide_t modmul(wide_t x, wide_t y) const {
@@ -64,19 +67,19 @@ struct ModOps {
 
     #ifdef FIELD_A_HEX
         inline wide_t cmodmul_a(wide_t x) const {
-            return cmodmul_a_barrett_core(x, q, q_prime);
+            return cmodmul_a_barrett_core(x, q, mu);
         }
     #endif
 
     #ifdef FIELD_D_HEX
         inline wide_t cmodmul_d(wide_t x) const {
-            return cmodmul_d_barrett_core(x, q, q_prime);
+            return cmodmul_d_barrett_core(x, q, mu);
         }
     #endif
 
     #ifdef FIELD_K_HEX
         inline wide_t cmodmul_k(wide_t x) const {
-            return cmodmul_k_barrett_core(x, q, q_prime);
+            return cmodmul_k_barrett_core(x, q, mu);
         }
     #endif
 

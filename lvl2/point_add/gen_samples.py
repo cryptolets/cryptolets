@@ -173,9 +173,15 @@ def point_add_ref(P0, P1, q, a):
     return result
 
 
-def write_csv_files(curve_type, total_samples, json_file, samples_path=None, golden_path=None):
+def write_csv_files(
+    curve_type, total_samples, json_file, 
+    samples_path=None, golden_path=None, 
+    is_modmul_mont=True
+):
     q = get_field_const(curve_type, "q", json_file)
     q_prime = get_field_const(curve_type, "q_prime", json_file)
+    mu = get_field_const(curve_type, "mu", json_file)
+
     bitwidth = get_field_const(curve_type, "bitwidth", json_file)
     a = get_field_const(curve_type, "a", json_file)
     b = get_field_const(curve_type, "b", json_file)
@@ -189,8 +195,8 @@ def write_csv_files(curve_type, total_samples, json_file, samples_path=None, gol
     samples_file.parent.mkdir(parents=True, exist_ok=True)
     golden_file.parent.mkdir(parents=True, exist_ok=True)
 
-    samples_mont = []
-    goldens_mont = []
+    samples = []
+    goldens = []
 
     for i in range(total_samples):
         if i < total_samples // 2:
@@ -209,10 +215,13 @@ def write_csv_files(curve_type, total_samples, json_file, samples_path=None, gol
         P2_jac = E.aff_to_jac(P2)
 
         # Convert whole tuples to Montgomery
-        P1_mont = to_mont(P1_jac.as_tuple(), q)
-        P2_mont = to_mont(P2_jac.as_tuple(), q)
+        if is_modmul_mont:
+            P1_mont = to_mont(P1_jac.as_tuple(), q)
+            P2_mont = to_mont(P2_jac.as_tuple(), q)
 
-        samples_mont.append((*P1_mont, *P2_mont, q, q_prime, to_mont(a,q)))
+            samples.append((*P1_mont, *P2_mont, q, q_prime, to_mont(a,q)))
+        else:
+            samples.append((*P1_jac.as_tuple(), *P2_jac.as_tuple(), q, mu, a))
 
         golden_jac = point_add_ref(P1_jac, P2_jac, q, a)
         ref_aff = E.add(P1, P2) # use affine point add for reference (sanity check)
@@ -222,21 +231,25 @@ def write_csv_files(curve_type, total_samples, json_file, samples_path=None, gol
         # another sanity check, to see if all points are on curve
         assert E.is_on_curve(P1) and E.is_on_curve(P2) and E.is_on_curve(golden_aff)
 
-        golden_jac_mont = to_mont(golden_jac.as_tuple(), q)
-        goldens_mont.append(golden_jac_mont)
+        if is_modmul_mont:
+            golden_jac_mont = to_mont(golden_jac.as_tuple(), q)
+            goldens.append(golden_jac_mont)
+        else:
+            goldens.append(golden_jac.as_tuple())
 
     # Write samples
     with samples_file.open("w", newline="") as f:
         writer = csv.writer(f)
-        samples_header = ["X1", "Y1", "Z1", "X2", "Y2", "Z2", "q_sample", "q_prime_sample", "field_a_sample"]
+        redc_header_name = "q_prime_sample" if is_modmul_mont else "mu_sample"
+        samples_header = ["X1", "Y1", "Z1", "X2", "Y2", "Z2", "q_sample", redc_header_name, "field_a_sample"]
         writer.writerow(samples_header)
-        writer.writerows(samples_mont)
+        writer.writerows(samples)
 
     # Write goldens
     with golden_file.open("w", newline="") as f:
         writer = csv.writer(f, lineterminator=os.linesep)
         writer.writerow(["X3", "Y3", "Z3"])
-        writer.writerows(goldens_mont)
+        writer.writerows(goldens)
 
     print(f"Generated {samples_file} and {golden_file}")
 
@@ -248,6 +261,8 @@ if __name__ == "__main__":
     parser.add_argument("--samples-file", type=str, help="Optional path for samples CSV file.")
     parser.add_argument("--golden-file", type=str, help="Optional path for golden CSV file.")
     parser.add_argument("--json-file", type=str, help="json file to get field constant from.")
+    parser.add_argument("--modmul-type", type=str, help="type of modmul (MODMUL_TYPE_MONT, MODMUL_TYPE_BARRETT)")
     args = parser.parse_args()
 
-    write_csv_files(args.curve_type, args.n, args.json_file, args.samples_file, args.golden_file)
+    is_modmul_mont = args.modmul_type == "MODMUL_TYPE_MONT"
+    write_csv_files(args.curve_type, args.n, args.json_file, args.samples_file, args.golden_file, is_modmul_mont)

@@ -186,7 +186,11 @@ EC_point_J point_add(
 #endif 
 
 #if REDC_TYPE == VAR_RC
-    , const wide_t q_prime
+    #if MODMUL_TYPE == MODMUL_TYPE_MONT
+        , const wide_t q_prime
+    #elif MODMUL_TYPE == MODMUL_TYPE_BARRETT
+        , const wide_2x_t mu
+    #endif
 #endif
 
 #if (CURVE_PARAMS_TYPE == VAR_CURVE_PARAMS) && (FIELD_A == AVAR)

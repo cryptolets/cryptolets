@@ -1,12 +1,12 @@
 {
   "BN254": {
     "form": "Weierstrass",
-    "desc": "Curve from Zexe paper: https://eprint.iacr.org/2018/962, params taken from: https://eips.ethereum.org/EIPS/eip-2539 where they are explicitly listed.",
+    "desc": "https://docs.rs/ark-bn254/latest/ark_bn254/",
     "a": "0000000000000000000000000000000000000000000000000000000000000000",
-    "b": "0000000000000000000000000000000000000000000000000000000000000002",
-    "q": "2523648240000001ba344d80000000086121000000000013a700000000000013",
-    "q_prime": "365373ccba60808c92022379c45b843c6e371ba81104f6c808435e50d79435e5",
-    "mu": "6e4a6484093af33947fcedba37bb36c39240464503b56f6105a5f8d224c735a9",
+    "b": "0000000000000000000000000000000000000000000000000000000000000003",
+    "q": "30644e72e131a029b85045b68181585d97816a916871ca8d3c208c16d87cfd47",
+    "q_prime": "357a22b791888c6bd8afcbd01833da809ede7d651eca6ac987d20782e4866389",
+    "mu": "54a47462623a04a7ab074a5868073013ae965e1767cd4c086f3aed8a19bf90e5",
     "bitwidth": 254
   },
   "BLS12_377": {
@@ -21,7 +21,7 @@
   },
   "BLS12_381": {
     "form": "Weierstrass",
-    "desc": "Curve from https://electriccoin.co/blog/new-snark-curve/. As used in ZCash.",
+    "desc": "https://docs.rs/ark-bls12-381/latest/ark_bls12_381/",
     "a": "00",
     "b": "04",
     "q": "1a0111ea397fe69a4b1ba7b6434bacd764774b84f38512bf6730d2a0f6b0f6241eabfffeb153ffffb9feffffffffaaab",

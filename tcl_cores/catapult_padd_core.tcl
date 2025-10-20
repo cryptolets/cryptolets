@@ -5,7 +5,8 @@ source [file join $ROOT_DIR utils util.tcl] ;# Import utilities
 
 # parameter names
 set config_params {
-    CURVE_TYPE FIELD_A CURVE_PARAMS_TYPE REDC_TYPE Q_TYPE PREC_TYPE TECH_TYPE TARGET_PERIOD 
+    MODMUL_TYPE CURVE_TYPE FIELD_A CURVE_PARAMS_TYPE 
+    REDC_TYPE Q_TYPE PREC_TYPE TECH_TYPE TARGET_PERIOD 
     CCORE_PERIOD_RATIO MUL_TYPE TARGET_II BITWIDTH WBW MASK_BITS
     BASE_MUL_WIDTH KAR_BASE_MUL_WIDTH
 }
@@ -31,7 +32,7 @@ set SWEEP_KEY $env(SWEEP_KEY)
 set KERNEL_DIR [file join $ROOT_DIR $LVL_DIR $KERNEL_NAME]
 set WORK_DIR [enter_work_dir] ;# move to a lvl_dir/kernel/Catapult as working dir
 
-# assert {!($CCORE_MUL_F && $KERNEL_NAME eq "modmul_barrett")} "CCORE_MUL_F not supported with barrett"
+assert {!($CCORE_MUL_F && $MODMUL_TYPE eq "MODMUL_TYPE_BARRETT")} "CCORE_MUL_F not supported with MODMUL_TYPE_BARRETT"
 
 set TEST [expr {$SIM || $TEST}]
 set HAS_MODSQ [expr {$KERNEL_NAME eq "point_add"}] ;# only for sw, te has no modsq's
@@ -50,6 +51,12 @@ set HAS_CMODMUL_K [expr {
     $CURVE_PARAMS_TYPE eq "FIXED_CURVE_PARAMS" &&
     ($KERNEL_NAME eq "point_add_te" && $FIELD_A eq "ANEG1")
 }]
+
+if {$MODMUL_TYPE eq "MODMUL_TYPE_BARRETT"} {
+    set modmul_suffix "barrett"
+} else {
+    set modmul_suffix "mont"
+}
 
 override_default_options ;# Reset tool options
 
@@ -73,8 +80,9 @@ set include_dirs {
     lvl0_primitives/sq_f/include
     lvl1_modops/modadd/include
     lvl1_modops/modsub/include
-    lvl1_modops/modmul_mont/include
     lvl1_modops/include
+    lvl1_modops/modmul_mont/include
+    lvl1_modops/modmul_barrett/include
 }
 
 lappend include_dirs [file join $LVL_DIR $KERNEL_NAME include]
@@ -91,12 +99,13 @@ solution file add [file join $ROOT_DIR lvl0_primitives/sq_f/src/sq_f.cpp]
 solution file add [file join $ROOT_DIR lvl1_modops/modadd/src/modadd.cpp]
 solution file add [file join $ROOT_DIR lvl1_modops/modsub/src/modsub.cpp]
 solution file add [file join $ROOT_DIR lvl1_modops/modmul_mont/src/modmul_mont.cpp]
+solution file add [file join $ROOT_DIR lvl1_modops/modmul_barrett/src/modmul_barrett.cpp]
 
 go analyze
 solution design set $KERNEL_NAME -top
 
 go compile
-run_osci_test $CURVE_TYPE
+run_osci_test $CURVE_TYPE $MODMUL_TYPE
 if {$TEST_ONLY} { exit 0 }
 
 directive set -OPT_CONST_MULTS full
@@ -160,7 +169,7 @@ if {$CCORE_MODMUL} {
             set_clock $mod_ops_period
             solution design set ${modmul_name}_core -top -ccore
             if {$CCORE_MUL_F && $MUL_TYPE ne "MUL_NORMAL"} {
-                if {$modmul_name eq "modsq_mont"} {
+                if {$modmul_name eq "modsq_${modmul_suffix}"} {
                     solution design set sq_f -ccore
                 }
                 solution design set mul_f -ccore
@@ -169,7 +178,7 @@ if {$CCORE_MODMUL} {
 
             go analyze
             if {$CCORE_MUL_F && $MUL_TYPE ne "MUL_NORMAL"} {
-                if {$modmul_name eq "modsq_mont"} {
+                if {$modmul_name eq "modsq_${modmul_suffix}"} {
                     solution library add "\[CCORE\] $sq_f_sol"
                 } else {
                     solution library add "\[CCORE\] $mul_f_sol"
@@ -178,7 +187,7 @@ if {$CCORE_MODMUL} {
 
             go libraries
             if {$CCORE_MUL_F && $MUL_TYPE ne "MUL_NORMAL"} {
-                if {$modmul_name eq "modsq_mont"} {
+                if {$modmul_name eq "modsq_${modmul_suffix}"} {
                     directive set /${modmul_name}_core/sq_f -MAP_TO_MODULE "\[CCORE\] $sq_f_sol"
                 }
                 directive set /${modmul_name}_core/mul_f -MAP_TO_MODULE "\[CCORE\] $mul_f_sol"
@@ -199,27 +208,27 @@ if {$CCORE_MODMUL} {
         }
     }
 
-    set modmul_sol [modmul_run modmul_mont $mod_ops_period]
+    set modmul_sol [modmul_run "modmul_${modmul_suffix}" $mod_ops_period]
     solution table export -file [file join $WORK_DIR $table_name]
 
     if {$HAS_MODSQ} {
-        set modsq_sol [modmul_run modsq_mont $mod_ops_period]
+        set modsq_sol [modmul_run "modsq_${modmul_suffix}" $mod_ops_period]
         solution table export -file [file join $WORK_DIR $table_name]
     }
 
     set cmodmul_period [expr $mod_ops_period * 0.99] ;# custom tuning for edge cases
     if {$HAS_CMODMUL_A} {
-        set cmodmul_a_sol [modmul_run cmodmul_a_mont $cmodmul_period]
+        set cmodmul_a_sol [modmul_run "cmodmul_a_${modmul_suffix}" $cmodmul_period]
         solution table export -file [file join $WORK_DIR $table_name]
     }
 
     if {$HAS_CMODMUL_D} {
-        set cmodmul_d_sol [modmul_run cmodmul_d_mont $cmodmul_period]
+        set cmodmul_d_sol [modmul_run "cmodmul_d_${modmul_suffix}" $cmodmul_period]
         solution table export -file [file join $WORK_DIR $table_name]
     }
 
     if {$HAS_CMODMUL_K} {
-        set cmodmul_k_sol [modmul_run cmodmul_k_mont $cmodmul_period]
+        set cmodmul_k_sol [modmul_run "cmodmul_k_${modmul_suffix}" $cmodmul_period]
         solution table export -file [file join $WORK_DIR $table_name]
     }
 }
@@ -253,18 +262,18 @@ go new
 set_clock $TARGET_PERIOD
 solution design set $KERNEL_NAME -top
 if {$CCORE_MODMUL} {
-    solution design set modmul_mont_core -ccore
+    solution design set "modmul_${modmul_suffix}_core" -ccore
     if {$HAS_MODSQ} {
-        solution design set modsq_mont_core -ccore
+        solution design set "modsq_${modmul_suffix}_core" -ccore
     }
     if {$HAS_CMODMUL_A} {
-        solution design set cmodmul_a_mont_core -ccore
+        solution design set "cmodmul_a_${modmul_suffix}_core" -ccore
     }
     if {$HAS_CMODMUL_D} {
-        solution design set cmodmul_d_mont_core -ccore
+        solution design set "cmodmul_d_${modmul_suffix}_core" -ccore
     }
     if {$HAS_CMODMUL_K} {
-        solution design set cmodmul_k_mont_core -ccore
+        solution design set "cmodmul_k_${modmul_suffix}_core" -ccore
     }
 }
 if {$CCORE_MODADDSUB} {
@@ -307,11 +316,11 @@ if {$CCORE_MODADDSUB} {
 
 go libraries
 if {$CCORE_MODMUL} {
-    directive set /$KERNEL_NAME/modmul_mont_core -MAP_TO_MODULE "\[CCORE\] $modmul_sol"
-    if {$HAS_MODSQ} { directive set /$KERNEL_NAME/modsq_mont_core -MAP_TO_MODULE "\[CCORE\] $modsq_sol" }
-    if {$HAS_CMODMUL_A} { directive set /$KERNEL_NAME/cmodmul_a_mont_core -MAP_TO_MODULE "\[CCORE\] $cmodmul_a_sol" }
-    if {$HAS_CMODMUL_D} { directive set /$KERNEL_NAME/cmodmul_d_mont_core -MAP_TO_MODULE "\[CCORE\] $cmodmul_d_sol" }
-    if {$HAS_CMODMUL_K} { directive set /$KERNEL_NAME/cmodmul_k_mont_core -MAP_TO_MODULE "\[CCORE\] $cmodmul_k_sol" }
+    directive set "/$KERNEL_NAME/modmul_${modmul_suffix}_core" -MAP_TO_MODULE "\[CCORE\] $modmul_sol"
+    if {$HAS_MODSQ} { directive set "/$KERNEL_NAME/modsq_${modmul_suffix}_core" -MAP_TO_MODULE "\[CCORE\] $modsq_sol" }
+    if {$HAS_CMODMUL_A} { directive set "/$KERNEL_NAME/cmodmul_a_${modmul_suffix}_core" -MAP_TO_MODULE "\[CCORE\] $cmodmul_a_sol" }
+    if {$HAS_CMODMUL_D} { directive set "/$KERNEL_NAME/cmodmul_d_${modmul_suffix}_core" -MAP_TO_MODULE "\[CCORE\] $cmodmul_d_sol" }
+    if {$HAS_CMODMUL_K} { directive set "/$KERNEL_NAME/cmodmul_k_${modmul_suffix}_core" -MAP_TO_MODULE "\[CCORE\] $cmodmul_k_sol" }
 }
 if {$CCORE_MODADDSUB} {
     directive set /$KERNEL_NAME/modadd_core -MAP_TO_MODULE "\[CCORE\] $modadd_sol"

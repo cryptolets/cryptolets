@@ -1,5 +1,5 @@
-#ifndef _MODMUL_MONT_H_
-#define _MODMUL_MONT_H_
+#ifndef _MODMUL_BARRETT_H_
+#define _MODMUL_BARRETT_H_
 
 #include "primitives.h"
 #include "mul_f.h"
@@ -51,4 +51,4 @@ wide_t modsq_barrett(
 #endif
 );
 
-#endif /* _MODMUL_MONT_H_ */
+#endif /* _MODMUL_BARRETT_H_ */

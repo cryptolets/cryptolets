@@ -18,6 +18,7 @@ SHORT_KEY:
   CCORE_PERIOD_RATIO: cpr
   MASK_BITS: mb
   CURVE_PARAMS_TYPE: cpt
+  MODMUL_TYPE: mmt
   
 MED_KEY:
   BITWIDTH: bitwidth
@@ -36,6 +37,7 @@ MED_KEY:
   CCORE_PERIOD_RATIO: cpr
   MASK_BITS: mb
   CURVE_PARAMS_TYPE: curve_pt
+  MODMUL_TYPE: modmul_type
 
 VALUE:
   MUL_TYPE:
@@ -48,14 +50,12 @@ VALUE:
   REDC_TYPE:
     FIXED_RC: fixedrc
     VAR_RC: varrc
-  # FIELD_A:
-  #   AVAR: var
-  #   AN1: n1
-  #   AN3: n3
-  #   A0: "0"
   PREC_TYPE:
     SINGLE_PREC: sp
     MULTI_PREC: mp
   CURVE_PARAMS_TYPE:
     FIXED_CURVE_PARAMS: fixedcp
     VAR_CURVE_PARAMS: varcp
+  MODMUL_TYPE:
+    MODMUL_TYPE_MONT: mmmont
+    MODMUL_TYPE_BARRETT: mmbarrett

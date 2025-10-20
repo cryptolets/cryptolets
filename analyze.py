@@ -206,6 +206,7 @@ def derive_all_attr(parsed_raw_attrs, all_info):
         row = {
             "sol": sol,
             "tech_type": all_info.get("tech_type"),
+            "modmul_type": all_info.get("modmul_type"),
             "curve_type": all_info.get("curve_type"),
             "a": all_info.get("a"),
             "target_period": round(period, 2) if period else all_info.get("target_period"),
@@ -373,6 +374,7 @@ def sort_key(row):
         # vnum,
         row.get("sol") or "",
         row.get("tech_type") or "",
+        row.get("modmul_type") or "",
         row.get("curve_type") or "",
         row.get("a") or "",
         # row.get("target_period") or float("inf"),
