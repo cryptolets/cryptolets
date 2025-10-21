@@ -1,4 +1,4 @@
-from sympy import randprime, sqrt_mod, mod_inverse
+from sympy import randprime, sqrt_mod, mod_inverse, Integer
 from pathlib import Path
 import random
 import sys
@@ -59,6 +59,14 @@ def from_mont(x, q):
     if isinstance(x, tuple):
         return tuple((xi * R_inv) % q for xi in x)
     return (x * R_inv) % q
+
+def get_q_prime(q, bitwidth):
+    R = Integer(1) << bitwidth
+    return (-mod_inverse(q, R)) % R
+
+def get_mu(q, bitwidth):
+    R = Integer(1) << bitwidth
+    return (Integer(1) << (2 * bitwidth)) // q 
 
 # mod ops
 def modadd(a, b, q):

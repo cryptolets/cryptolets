@@ -2,71 +2,81 @@
   "BN254": {
     "form": "Weierstrass",
     "desc": "https://docs.rs/ark-bn254/latest/ark_bn254/",
-    "a": "0000000000000000000000000000000000000000000000000000000000000000",
-    "b": "0000000000000000000000000000000000000000000000000000000000000003",
+    "a": "0",
+    "b": "3",
     "q": "30644e72e131a029b85045b68181585d97816a916871ca8d3c208c16d87cfd47",
-    "q_prime": "357a22b791888c6bd8afcbd01833da809ede7d651eca6ac987d20782e4866389",
-    "mu": "54a47462623a04a7ab074a5868073013ae965e1767cd4c086f3aed8a19bf90e5",
+    "bitwidth": 254
+  },
+  "BN254_SCALAR": {
+    "form": "N/A",
+    "desc": "Use r from https://docs.rs/ark-bn254/latest/ark_bn254/ as the prime",
+    "a": "0",
+    "b": "0",
+    "q": "30644e72e131a029b85045b68181585d2833e84879b9709143e1f593f0000001",
     "bitwidth": 254
   },
   "BLS12_377": {
     "form": "Weierstrass",
-    "desc": "Curve from Zexe paper: https://eprint.iacr.org/2018/962, params taken from: https://eips.ethereum.org/EIPS/eip-2539 where they are explicitly listed.",
-    "a": "00",
-    "b": "01",
+    "desc": "https://docs.rs/ark-bls12-377/latest/ark_bls12_377/",
+    "a": "0",
+    "b": "1",
     "q": "1ae3a4617c510eac63b05c06ca1493b1a22d9f300f5138f1ef3622fba094800170b5d44300000008508c00000000001",
-    "q_prime": "1a5205feec82e3d22f80141806a3cec5b245b86cced7a1335ed1347970debffd1e94577a00000008508bfffffffffff",
-    "mu": "261508d0cc4060e976c3ca0582ef4f73bbad0de6776b1a06af2d488d85a6d02d0ed687789c42a591f9fd58c5e4daffc",
     "bitwidth": 377
+  },
+  "BLS12_377_SCALAR": {
+    "form": "N/A",
+    "desc": "Use r from https://docs.rs/ark-bls12-377/latest/ark_bls12_377/ as the prime",
+    "a": "0",
+    "b": "0",
+    "q": "12ab655e9a2ca55660b44d1e5c37b00159aa76fed00000010a11800000000001",
+    "bitwidth": 253
   },
   "BLS12_381": {
     "form": "Weierstrass",
     "desc": "https://docs.rs/ark-bls12-381/latest/ark_bls12_381/",
-    "a": "00",
-    "b": "04",
+    "a": "0",
+    "b": "4",
     "q": "1a0111ea397fe69a4b1ba7b6434bacd764774b84f38512bf6730d2a0f6b0f6241eabfffeb153ffffb9feffffffffaaab",
-    "q_prime": "eb06106feaafc9468b316fee268cf5819ecca0e8eb2db4c16ef2ef0c8e30b48286adb92d9d113e889f3fffcfffcfffd",
-    "mu": "2760d74bcf32791738a0406c331e9ae8a46e09d07fda82a52f7d1dc780a19de74e65c59e8163c701ec4f881fd59646e8",
     "bitwidth": 381
   },
-  "BLS12_381_R": {
+  "BLS12_381_SCALAR": {
     "form": "N/A",
     "desc": "Use r from https://docs.rs/ark-bls12-381/latest/ark_bls12_381/ as the prime",
     "a": "0",
     "b": "0",
     "q": "73eda753299d7d483339d80809a1d80553bda402fffe5bfeffffffff00000001",
-    "q_prime": "3d443ab0d7bf2839181b2c170004ec0653ba5bfffffe5bfdfffffffeffffffff",
-    "mu": "8d54253b7fb78ddf0e2d772dc1f823b4d9410fad2f92eb5c509cde80830358e4",
     "bitwidth": 255
   },
   "SECP256K1": {
     "form": "Weierstrass",
-    "desc": "A Koblitz curve.",
-    "a": "0000000000000000000000000000000000000000000000000000000000000000",
-    "b": "0000000000000000000000000000000000000000000000000000000000000007",
+    "desc": "https://docs.rs/ark-secp256k1/latest/ark_secp256k1/",
+    "a": "0",
+    "b": "7",
     "q": "fffffffffffffffffffffffffffffffffffffffffffffffffffffffefffffc2f",
-    "q_prime": "c9bd1905155383999c46c2c295f2b761bcb223fedc24a059d838091dd2253531",
-    "mu": "100000000000000000000000000000000000000000000000000000001000003d1",
     "bitwidth": 256
   },
-  "P_256": {
+  "SECP256K1_SCALAR": {
+    "form": "N/A",
+    "desc": "Use r from https://docs.rs/ark-secp256k1/latest/ark_secp256k1/ as the prime",
+    "a": "0",
+    "b": "0",
+    "q": "fffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141",
+    "bitwidth": 256
+  },
+  "SECP256R1": {
     "form": "Weierstrass",
-    "desc": "A randomly generated curve. [SEC2v1](https://www.secg.org/SEC2-Ver-1.0.pdf) states 'E was chosen verifiably at random as specified in ANSI X9.62 [1] from the seed'.",
+    "desc": "https://docs.rs/ark-secp256r1/latest/ark_secp256r1/",
     "a": "ffffffff00000001000000000000000000000000fffffffffffffffffffffffc",
     "b": "5ac635d8aa3a93e7b3ebbd55769886bc651d06b0cc53b0f63bce3c3e27d2604b",
     "q": "ffffffff00000001000000000000000000000000ffffffffffffffffffffffff",
-    "q_prime": "ffffffff00000002000000000000000000000001000000000000000000000001",
-    "mu": "100000000fffffffffffffffefffffffefffffffeffffffff0000000000000003",
     "bitwidth": 256
   },
-  "P_521": {
+  "SECP521R1": {
     "form": "Weierstrass",
-    "desc": "https://neuromancer.sk/std/nist/P-521",
+    "desc": "https://neuromancer.sk/std/secg/secp521r1",
     "a": "01fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffc",
     "b": "0051953eb9618e1c9a1f929a21a0b68540eea2da725b99b315f3b8b489918ef109e156193951ec7e937b1652c0bd3bb1bf073573df883d2c34f1ef451fd46b503f00",
     "q": "01ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
-    "q_prime": "1",
-    "mu": "20000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001",
     "bitwidth": 521
   },
   "MNT4753": {
@@ -75,106 +85,77 @@
     "a": "2",
     "b": "1373684a8c9dcae7a016ac5d7748d3313cd8e39051c596560835df0c9e50a5b59b882a92c78dc537e51a16703ec9855c77fc3d8bb21c8d68bb8cfb9db4b8c8fba773111c36c8b1b4e8f1ece940ef9eaad265458e06372009c9a0491678ef4",
     "q": "1c4c62d92c41110229022eee2cdadb7f997505b8fafed5eb7e8f96c97d87307fdb925e8a0ed8d99d124d9a15af79db117e776f218059db80f0da5cb537e38685acce9767254a4638810719ac425f0e39d54522cdd119f5e9063de245e8001",
-    "q_prime": "13e99b46043f050309a545bc9a4c8a9e95de1104e1702786f6f1695db749377b90b32f7f6f94b9718c63feecc18958d63b05346eaa82fff75c466adb4e7f04adb7a6352a3a656d9e1947eee113b7a7fd403903e304c4cf2044cfbe45e7fff",
-    "mu": "242f916cfa82727c6eaef38056aaa0aaedb057467fb932cae2aba9a5d17c1ff73538ba300e0ede1965cbf72f0aa9bf03479d58326e3c0552419849e3c7171d852282372b75580c27c4d1f1f57a96a1145dcc95da918349f4965a2aee8fd75",
+    "bitwidth": 753
+  },
+  "MNT4753_SCALAR": {
+    "form": "N/A",
+    "desc": "Use r from https://docs.rs/ark-mnt4-753/latest/ark_mnt4_753/ as the prime",
+    "a": "0",
+    "b": "0",
+    "q": "1c4c62d92c41110229022eee2cdadb7f997505b8fafed5eb7e8f96c97d87307fdb925e8a0ed8d99d124d9a15af79db26c5c28c859a99b3eebca9429212636b9dff97634993aa4d6c381bc3f0057974ea099170fa13a4fd90776e240000001",
     "bitwidth": 753
   },
   "BLS12_377_ED": {
     "form": "TwistedEdwards",
-    "desc": "(WRONG PARAMS) https://docs.rs/ark-ed-on-bls12-377/latest/ark_ed_on_bls12_377/",
+    "desc": "https://docs.rs/ark-ed-on-bls12-377/latest/ark_ed_on_bls12_377/",
     "a": "12ab655e9a2ca55660b44d1e5c37b00159aa76fed00000010a11800000000000",
     "d": "bcd",
-    "q": "12ab655e9a2ca55660b44d1e5c37b00159aa76fed00000010a11800000000001",
-    "q_prime": "262362e9504199f50022e5e41113fe6992d0fa68b29556249765c34790a000452217cc900000010a117fffffffffff",
-    "mu": "36d9491ec40b2c9ee4e51e49faa80548fd0a180b8d69e258f5204c21151e79ea143dac7fb33b9f29f3f210148c4d639840e11b4aece45ac34f29bda8dbc26a",
-    "bitwidth": 377,
-    "a_mont": "1ba2de9e771384a1ab478b7d6832b000e9b47d4246324c8db14f24fd5402a48",
-    "d_mont": "9670e386dbf93fca17fc7c6730611cdb40384421a06eae1acf487e879cd0d70",
     "k": "179a",
-    "k_mont": "22b712415282a2e24b426e89d4739a0e5c9185640dd5c24fd78fd0f39a1adf"
+    "q": "12ab655e9a2ca55660b44d1e5c37b00159aa76fed00000010a11800000000001",
+    "bitwidth": 253
   },
   "MNT4753_ED": {
     "form": "TwistedEdwards",
     "desc": "https://docs.rs/ark-ed-on-mnt4-753/latest/ark_ed_on_mnt4_753/",
     "a": "1c4c62d92c41110229022eee2cdadb7f997505b8fafed5eb7e8f96c97d87307fdb925e8a0ed8d99d124d9a15af79db26c5c28c859a99b3eebca9429212636b9dff97634993aa4d6c381bc3f0057974ea099170fa13a4fd90776e240000000",
     "d": "4d8fa",
-    "q": "1c4c62d92c41110229022eee2cdadb7f997505b8fafed5eb7e8f96c97d87307fdb925e8a0ed8d99d124d9a15af79db26c5c28c859a99b3eebca9429212636b9dff97634993aa4d6c381bc3f0057974ea099170fa13a4fd90776e240000001",
-    "q_prime": "1ca8d9105b396c8b26f9de60c2f805ec55f11b8452e51525f17af3144d2288b60dbe0076f54231fbd6b213d679f81291f14d3dc5311a484986a3d163f2c2de3107fb1f51969f35795f3f7d6484182adb37525ab8c5f5ac90776e23fffffff",
-    "mu": "242f916cfa82727c6eaef38056aaa0aaedb057467fb932cae2aba9a5d17c1ff73538ba300e0ede1965cbf72f0aa9bee81208140a086edaa60c58eb476bdedcb35276d65fe7e00ba391da260f2623ff9a2dae11d15867718ec70f5ff059bba",
-    "bitwidth": 753,
-    "a_mont": "1898c5b25882220452045ddc59b5b6ff32ea0b71f5fdabd6fd1f2d92fb0e60ffb724bd141db1b33a249b342b5ef3b64d8b85190b353367dd7952852424c6d73bff2ec69327549ad8703787e00af2e9d41322e1f42749fb20eedc480000002",
-    "d_mont": "1b4a0f2518370b9ab32492891137ac9a81707fc9e2f8098dff6d62715789b12fc8daf11b1826b8723333cec9644b97854c5b858822a77d3da1406f49994db9b77252e6983f769ef2f4d1a2cdb6b9332b09167b1eddb8fd0374932bffa84b3",
     "k": "9b1f4",
-    "k_mont": "1a47bb71042d06333d46f623f5947db5696bf9dacaf13d30804b2e19318c31dfb62383ac21749747541a037d191d53e3d2f47e8aaab5468c85d79c01203807d0e50e69e6eb42f079b18781ab67f8f16c089b8543a7ccfc7671b833ff50965"
+    "q": "1c4c62d92c41110229022eee2cdadb7f997505b8fafed5eb7e8f96c97d87307fdb925e8a0ed8d99d124d9a15af79db26c5c28c859a99b3eebca9429212636b9dff97634993aa4d6c381bc3f0057974ea099170fa13a4fd90776e240000001",
+    "bitwidth": 753
   },
   "ED25519": {
     "form": "TwistedEdwards",
-    "desc": "Curve from https://ed25519.cr.yp.to",
+    "desc": "https://docs.rs/ark-ed25519/latest/ark_ed25519/",
     "a": "7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffec",
     "d": "52036cee2b6ffe738cc740797779e89800700a4d4141d8ab75eb4dca135978a3",
-    "q": "7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffed",
-    "q_prime": "2f286bca1af286bca1af286bca1af286bca1af286bca1af286bca1af286bca1b",
-    "mu": "8000000000000000000000000000000000000000000000000000000000000013",
-    "bitwidth": 255,
-    "a_mont": "7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffda",
-    "d_mont": "164115ad394fe29372c9c903de0c43480850c3bbd7e314b9c076c5ff6fa3f4fd",
     "k": "2406d9dc56dffce7198e80f2eef3d13000e0149a8283b156ebd69b9426b2f159",
-    "k_mont": "2c822b5a729fc526e5939207bc18869010a18777afc6297380ed8bfedf47e9fa"
+    "q": "7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffed",
+    "bitwidth": 255
   },
   "ED448": {
     "form": "TwistedEdwards",
     "desc": "Curve from https://datatracker.ietf.org/doc/html/draft-ietf-lwig-curve-representations-23",
     "a": "01",
     "d": "d78b4bdc7f0daf19f24f38c29373a2ccad46157242a50f37809b1da3412a12e79ccc9c81264cfe9ad080997058fb61c4243cc32dbaa156b9",
-    "q": "fffffffffffffffffffffffffffffffffffffffffffffffffffffffeffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
-    "bitwidth": 448,
-    "q_prime": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000000000000000000000000000000000000000000000000001",
-    "mu": "10000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000002",
     "k": "af1697b8fe1b5e33e49e718526e745995a8c2ae4854a1e6f01363b47825425cf399939024c99fd35a10132e0b1f6c3884879865b7542ad73",
-    "a_mont": "100000000000000000000000000000000000000000000000000000001",
-    "d_mont": "f040aaa09ae7fab50aeb701ff767df09b3878ca8a986e19cbbd7920118b55ec41bda4b9b189c375d63f43c3d0641773666e1d2653b3c745d",
-    "k_mont": "e081554135cff56a15d6e03feecfbe13670f1951530dc33977af2403316abd8837b4973631386ebac7e8787a0c82ee6ccdc3a4ca7678e8bb"
+    "q": "fffffffffffffffffffffffffffffffffffffffffffffffffffffffeffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+    "bitwidth": 448
   },
   "ED_384_MONT": {
     "form": "TwistedEdwards",
     "desc": "Curve from https://eprint.iacr.org/2014/130.pdf. No generator present.",
     "a": "b0fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe",
     "d": "6f17",
-    "q": "b0ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
-    "bitwidth": 384,
-    "q_prime": "b10000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001",
-    "mu": "1724287f46debc05c90a1fd1b7af01724287f46debc05c90a1fd1b7af01724287f46debc05c90a1fd1b7af01724287f48",
     "k": "de2e",
-    "a_mont": "61fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe",
-    "d_mont": "14000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000a0ac",
-    "k_mont": "280000000000000000000000000000000000000000000000000000000000000000000000000000000000000000014158"
+    "q": "b0ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+    "bitwidth": 384
   },
   "ED_511_MERS": {
     "form": "TwistedEdwards",
     "desc": "Curve from https://eprint.iacr.org/2014/130.pdf. No generator present.",
     "a": "7ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe1e",
     "d": "10bf7d",
-    "q": "7ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe1f",
-    "bitwidth": 511,
-    "q_prime": "20ff77c0220ff77c0220ff77c0220ff77c0220ff77c0220ff77c0220ff77c0220ff77c0220ff77c0220ff77c0220ff77c0220ff77c0220ff77c0220ff77c0221",
-    "mu": "800000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001e1",
     "k": "217efa",
-    "a_mont": "7ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffc3e",
-    "d_mont": "1f77c9dd",
-    "k_mont": "3eef93ba"
+    "q": "7ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe1f",
+    "bitwidth": 511
   },
   "ED_512_MONT": {
     "form": "TwistedEdwards",
     "desc": "Curve from https://eprint.iacr.org/2014/130.pdf. No generator present.",
     "a": "fe14fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe",
     "d": "12a9c",
-    "q": "fe14ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
-    "bitwidth": 512,
-    "q_prime": "fe150000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001",
-    "mu": "101eeb4d4d432fdccc7c32344a4a7cdd7cce5fd1c759585c795cc4edb3e80e12fe6dfcf4284944866dd4a6dc08035e762ca7a58a80a4bbf47ded8691184995211",
     "k": "25538",
-    "a_mont": "fc29fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe",
-    "d_mont": "bdf0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000012cdd",
-    "k_mont": "17be00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000259ba"
+    "q": "fe14ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+    "bitwidth": 512
   }
 }

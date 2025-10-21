@@ -31,11 +31,11 @@
 // Point Addition Curve Config
 // -------------------------------------------------------------------
 // Assumptions about a
-#define A0 0 // a=0
-#define ANEG1 1 // a=-1
-#define A2 2 // a=2
-#define ANEG3 3 // a=-3
-#define AVAR 4 // variable a
+#define A0 0     // a=0
+#define ANEG1 1  // a=-1
+#define A2 2     // a=2
+#define ANEG3 3  // a=-3
+#define AVAR 4   // variable a
 
 // Fixed or Variable Curve Params
 #define FIXED_CURVE_PARAMS 0

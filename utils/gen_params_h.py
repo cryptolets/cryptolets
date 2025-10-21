@@ -1,14 +1,7 @@
 #!/usr/bin/env python3
 import argparse, json, pathlib, re, sys
-
-MODMUL_CONST = [
-    "q", "q_prime", "mu"
-]
-
-FIELD_CONTS = [
-    "a", "b", "k", "d",
-    "a_mont", "b_mont", "k_mont", "d_mont"
-]
+from common import FIELD_CONTS, to_hex
+from field_helpers import get_q_prime, get_mu, to_mont
 
 def is_int(v): return re.fullmatch(r"-?\d+", v)
 def is_bool(v): return v.lower() in {"true", "false"}
@@ -47,13 +40,24 @@ out = pathlib.Path(a.out)
 out.parent.mkdir(parents=True, exist_ok=True)
 lines = ["#ifndef TMP_PARAMS_H", "#define TMP_PARAMS_H", ""]
 
+# Automated q_prime, mu, all mont transformations
+# so we don't have to define it everywhere manually
+
+q = int(consts.get("q"), 16)
+bitwidth = consts.get("bitwidth")
+
 for k in FIELD_CONTS:
     v = consts.get(k, "0")
+    v_mont = to_hex(to_mont(int(v, 16), q))
     lines.append(f'#define FIELD_{k.upper()}_HEX "{v}"')
+    lines.append(f'#define FIELD_{k.upper()}_MONT_HEX "{v_mont}"')
 
-for k in MODMUL_CONST:
-    v = consts.get(k, "0")
-    lines.append(f'#define {k.upper()}_HEX "{v}"')
+q_prime = get_q_prime(q, bitwidth)
+mu = get_mu(q, bitwidth)
+
+lines.append(f'#define Q_HEX "{to_hex(q)}"')
+lines.append(f'#define Q_PRIME_HEX "{to_hex(q_prime)}"')
+lines.append(f'#define MU_HEX "{to_hex(mu)}"')
 
 for k, v in params.items():
     lines.append(f"#define {k.upper()} {v}")

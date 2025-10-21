@@ -1,5 +1,5 @@
 # Sweep parameters for Twisted Edwards Point Addition
-BITWIDTH: [255]
+BITWIDTH: [255, 253]
 # 64, 96, 128, 192, 254, 255, 256, 377, 381, 384, 448, 511, 512, 753, 768
 
 
@@ -15,9 +15,9 @@ MODMUL_TYPE: [MODMUL_TYPE_MONT, MODMUL_TYPE_BARRETT] # MODMUL_TYPE_MONT, MODMUL_
 
 # curve types: 
 # RAND_CURVE
-# a=-1 : ED25519, ED_384_MONT, ED_511_MERS, ED_512_MONT, MNT4753_ED (BLS12_377_ED doesn't work - wrong params)
+# a=-1 : ED25519, BLS12_377_ED, ED_384_MONT, ED_511_MERS, ED_512_MONT, MNT4753_ED
 # variable 1 = ED448
-CURVE_TYPE: [RAND_CURVE, ED25519]
+CURVE_TYPE: [RAND_CURVE, ED25519, BLS12_377_ED]
 
 PREC_TYPE: [SINGLE_PREC]  # SINGLE_PREC, MULTI_PREC
 CCORE_PERIOD_RATIO: [1]
@@ -36,6 +36,7 @@ BASE_MUL_WIDTH:
   96: [48]
   128: [64]
   192: [48]
+  253: [63]
   254: [63]
   255: [63]
   256: [64]
@@ -61,6 +62,7 @@ KAR_BASE_MUL_WIDTH:
   96: [48, 24]
   128: [64, 32]
   192: [96, 48]
+  253: [126, 63]
   254: [127, 63]
   255: [127, 63]
   256: [128, 64]
@@ -79,7 +81,7 @@ KAR_BASE_MUL_WIDTH:
 SIM: true           # verify RTL
 SYN: false
 TEST: true          # test C++ code
-TEST_ONLY: true    # only test C++ code with osci
+TEST_ONLY: false    # only test C++ code with osci
 NUM_TEST_SAMPLES: 1000
 CCORE_MUL_F: false  # make mul_f ccore, false = more compile time, better design latency
 CCORE_MODADDSUB: false # make modadd,modsub,moddouble ccore, false = more compile time, better design latency

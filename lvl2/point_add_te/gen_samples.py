@@ -10,7 +10,8 @@ sys.path.append(str(Path(__file__).resolve().parents[2]))
 from utils.field_helpers import (
     modadd, modsub, modmul, modsq, moddouble,
     EC_point_EP, TwistedEdwards,
-    get_field_const, to_mont, from_mont
+    get_field_const, to_mont, from_mont,
+    get_q_prime, get_mu
 )
 
 random.seed(42)
@@ -65,10 +66,10 @@ def write_csv_files(
     is_modmul_mont=True
 ):
     q = get_field_const(curve_type, "q", json_file)
-    q_prime = get_field_const(curve_type, "q_prime", json_file)
-    mu = get_field_const(curve_type, "mu", json_file)
-
     bitwidth = get_field_const(curve_type, "bitwidth", json_file)
+    q_prime = get_q_prime(q, bitwidth)
+    mu = get_mu(q, bitwidth)
+
     a = get_field_const(curve_type, "a", json_file)
     d = get_field_const(curve_type, "d", json_file)
     k = get_field_const(curve_type, "k", json_file)

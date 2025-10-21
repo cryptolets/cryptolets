@@ -5,25 +5,7 @@ Custom sweep overrides and filters for kernel-specific behavior.
 import json
 from pathlib import Path
 from naming_short import print_short
-
-ROOT_DIR = Path(__file__).resolve().parent.parent
-
-CURVE_TO_FIELD_A_MAP = {
-    "BN254": "A0",
-    "BLS12_377": "A0",
-    "BLS12_381": "A0",
-    "SECP256K1": "A0",
-    "P_256": "ANEG3",
-    "P_521": "ANEG3",
-    "MNT4753": "A2",
-    "BLS12_377_ED": "ANEG1",
-    "MNT4753_ED": "ANEG1",
-    "ED25519": "ANEG1",
-    "ED_384_MONT": "ANEG1",
-    "ED_511_MERS": "ANEG1",
-    "ED_512_MONT": "ANEG1",
-    "ED448": "AVAR",
-}
+from common import ROOT_DIR, CURVE_TO_FIELD_A_MAP
 
 # Kernels that don't support multi-precision
 mp_unsupported_kernels = ["cmul_f", "modsq", "sq_f"]

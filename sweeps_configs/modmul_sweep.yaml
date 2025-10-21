@@ -7,7 +7,7 @@ TARGET_PERIOD: [1]  # in ns
 MUL_TYPE: [MUL_SCHOOLBOOK] # MUL_NORMAL, MUL_SCHOOLBOOK, MUL_KARATSUBA
 Q_TYPE: [FIXED_Q, VAR_Q] # VAR_Q, FIXED_Q
 REDC_TYPE: [FIXED_RC, VAR_RC] # VAR_RC, FIXED_RC
-CURVE_TYPE: [RAND_CURVE, BN254]
+CURVE_TYPE: [BN254_SCALAR, BLS12_377_SCALAR, BLS12_381_SCALAR]
 PREC_TYPE: [SINGLE_PREC]  # SINGLE_PREC, MULTI_PREC
 CCORE_PERIOD_RATIO: [1]
 
@@ -22,6 +22,7 @@ BASE_MUL_WIDTH:
   96: [48]
   128: [64]
   192: [48]
+  253: [63]
   254: [63]
   255: [63]
   256: [64]
@@ -47,6 +48,7 @@ KAR_BASE_MUL_WIDTH:
   96: [48, 24]
   128: [64, 32]
   192: [96, 48]
+  253: [126, 63]
   254: [127, 63]
   255: [127, 63]
   256: [128, 64]
@@ -65,8 +67,8 @@ KAR_BASE_MUL_WIDTH:
 SIM: true           # verify RTL
 SYN: false
 TEST: true          # test C++ code
-TEST_ONLY: true    # only test C++ code with osci
-NUM_TEST_SAMPLES: 100000
+TEST_ONLY: false    # only test C++ code with osci
+NUM_TEST_SAMPLES: 1000
 CCORE_TOP: false    # cannot be true when SIM or TEST are true
 CCORE_MUL_F: false  # make mul_f ccore, false = more compile time, better design latency
 
