@@ -9,33 +9,17 @@ FIELD_CONTS = [
     "a", "b", "k", "d",
 ]
 
-# Short Weierstrass
-SUPPORTED_A_ASSUMPTIONS_SW = [
-    0, 2, -3
-]
-
-# Twisted Edwards
-SUPPORTED_A_ASSUMPTIONS_TE = [
-    -1
-]
+SUPPORTED_A_ASSUMPTIONS = {
+    "Weierstrass": [0, 2, -3], # Short Weierstrass
+    "TwistedEdwards": [-1] # Twisted Edwards
+}
 
 # Helpers Functions
 def fa_to_str(a, q, curve_form):
-    sw_a_to_mod_map = {(a % q): a_int for a_int in SUPPORTED_A_ASSUMPTIONS_SW}
-    te_a_to_mod_map = {(a % q): a_int for a_int in SUPPORTED_A_ASSUMPTIONS_TE}
-
-    if (
-        (curve_form == "Weierstrass" and a in sw_a_to_mod_map) or 
-        (curve_form == "TwistedEdwards" and a in te_a_to_mod_map)
-    ):
-        a_int = sw_a_to_mod_map[a] if curve_form == "Weierstrass" else \
-                te_a_to_mod_map[a]
-
-        if a_int < 0: # negative
-            return f"ANEG{abs(a_int)}"
-        else:
-            return f"A{a_int}"
-
+    if curve_form in SUPPORTED_A_ASSUMPTIONS:
+        for a_int in SUPPORTED_A_ASSUMPTIONS[curve_form]:
+            if (a_int % q) == a:
+                return f"ANEG{abs(a_int)}" if a_int < 0 else f"A{a_int}"
     return "AVAR"
 
 def fa_to_int(a):
@@ -58,3 +42,5 @@ for curve in field_data:
             int(field_data[curve]["q"], 16),
             field_data[curve]["form"]
         )
+
+print(CURVE_TO_FIELD_A_MAP)
