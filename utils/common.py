@@ -42,5 +42,3 @@ for curve in field_data:
             int(field_data[curve]["q"], 16),
             field_data[curve]["form"]
         )
-
-print(CURVE_TO_FIELD_A_MAP)
