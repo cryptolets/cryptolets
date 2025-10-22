@@ -79,6 +79,12 @@ if {$CCORE_TOP} {
 }
 go compile
 
+if {$KERNEL_NAME eq "cmul_f"} {
+    directive set -OPT_CONST_MULTS full
+    directive set /$KERNEL_NAME -CLUSTER addtree
+    directive set -CLUSTER_FAST_MODE true
+}
+
 run_osci_test $CURVE_TYPE
 if {$TEST_ONLY} { exit 0 }
 

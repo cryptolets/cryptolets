@@ -79,6 +79,8 @@ run_osci_test $CURVE_TYPE
 if {$TEST_ONLY} { exit 0 }
 
 directive set -OPT_CONST_MULTS full
+directive set /$KERNEL_NAME -CLUSTER addtree
+directive set -CLUSTER_FAST_MODE true
 if {$PREC_TYPE eq "SINGLE_PREC"} {
     directive set -PIPELINE_INIT_INTERVAL $TARGET_II
 }

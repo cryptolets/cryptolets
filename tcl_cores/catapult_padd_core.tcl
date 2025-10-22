@@ -109,6 +109,8 @@ run_osci_test $CURVE_TYPE $MODMUL_TYPE
 if {$TEST_ONLY} { exit 0 }
 
 directive set -OPT_CONST_MULTS full
+directive set -CLUSTER_FAST_MODE true
+
 if {$PREC_TYPE eq "SINGLE_PREC"} {
     directive set -PIPELINE_INIT_INTERVAL $TARGET_II
 }
@@ -185,6 +187,9 @@ if {$CCORE_MODMUL} {
                 }
             }
 
+            go compile
+            directive set /${modmul_name}_core -CLUSTER addtree
+
             go libraries
             if {$CCORE_MUL_F && $MUL_TYPE ne "MUL_NORMAL"} {
                 if {$modmul_name eq "modsq_${modmul_suffix}"} {
@@ -216,7 +221,8 @@ if {$CCORE_MODMUL} {
         solution table export -file [file join $WORK_DIR $table_name]
     }
 
-    set cmodmul_period [expr $mod_ops_period * 0.99] ;# custom tuning for edge cases
+    # set cmodmul_period [expr $mod_ops_period * 0.99] ;# custom tuning for edge cases
+    set cmodmul_period $mod_ops_period
     if {$HAS_CMODMUL_A} {
         set cmodmul_a_sol [modmul_run "cmodmul_a_${modmul_suffix}" $cmodmul_period]
         solution table export -file [file join $WORK_DIR $table_name]

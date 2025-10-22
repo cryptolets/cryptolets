@@ -63,32 +63,28 @@ typedef struct {
 
 
 // --- Fixed modulus values (for const-Q optimizations) ---
-#ifdef Q_TYPE
-    #if Q_TYPE == FIXED_Q
-        #ifdef Q_HEX
-            static const wide_t Q = ac::bit_fill_hex<wide_t>(Q_HEX);
-        #endif
-    #endif
+#ifdef Q_HEX
+    static const wide_t Q = ac::bit_fill_hex<wide_t>(Q_HEX);
 #endif
 
-#ifdef REDC_TYPE
-    #if REDC_TYPE == FIXED_RC
-    // Montgomery constant
-        #ifdef Q_PRIME_HEX
-            static const wide_t Q_PRIME = ac::bit_fill_hex<wide_t>(Q_PRIME_HEX);
-        #endif
+// Montgomery constant
+#ifdef Q_PRIME_HEX
+    static const wide_t Q_PRIME = ac::bit_fill_hex<wide_t>(Q_PRIME_HEX);
+#endif
 
-        // Barrett constant
-        #ifdef MU_HEX
-            static const wide_2x_t MU = ac::bit_fill_hex<wide_2x_t>(MU_HEX);
-        #endif
-    #endif
+// Barrett constant
+#ifdef MU_HEX
+    static const wide_2x_t MU = ac::bit_fill_hex<wide_2x_t>(MU_HEX);
 #endif
 
 // #ifdef CURVE_PARAMS_TYPE
 // For Montgomery Modmul
 #ifdef FIELD_A_MONT_HEX
     static const wide_t FIELD_A_MONT = ac::bit_fill_hex<wide_t>(FIELD_A_MONT_HEX);
+#endif
+
+#ifdef FIELD_B_MONT_HEX
+    static const wide_t FIELD_B_MONT = ac::bit_fill_hex<wide_t>(FIELD_B_MONT_HEX);
 #endif
 
 #ifdef FIELD_D_MONT_HEX
@@ -102,6 +98,10 @@ typedef struct {
 // For Barrett Modmul
 #ifdef FIELD_A_HEX
     static const wide_t FIELD_A_INT = ac::bit_fill_hex<wide_t>(FIELD_A_HEX);
+#endif
+
+#ifdef FIELD_B_HEX
+    static const wide_t FIELD_B_INT = ac::bit_fill_hex<wide_t>(FIELD_B_HEX);
 #endif
 
 #ifdef FIELD_D_HEX
