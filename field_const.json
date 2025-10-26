@@ -1,4 +1,12 @@
 {
+  "TEST64": {
+    "form": "Weierstrass",
+    "desc": "test",
+    "a": "0",
+    "b": "3",
+    "q": "faaf4542e6aefc7b",
+    "bitwidth": 64
+  },
   "BN254": {
     "form": "Weierstrass",
     "desc": "https://docs.rs/ark-bn254/latest/ark_bn254/",
@@ -9,11 +17,29 @@
   },
   "BN254_SCALAR": {
     "form": "N/A",
-    "desc": "Use r from https://docs.rs/ark-bn254/latest/ark_bn254/ as the prime",
+    "desc": "https://docs.rs/ark-bn254/latest/ark_bn254/",
     "a": "0",
     "b": "0",
     "q": "30644e72e131a029b85045b68181585d2833e84879b9709143e1f593f0000001",
     "bitwidth": 254
+  },
+  "BN254_ED": {
+    "form": "TwistedEdwards",
+    "desc": "https://docs.rs/ark-ed-on-bn254/latest/ark_ed_on_bn254/",
+    "a": "1",
+    "d": "1575bd81821016c07a5fd2dee78446612498beee8e01a829736c2b06fb281473",
+    "k": "2aeb7b0304202d80f4bfa5bdcf088cc249317ddd1c035052e6d8560df65028e6",
+    "q": "30644e72e131a029b85045b68181585d2833e84879b9709143e1f593f0000001",
+    "bitwidth": 254
+  },
+  "BN254_ED_SCALAR": {
+    "form": "N/A",
+    "desc": "https://docs.rs/ark-ed-on-bn254/latest/ark_ed_on_bn254/",
+    "a": "0",
+    "d": "0",
+    "k": "0",
+    "q": "60c89ce5c263405370a08b6d0302b0bab3eedb83920ee0a677297dc392126f1",
+    "bitwidth": 251
   },
   "BLS12_377": {
     "form": "Weierstrass",
@@ -25,11 +51,29 @@
   },
   "BLS12_377_SCALAR": {
     "form": "N/A",
-    "desc": "Use r from https://docs.rs/ark-bls12-377/latest/ark_bls12_377/ as the prime",
+    "desc": "https://docs.rs/ark-bls12-377/latest/ark_bls12_377/",
     "a": "0",
     "b": "0",
     "q": "12ab655e9a2ca55660b44d1e5c37b00159aa76fed00000010a11800000000001",
     "bitwidth": 253
+  },
+  "BLS12_377_ED": {
+    "form": "TwistedEdwards",
+    "desc": "https://docs.rs/ark-ed-on-bls12-377/latest/ark_ed_on_bls12_377/",
+    "a": "12ab655e9a2ca55660b44d1e5c37b00159aa76fed00000010a11800000000000",
+    "d": "bcd",
+    "k": "179a",
+    "q": "12ab655e9a2ca55660b44d1e5c37b00159aa76fed00000010a11800000000001",
+    "bitwidth": 253
+  },
+  "BLS12_377_ED_SCALAR": {
+    "form": "N/A",
+    "desc": "https://docs.rs/ark-ed-on-bls12-377/latest/ark_ed_on_bls12_377/",
+    "a": "0",
+    "d": "0",
+    "k": "0",
+    "q": "4aad957a68b2955982d1347970dec005293a3afc43c8afeb95aee9ac33fd9ff",
+    "bitwidth": 251
   },
   "BLS12_381": {
     "form": "Weierstrass",
@@ -41,11 +85,63 @@
   },
   "BLS12_381_SCALAR": {
     "form": "N/A",
-    "desc": "Use r from https://docs.rs/ark-bls12-381/latest/ark_bls12_381/ as the prime",
+    "desc": "https://docs.rs/ark-bls12-381/latest/ark_bls12_381/",
     "a": "0",
     "b": "0",
     "q": "73eda753299d7d483339d80809a1d80553bda402fffe5bfeffffffff00000001",
     "bitwidth": 255
+  },
+  "BLS12_381_ED": {
+    "form": "TwistedEdwards",
+    "desc": "https://docs.rs/ark-ed-on-bls12-381/latest/ark_ed_on_bls12_381/",
+    "a": "12ab655e9a2ca55660b44d1e5c37b00159aa76fed00000010a11800000000000",
+    "d": "73eda753299d7d483339d80809a1d80553bda402fffe5bfeffffffff00000000",
+    "k": "2a9318e74bfa2b48f5fd9207e6bd7fd4292d7f6d37579d2601065fd6d6343eb1",
+    "q": "73eda753299d7d483339d80809a1d80553bda402fffe5bfeffffffff00000001",
+    "bitwidth": 255
+  },
+  "BLS12_381_ED_SCALAR": {
+    "form": "N/A",
+    "desc": "https://docs.rs/ark-ed-on-bls12-381/latest/ark_ed_on_bls12_381/",
+    "a": "0",
+    "d": "0",
+    "k": "0",
+    "q": "e7db4ea6533afa906673b0101343b00a6682093ccc81082d0970e5ed6f72cb7",
+    "bitwidth": 252
+  },
+    "MNT4753": {
+    "form": "Weierstrass",
+    "desc": "https://docs.rs/ark-mnt4-753/latest/ark_mnt4_753/",
+    "a": "2",
+    "b": "1373684a8c9dcae7a016ac5d7748d3313cd8e39051c596560835df0c9e50a5b59b882a92c78dc537e51a16703ec9855c77fc3d8bb21c8d68bb8cfb9db4b8c8fba773111c36c8b1b4e8f1ece940ef9eaad265458e06372009c9a0491678ef4",
+    "q": "1c4c62d92c41110229022eee2cdadb7f997505b8fafed5eb7e8f96c97d87307fdb925e8a0ed8d99d124d9a15af79db117e776f218059db80f0da5cb537e38685acce9767254a4638810719ac425f0e39d54522cdd119f5e9063de245e8001",
+    "bitwidth": 753
+  },
+  "MNT4753_SCALAR": {
+    "form": "N/A",
+    "desc": "https://docs.rs/ark-mnt4-753/latest/ark_mnt4_753/",
+    "a": "0",
+    "b": "0",
+    "q": "1c4c62d92c41110229022eee2cdadb7f997505b8fafed5eb7e8f96c97d87307fdb925e8a0ed8d99d124d9a15af79db26c5c28c859a99b3eebca9429212636b9dff97634993aa4d6c381bc3f0057974ea099170fa13a4fd90776e240000001",
+    "bitwidth": 753
+  },
+  "MNT4753_ED": {
+    "form": "TwistedEdwards",
+    "desc": "https://docs.rs/ark-ed-on-mnt4-753/latest/ark_ed_on_mnt4_753/",
+    "a": "1c4c62d92c41110229022eee2cdadb7f997505b8fafed5eb7e8f96c97d87307fdb925e8a0ed8d99d124d9a15af79db26c5c28c859a99b3eebca9429212636b9dff97634993aa4d6c381bc3f0057974ea099170fa13a4fd90776e240000000",
+    "d": "4d8fa",
+    "k": "9b1f4",
+    "q": "1c4c62d92c41110229022eee2cdadb7f997505b8fafed5eb7e8f96c97d87307fdb925e8a0ed8d99d124d9a15af79db26c5c28c859a99b3eebca9429212636b9dff97634993aa4d6c381bc3f0057974ea099170fa13a4fd90776e240000001",
+    "bitwidth": 753
+  },
+  "MNT4753_ED_SCALAR": {
+    "form": "N/A",
+    "desc": "https://docs.rs/ark-ed-on-mnt4-753/latest/ark_ed_on_mnt4_753/",
+    "a": "0",
+    "d": "0",
+    "k": "0",
+    "q": "3898c5b25882220452045ddc59b5b6ff32ea0b71f5fdabd6fd1f2d92fb0e60ffb724bd141db1b33a249b342b5ef3b6490a08dc5d9e56d02724ae1c7684ca32bc5b518d7f9ce55d422dc9afaf4cc80d5ef4ec9727f1071a9ea9f328f16381",
+    "bitwidth": 750
   },
   "SECP256K1": {
     "form": "Weierstrass",
@@ -57,7 +153,7 @@
   },
   "SECP256K1_SCALAR": {
     "form": "N/A",
-    "desc": "Use r from https://docs.rs/ark-secp256k1/latest/ark_secp256k1/ as the prime",
+    "desc": "https://docs.rs/ark-secp256k1/latest/ark_secp256k1/",
     "a": "0",
     "b": "0",
     "q": "fffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141",
@@ -71,6 +167,14 @@
     "q": "ffffffff00000001000000000000000000000000ffffffffffffffffffffffff",
     "bitwidth": 256
   },
+  "SECP384R1": {
+    "form": "Weierstrass",
+    "desc": "https://neuromancer.sk/std/secg/secp384r1#",
+    "a": "fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffeffffffff0000000000000000fffffffc",
+    "b": "b3312fa7e23ee7e4988e056be3f82d19181d9c6efe8141120314088f5013875ac656398d8a2ed19d2a85c8edd3ec2aef",
+    "q": "fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffeffffffff0000000000000000ffffffff",
+    "bitwidth": 384
+  },
   "SECP521R1": {
     "form": "Weierstrass",
     "desc": "https://neuromancer.sk/std/secg/secp521r1",
@@ -79,39 +183,53 @@
     "q": "01ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
     "bitwidth": 521
   },
-  "MNT4753": {
+  "W_256_MONT": {
     "form": "Weierstrass",
-    "desc": "https://docs.rs/ark-mnt4-753/latest/ark_mnt4_753/",
-    "a": "2",
-    "b": "1373684a8c9dcae7a016ac5d7748d3313cd8e39051c596560835df0c9e50a5b59b882a92c78dc537e51a16703ec9855c77fc3d8bb21c8d68bb8cfb9db4b8c8fba773111c36c8b1b4e8f1ece940ef9eaad265458e06372009c9a0491678ef4",
-    "q": "1c4c62d92c41110229022eee2cdadb7f997505b8fafed5eb7e8f96c97d87307fdb925e8a0ed8d99d124d9a15af79db117e776f218059db80f0da5cb537e38685acce9767254a4638810719ac425f0e39d54522cdd119f5e9063de245e8001",
-    "bitwidth": 753
+    "desc": "https://neuromancer.sk/std/nums/w-256-mont#",
+    "a": "ffa7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffc",
+    "b": "14e6a",
+    "q": "ffa7ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+    "bitwidth": 256
   },
-  "MNT4753_SCALAR": {
-    "form": "N/A",
-    "desc": "Use r from https://docs.rs/ark-mnt4-753/latest/ark_mnt4_753/ as the prime",
-    "a": "0",
-    "b": "0",
-    "q": "1c4c62d92c41110229022eee2cdadb7f997505b8fafed5eb7e8f96c97d87307fdb925e8a0ed8d99d124d9a15af79db26c5c28c859a99b3eebca9429212636b9dff97634993aa4d6c381bc3f0057974ea099170fa13a4fd90776e240000001",
-    "bitwidth": 753
+  "W_255_MERS": {
+    "form": "Weierstrass",
+    "desc": "https://neuromancer.sk/std/nums/w-255-mers#",
+    "a": "7ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffd00",
+    "b": "7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffab46",
+    "q": "7ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffd03",
+    "bitwidth": 256
   },
-  "BLS12_377_ED": {
-    "form": "TwistedEdwards",
-    "desc": "https://docs.rs/ark-ed-on-bls12-377/latest/ark_ed_on_bls12_377/",
-    "a": "12ab655e9a2ca55660b44d1e5c37b00159aa76fed00000010a11800000000000",
-    "d": "bcd",
-    "k": "179a",
-    "q": "12ab655e9a2ca55660b44d1e5c37b00159aa76fed00000010a11800000000001",
-    "bitwidth": 253
+  "W_384_MONT": {
+    "form": "Weierstrass",
+    "desc": "https://neuromancer.sk/std/nums/w-384-mont",
+    "a": "b0fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffc",
+    "b": "6c96",
+    "q": "b0ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+    "bitwidth": 384
   },
-  "MNT4753_ED": {
-    "form": "TwistedEdwards",
-    "desc": "https://docs.rs/ark-ed-on-mnt4-753/latest/ark_ed_on_mnt4_753/",
-    "a": "1c4c62d92c41110229022eee2cdadb7f997505b8fafed5eb7e8f96c97d87307fdb925e8a0ed8d99d124d9a15af79db26c5c28c859a99b3eebca9429212636b9dff97634993aa4d6c381bc3f0057974ea099170fa13a4fd90776e240000000",
-    "d": "4d8fa",
-    "k": "9b1f4",
-    "q": "1c4c62d92c41110229022eee2cdadb7f997505b8fafed5eb7e8f96c97d87307fdb925e8a0ed8d99d124d9a15af79db26c5c28c859a99b3eebca9429212636b9dff97634993aa4d6c381bc3f0057974ea099170fa13a4fd90776e240000001",
-    "bitwidth": 753
+  "W_383_MERS": {
+    "form": "Weierstrass",
+    "desc": "https://neuromancer.sk/std/nums/w-383-mers",
+    "a": "7ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe58",
+    "b": "17dbc",
+    "q": "7ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe5b",
+    "bitwidth": 383
+  },
+  "W_512_MONT": {
+    "form": "Weierstrass",
+    "desc": "https://neuromancer.sk/std/nums/w-512-mont",
+    "a": "fe14fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffc",
+    "b": "185ed",
+    "q": "fe14ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+    "bitwidth": 512
+  },
+  "W_511_MERS": {
+    "form": "Weierstrass",
+    "desc": "https://neuromancer.sk/std/nums/w-511-mers",
+    "a": "7ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe1c",
+    "b": "879da",
+    "q": "7ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe1f",
+    "bitwidth": 511
   },
   "ED25519": {
     "form": "TwistedEdwards",
@@ -131,6 +249,24 @@
     "q": "fffffffffffffffffffffffffffffffffffffffffffffffffffffffeffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
     "bitwidth": 448
   },
+  "ED_256_MONT": {
+    "form": "TwistedEdwards",
+    "desc": "https://neuromancer.sk/std/nums/ed-256-mont#",
+    "a": "ffa7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe",
+    "d": "350a",
+    "k": "6a14",
+    "q": "ffa7ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+    "bitwidth": 256
+  },
+  "ED_255_MERS": {
+    "form": "TwistedEdwards",
+    "desc": "https://neuromancer.sk/std/nums/ed-255-mers#",
+    "a": "7ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffd02",
+    "d": "ea97",
+    "k": "1d52e",
+    "q": "7ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffd03",
+    "bitwidth": 255
+  },
   "ED_384_MONT": {
     "form": "TwistedEdwards",
     "desc": "Curve from https://eprint.iacr.org/2014/130.pdf. No generator present.",
@@ -139,6 +275,15 @@
     "k": "de2e",
     "q": "b0ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
     "bitwidth": 384
+  },
+  "ED_383_MERS": {
+    "form": "TwistedEdwards",
+    "desc": "https://neuromancer.sk/std/nums/ed-383-mers",
+    "a": "7ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe5a",
+    "d": "7fed6",
+    "k": "ffdac",
+    "q": "7ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe5b",
+    "bitwidth": 383
   },
   "ED_511_MERS": {
     "form": "TwistedEdwards",
