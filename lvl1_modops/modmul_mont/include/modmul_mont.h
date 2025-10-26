@@ -4,6 +4,7 @@
 #include "primitives.h"
 #include "mul_f.h"
 #include "sq_f.h"
+#include "cmul_f.h"
 
 wide_t modmul_mont_core(
     const wide_t x, const wide_t y,

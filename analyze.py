@@ -403,6 +403,7 @@ if __name__ == "__main__":
     parser.add_argument("--freq", action="store_true", help="show freq metrics")
     parser.add_argument("--period", type=str, help="Filter results by clock period value")
     parser.add_argument("--curve", type=str, help="Filter results by curve type")
+    parser.add_argument("--bitwidth", type=int, help="Filter results by bitwidth")
     parser.add_argument("--no-syn", action="store_true", help="Do not include synthesis results")
     args = parser.parse_args()
 
@@ -451,6 +452,14 @@ if __name__ == "__main__":
         tot_ctime = get_tot(all_metrics, "ctime_raw")
         all_metrics = drop_column(all_metrics, "ctime_raw")
 
+        # filter out test only and verify solutions, keep only top level
+        all_metrics = [
+            row for row in all_metrics \
+                if not str(row.get('sol')).startswith("verify") and \
+                   not str(row.get('sol')).startswith("test_only") and \
+                   not str(row.get('sol')).startswith("comb_check")
+            ]
+
         # Filter by period as float if requested
         if args.period:
             try:
@@ -462,6 +471,9 @@ if __name__ == "__main__":
         # Filter by curve type if requested
         if args.curve:
             all_metrics = [row for row in all_metrics if str(row.get('curve_type')) == args.curve]
+
+        if args.bitwidth:
+            all_metrics = [row for row in all_metrics if int(row.get('bitwidth')) == args.bitwidth]
 
         if args.freq:
             all_metrics = drop_column(all_metrics, "target_period")

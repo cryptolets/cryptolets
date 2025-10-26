@@ -3,17 +3,17 @@
 #if PREC_TYPE == SINGLE_PREC
 // Mont Reduction helper function
 inline wide_t mont_reduction(wide_2x_t t, const wide_t q, const wide_t q_prime) {
-    wide_t t_red = t.slc<BITWIDTH>(0);      // t & (R-1)
+    wide_t t_red = t.slc<BITWIDTH>(0); // t & (R-1)
 
     // (t_red * q_prime) & (R-1)
 #if REDC_TYPE == FIXED_RC
-    wide_t m_red = (t_red * Q_PRIME).slc<BITWIDTH>(0); // compile to constant multiplier
+    wide_t m_red = cmul_q_prime(t_red); // compile to constant multiplier
 #else
     wide_t m_red = mul_f(t_red, q_prime);
 #endif
 
 #if Q_TYPE == FIXED_Q
-    wide_2x_t mq = m_red * Q; // compile to constant multiplier
+    wide_2x_t mq = cmul_q(m_red); // compile to constant multiplier
 #else
     wide_2x_t mq = mul_f(m_red, q);
 #endif
@@ -37,21 +37,21 @@ wide_t modsq_mont_core(const wide_t x, const wide_t q, const wide_t q_prime) {
 // special case where we are multiplying by a const
 #ifdef FIELD_A_MONT_HEX
     wide_t cmodmul_a_mont_core(const wide_t x, const wide_t q, const wide_t q_prime) {
-        wide_2x_t t = x * FIELD_A_MONT; // compile to constant multiplier
+        wide_2x_t t = cmul_field_a_mont(x); // compile to constant multiplier
         return mont_reduction(t, q, q_prime);
     }
 #endif
 
 #ifdef FIELD_D_MONT_HEX
     wide_t cmodmul_d_mont_core(const wide_t x, const wide_t q, const wide_t q_prime) {
-        wide_2x_t t = x * FIELD_D_MONT; // compile to constant multiplier
+        wide_2x_t t = cmul_field_d_mont(x); // compile to constant multiplier
         return mont_reduction(t, q, q_prime);
     }
 #endif
 
 #ifdef FIELD_K_MONT_HEX
     wide_t cmodmul_k_mont_core(const wide_t x, const wide_t q, const wide_t q_prime) {
-        wide_2x_t t = x * FIELD_K_MONT; // compile to constant multiplier
+        wide_2x_t t = cmul_field_k_mont(x); // compile to constant multiplier
         return mont_reduction(t, q, q_prime);
     }
 #endif

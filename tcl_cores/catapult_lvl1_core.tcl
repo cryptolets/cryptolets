@@ -28,7 +28,7 @@ set SWEEP_KEY $env(SWEEP_KEY)
 set KERNEL_DIR [file join $ROOT_DIR $LVL_DIR $KERNEL_NAME]
 set WORK_DIR [enter_work_dir] ;# move to a lvl_dir/kernel/Catapult as working dir
 
-assert {!(($CCORE_TOP && $TEST) || $CCORE_TOP && $SIM)} "top cannot be ccore for sim or test"
+# assert {!(($CCORE_TOP && $TEST) || $CCORE_TOP && $SIM)} "top cannot be ccore for sim or test"
 assert {!($CCORE_TOP && $PREC_TYPE eq "MULTI_PREC")} "top cannot be ccore for multi-precision"
 
 set TEST [expr {$SIM || $TEST}]
@@ -43,10 +43,12 @@ set sol_name $KERNEL_NAME
 open_or_create_proj $proj_name
 puts "\n=== Starting project $proj_name ==="
 
+del_existing_table $table_name
+
 set json_file [gen_field_consts]
 set tmp_params_h_dir [gen_tmp_params_h $config_params $json_file $CURVE_TYPE]
 
-open_or_create_solution $sol_name
+solution rename "test_only_$sol_name"
 puts "  -> Opening solution: $sol_name"
 
 set include_dirs {
@@ -65,12 +67,10 @@ go analyze
 
 # Set design tops
 solution design set $KERNEL_NAME -top
-if {$CCORE_TOP} {
-    solution design set $KERNEL_NAME -ccore 
-    directive set -CCORE_TYPE sequential
-    directive set -OUTPUT_REGISTERS false
-}
 go compile
+
+directive set -CCORE_TYPE sequential
+directive set -OUTPUT_REGISTERS false
 
 run_osci_test $CURVE_TYPE
 if {$TEST_ONLY} { exit 0 }
@@ -87,13 +87,4 @@ if {$PREC_TYPE eq "SINGLE_PREC"} {
 directive set -DESIGN_GOAL latency
 go schedule
 
-if {$CCORE_TOP} { branch_if_ccore_comb $KERNEL_NAME }
-
-go extract
-project save
-solution table export -file [file join $WORK_DIR $table_name]
-run_scverify
-run_syn $TECH_TYPE
-
-solution table export -file [file join $WORK_DIR $table_name]
-project save
+extract_verify_syn_save

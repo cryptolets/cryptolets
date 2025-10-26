@@ -1,5 +1,5 @@
 # Sweep parameters for Twisted Edwards Point Addition
-BITWIDTH: [255, 253]
+BITWIDTH: [255]
 # 64, 96, 128, 192, 254, 255, 256, 377, 381, 384, 448, 511, 512, 753, 768
 
 
@@ -17,7 +17,7 @@ MODMUL_TYPE: [MODMUL_TYPE_MONT, MODMUL_TYPE_BARRETT] # MODMUL_TYPE_MONT, MODMUL_
 # RAND_CURVE
 # a=-1 : ED25519, BLS12_377_ED, ED_384_MONT, ED_511_MERS, ED_512_MONT, MNT4753_ED
 # variable 1 = ED448
-CURVE_TYPE: [RAND_CURVE, ED25519, BLS12_377_ED]
+CURVE_TYPE: [RAND_CURVE, ED25519]
 
 PREC_TYPE: [SINGLE_PREC]  # SINGLE_PREC, MULTI_PREC
 CCORE_PERIOD_RATIO: [1]
@@ -85,7 +85,9 @@ TEST_ONLY: false    # only test C++ code with osci
 NUM_TEST_SAMPLES: 1000
 CCORE_MUL_F: false  # make mul_f ccore, false = more compile time, better design latency
 CCORE_MODADDSUB: false # make modadd,modsub,moddouble ccore, false = more compile time, better design latency
-CCORE_MODMUL: true   # false is good for multi-prec
+CCORE_MODMUL: true   # false is needed for multi-prec
+CCORE_CMUL: true
+CCORE_TOP: false
 
 # Defines order of params before project split
 SWEEP_ORDER: [

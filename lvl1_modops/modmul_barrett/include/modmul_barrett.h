@@ -4,6 +4,7 @@
 #include "primitives.h"
 #include "mul_f.h"
 #include "sq_f.h"
+#include "cmul_f.h"
 
 wide_t modmul_barrett_core(
     const wide_t x, const wide_t y,
@@ -14,7 +15,6 @@ wide_t modsq_barrett_core(
     const wide_t x, 
     const wide_t q, const wide_2x_t mu
 );
-
 
 // special case where we are multiplying by a const
 #ifdef FIELD_A_HEX

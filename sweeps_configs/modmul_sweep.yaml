@@ -7,7 +7,7 @@ TARGET_PERIOD: [1]  # in ns
 MUL_TYPE: [MUL_SCHOOLBOOK] # MUL_NORMAL, MUL_SCHOOLBOOK, MUL_KARATSUBA
 Q_TYPE: [FIXED_Q, VAR_Q] # VAR_Q, FIXED_Q
 REDC_TYPE: [FIXED_RC, VAR_RC] # VAR_RC, FIXED_RC
-CURVE_TYPE: [BN254_SCALAR, BLS12_377_SCALAR, BLS12_381_SCALAR]
+CURVE_TYPE: [BN254, RAND_CURVE]
 PREC_TYPE: [SINGLE_PREC]  # SINGLE_PREC, MULTI_PREC
 CCORE_PERIOD_RATIO: [1]
 
@@ -18,7 +18,7 @@ BASE_MUL_WIDTH:
   24: [24]
   32: [32]
   48: [48]
-  64: [64]
+  64: [16]
   96: [48]
   128: [64]
   192: [48]
@@ -44,7 +44,7 @@ KAR_BASE_MUL_WIDTH:
   24: [12]
   32: [16]
   48: [24]
-  64: [32]
+  64: [32, 16]
   96: [48, 24]
   128: [64, 32]
   192: [96, 48]
@@ -69,8 +69,9 @@ SYN: false
 TEST: true          # test C++ code
 TEST_ONLY: false    # only test C++ code with osci
 NUM_TEST_SAMPLES: 1000
-CCORE_TOP: false    # cannot be true when SIM or TEST are true
+CCORE_TOP: false
 CCORE_MUL_F: false  # make mul_f ccore, false = more compile time, better design latency
+CCORE_CMUL: false  # this needs to be true, other wise some adder trees get turned into sequential adds, massively hurting latency
 
 # Defines order of params before project split
 SWEEP_ORDER: [

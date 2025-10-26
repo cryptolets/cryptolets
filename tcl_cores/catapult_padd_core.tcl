@@ -21,6 +21,8 @@ set NUM_TEST_SAMPLES $env(NUM_TEST_SAMPLES)
 set CCORE_MUL_F $env(CCORE_MUL_F)
 set CCORE_MODADDSUB $env(CCORE_MODADDSUB)
 set CCORE_MODMUL $env(CCORE_MODMUL)
+set CCORE_CMUL $env(CCORE_CMUL)
+set CCORE_TOP $env(CCORE_TOP)
 
 # run config
 set THREADS_PER_PROCESS $env(THREADS_PER_PROCESS)
@@ -52,10 +54,22 @@ set HAS_CMODMUL_K [expr {
     ($KERNEL_NAME eq "point_add_te" && $FIELD_A eq "ANEG1")
 }]
 
+set HAS_CMUL_Q [expr {$CCORE_CMUL && ($Q_TYPE eq "FIXED_Q")}]
+set HAS_CMUL_Q_PRIME [expr {
+    $CCORE_CMUL && ($MODMUL_TYPE eq "MODMUL_TYPE_MONT") && 
+    ($REDC_TYPE eq "FIXED_RC")
+}]
+set HAS_CMUL_MU [expr {
+    ($CCORE_CMUL && $MODMUL_TYPE eq "MODMUL_TYPE_BARRETT") && 
+    ($REDC_TYPE eq "FIXED_RC")
+}]
+
 if {$MODMUL_TYPE eq "MODMUL_TYPE_BARRETT"} {
     set modmul_suffix "barrett"
+    set cmul_suffix ""
 } else {
     set modmul_suffix "mont"
+    set cmul_suffix "_mont"
 }
 
 override_default_options ;# Reset tool options
@@ -63,7 +77,6 @@ override_default_options ;# Reset tool options
 set proj_name "Catapult_${SWEEP_KEY}"
 set table_name "table_${SWEEP_KEY}.csv"
 set sol_name $KERNEL_NAME
-set sol_name_test_only "${sol_name}_test_only"
 
 open_or_create_proj $proj_name
 puts "\n=== Starting project $proj_name ==="
@@ -71,13 +84,14 @@ puts "\n=== Starting project $proj_name ==="
 set json_file [gen_field_consts $FIELD_A]
 set tmp_params_h_dir [gen_tmp_params_h $config_params $json_file $CURVE_TYPE]
 
-open_or_create_solution $sol_name_test_only
-puts "  -> Opening solution: $sol_name_test_only"
+solution rename "test_only_$sol_name"
+puts "  -> Opening solution: $sol_name"
 
 set include_dirs {
     utils/include
     lvl0_primitives/mul_f/include
     lvl0_primitives/sq_f/include
+    lvl0_primitives/cmul_f/include
     lvl1_modops/modadd/include
     lvl1_modops/modsub/include
     lvl1_modops/include
@@ -96,6 +110,7 @@ solution file add $KERNEL_DIR/src/${KERNEL_NAME}_tb.cpp -exclude true
 solution file add [file join $ROOT_DIR utils/src/csvparser.cpp] -exclude true
 solution file add [file join $ROOT_DIR lvl0_primitives/mul_f/src/mul_f.cpp]
 solution file add [file join $ROOT_DIR lvl0_primitives/sq_f/src/sq_f.cpp]
+solution file add [file join $ROOT_DIR lvl0_primitives/cmul_f/src/cmul_f.cpp]
 solution file add [file join $ROOT_DIR lvl1_modops/modadd/src/modadd.cpp]
 solution file add [file join $ROOT_DIR lvl1_modops/modsub/src/modsub.cpp]
 solution file add [file join $ROOT_DIR lvl1_modops/modmul_mont/src/modmul_mont.cpp]
@@ -118,6 +133,61 @@ directive set -DESIGN_GOAL latency
 directive set -CCORE_TYPE sequential
 directive set -OUTPUT_REGISTERS false
 set_tech_lib $TECH_TYPE ;# set libraries
+
+proc cmul_op_run { cmul_op cmul_period} {
+    global BITWIDTH
+
+    set cmul_op_sol_name "${cmul_op}"
+    if {[catch {project get /SOLUTION/$cmul_op_sol_name.v* -match glob} err]} {
+        go new
+        set_clock $cmul_period
+        solution design set $cmul_op -top -ccore
+        solution rename $cmul_op_sol_name
+        go compile
+        directive set /$cmul_op -CLUSTER addtree
+        go schedule
+        branch_if_ccore_comb $cmul_op 
+        go extract
+        project save
+
+        return "[solution get /name].[solution get /VERSION]"
+    } else {
+        set l [project get /SOLUTION/$cmul_op_sol_name.v*/VERSION -match glob]
+        return "${cmul_op_sol_name}.[lindex $l [expr [llength $l] - 1]]"
+    }
+}
+
+set cmul_period [expr $TARGET_PERIOD * $CCORE_PERIOD_RATIO]
+
+if {$HAS_CMUL_Q} {
+    set cmul_q_sol [cmul_op_run cmul_q $cmul_period]
+    solution table export -file [file join $WORK_DIR $table_name]
+}
+
+if {$HAS_CMUL_Q_PRIME} {
+    set cmul_q_prime_sol [cmul_op_run cmul_q_prime $cmul_period]
+    solution table export -file [file join $WORK_DIR $table_name]
+}
+
+if {$HAS_CMUL_MU} {
+    set cmul_mu_sol [cmul_op_run cmul_mu $cmul_period]
+    solution table export -file [file join $WORK_DIR $table_name]
+}
+
+if {$HAS_CMODMUL_A} {
+    set cmul_field_a_sol [cmul_op_run "cmul_field_a${cmul_suffix}" $cmul_period]
+    solution table export -file [file join $WORK_DIR $table_name]
+}
+
+if {$HAS_CMODMUL_D} {
+    set cmul_field_d_sol [cmul_op_run "cmul_field_d${cmul_suffix}" $cmul_period]
+    solution table export -file [file join $WORK_DIR $table_name]
+}
+
+if {$HAS_CMODMUL_K} {
+    set cmul_field_k_sol [cmul_op_run "cmul_field_k${cmul_suffix}" $cmul_period]
+    solution table export -file [file join $WORK_DIR $table_name]
+}
 
 # I think it should be safe to use diff clock periods, 
 # since this is what ccore_points does
@@ -165,7 +235,10 @@ if {$CCORE_MUL_F} {
 if {$CCORE_MODMUL} {
     proc modmul_run {modmul_name mod_ops_period} {
         if {[catch {project get /SOLUTION/$modmul_name.v* -match glob} err]} {
-            global TECH_TYPE MUL_TYPE CCORE_MUL_F sq_f_sol mul_f_sol
+            global TECH_TYPE MUL_TYPE CCORE_MUL_F sq_f_sol mul_f_sol \
+                HAS_CMUL_Q HAS_CMUL_Q_PRIME HAS_CMUL_MU cmul_suffix modmul_suffix \
+                cmul_q_sol cmul_q_prime_sol cmul_mu_sol \
+                cmul_field_a_sol cmul_field_d_sol cmul_field_k_sol
 
             go new
             set_clock $mod_ops_period
@@ -176,6 +249,13 @@ if {$CCORE_MODMUL} {
                 }
                 solution design set mul_f -ccore
             }
+            if {$HAS_CMUL_Q} { solution design set "cmul_q" -ccore }
+            if {$HAS_CMUL_Q_PRIME} { solution design set "cmul_q_prime" -ccore }
+            if {$HAS_CMUL_MU} { solution design set "cmul_mu" -ccore }
+            if {$modmul_name eq "cmodmul_a_${modmul_suffix}"} { solution design set "cmul_field_a${cmul_suffix}" -ccore }
+            if {$modmul_name eq "cmodmul_d_${modmul_suffix}"} { solution design set "cmul_field_d${cmul_suffix}" -ccore }
+            if {$modmul_name eq "cmodmul_k_${modmul_suffix}"} { solution design set "cmul_field_k${cmul_suffix}" -ccore }
+
             solution rename $modmul_name
 
             go analyze
@@ -186,6 +266,12 @@ if {$CCORE_MODMUL} {
                     solution library add "\[CCORE\] $mul_f_sol"
                 }
             }
+            if {$HAS_CMUL_Q} { solution library add "\[CCORE\] $cmul_q_sol" }
+            if {$HAS_CMUL_Q_PRIME} { solution library add "\[CCORE\] $cmul_q_prime_sol" }
+            if {$HAS_CMUL_MU} { solution library add "\[CCORE\] $cmul_mu_sol" }
+            if {$modmul_name eq "cmodmul_a_${modmul_suffix}"} { solution library add "\[CCORE\] $cmul_field_a_sol" }
+            if {$modmul_name eq "cmodmul_d_${modmul_suffix}"} { solution library add "\[CCORE\] $cmul_field_d_sol" }
+            if {$modmul_name eq "cmodmul_k_${modmul_suffix}"} { solution library add "\[CCORE\] $cmul_field_k_sol" }
 
             go compile
             directive set /${modmul_name}_core -CLUSTER addtree
@@ -197,6 +283,12 @@ if {$CCORE_MODMUL} {
                 }
                 directive set /${modmul_name}_core/mul_f -MAP_TO_MODULE "\[CCORE\] $mul_f_sol"
             }
+            if {$HAS_CMUL_Q} { directive set /${modmul_name}_core/cmul_q -MAP_TO_MODULE "\[CCORE\] $cmul_q_sol" }
+            if {$HAS_CMUL_Q_PRIME} { directive set /${modmul_name}_core/cmul_q_prime -MAP_TO_MODULE "\[CCORE\] $cmul_q_prime_sol" }
+            if {$HAS_CMUL_MU} { directive set /${modmul_name}_core/cmul_mu -MAP_TO_MODULE "\[CCORE\] $cmul_mu_sol" }
+            if {$modmul_name eq "cmodmul_a_${modmul_suffix}"} { directive set "/${modmul_name}_core/cmul_field_a${cmul_suffix}" -MAP_TO_MODULE "\[CCORE\] $cmul_field_a_sol" }
+            if {$modmul_name eq "cmodmul_d_${modmul_suffix}"} { directive set "/${modmul_name}_core/cmul_field_d${cmul_suffix}" -MAP_TO_MODULE "\[CCORE\] $cmul_field_d_sol" }
+            if {$modmul_name eq "cmodmul_k_${modmul_suffix}"} { directive set "/${modmul_name}_core/cmul_field_k${cmul_suffix}" -MAP_TO_MODULE "\[CCORE\] $cmul_field_k_sol" }
 
             go architect
             remove_broken_mul_libs $TECH_TYPE
@@ -290,7 +382,7 @@ if {$CCORE_MODADDSUB} {
 solution rename $sol_name
 
 go analyze
-if {$CCORE_MUL_F && $MUL_TYPE ne "MUL_NORMAL"} { 
+if {$CCORE_MUL_F && $MUL_TYPE ne "MUL_NORMAL"} {
     solution library add "\[CCORE\] $mul_f_sol" 
 }
 if {$HAS_MODSQ} {
@@ -318,7 +410,12 @@ if {$CCORE_MODADDSUB} {
     solution library add "\[CCORE\] $modsub_sol"
     solution library add "\[CCORE\] $moddouble_sol"
 }
-
+if {$HAS_CMUL_Q} { solution library add "\[CCORE\] $cmul_q_sol" }
+if {$HAS_CMUL_Q_PRIME} { solution library add "\[CCORE\] $cmul_q_prime_sol" }
+if {$HAS_CMUL_MU} { solution library add "\[CCORE\] $cmul_mu_sol" }
+if {$HAS_CMODMUL_A} { solution library add "\[CCORE\] $cmul_field_a_sol" }
+if {$HAS_CMODMUL_D} { solution library add "\[CCORE\] $cmul_field_d_sol" }
+if {$HAS_CMODMUL_K} { solution library add "\[CCORE\] $cmul_field_k_sol" }
 
 go libraries
 if {$CCORE_MODMUL} {
@@ -334,11 +431,4 @@ if {$CCORE_MODADDSUB} {
     directive set /$KERNEL_NAME/moddouble_core -MAP_TO_MODULE "\[CCORE\] $moddouble_sol"
 }
 
-go extract
-project save
-solution table export -file [file join $WORK_DIR $table_name]
-run_scverify
-run_syn $TECH_TYPE
-
-solution table export -file [file join $WORK_DIR $table_name]
-project save
+extract_verify_syn_save

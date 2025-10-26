@@ -108,15 +108,25 @@ proc open_or_create_proj {proj_name} {
     project save
 }
 
-# Solution handling
-proc open_or_create_solution {sol_name} {
-    if {[catch {solution new -state new $sol_name} err]} {
-        puts "Creating new solution: $sol_name"
-        solution new $sol_name
-    } else {
-        puts "Opened existing solution: $sol_name"
+proc del_existing_table {table_name} {
+    global WORK_DIR
+    set table_file [file join $WORK_DIR "${table_name}"]
+
+    if {[file exists $table_file]} {
+        puts "Removing existing table file: $table_file"
+        file delete -force $table_file
     }
 }
+
+# # Solution handling
+# proc open_or_create_solution {sol_name} {
+#     if {[catch {solution new -state new $sol_name} err]} {
+#         puts "Creating new solution: $sol_name"
+#         solution new $sol_name
+#     } else {
+#         puts "Opened existing solution: $sol_name"
+#     }
+# }
 
 # Clock constraints
 proc set_clock {period} {
@@ -250,6 +260,42 @@ proc run_osci_test {{CURVE_TYPE ""} {MODMUL_TYPE ""}} {
     }
 }
 
+# This logic is because if we make CCORE_TOP we cannot do verify
+proc extract_verify_syn_save {} {
+    global WORK_DIR KERNEL_NAME sol_name table_name \
+            SIM CCORE_TOP TECH_TYPE 
+            
+    if {$SIM} {
+        if {$CCORE_TOP} {
+            solution rename "verify_$sol_name"
+        } else {
+            solution rename $sol_name
+        }
+
+        go extract
+        project save
+        solution table export -file [file join $WORK_DIR $table_name]
+        run_scverify
+    }
+
+    if {$CCORE_TOP} {
+        go libraries
+        
+        solution rename "comb_check_$sol_name"
+        solution design set $KERNEL_NAME -ccore 
+
+        go schedule
+        branch_if_ccore_comb $KERNEL_NAME
+
+        solution rename $sol_name
+        go extract
+    }
+
+    run_syn $TECH_TYPE
+    solution table export -file [file join $WORK_DIR $table_name]
+    project save
+}
+
 proc run_scverify {} {
     global BITWIDTH SIM
 
@@ -350,13 +396,12 @@ proc run_syn {tech_type} {
 
 proc branch_if_ccore_comb {kernel} {
     set latency_cycles [solution get /DATUM/FIELDS/timing/COLUMNS/tm_latency_cycles/VALUE]
+
     if {$latency_cycles == 0} {
-        set old_sol "[solution get /name].[solution get /VERSION]"
         # for combinational
         go libraries
         solution design set $kernel -combinational
         go architect
-        # solution remove -solution $old_sol -delete ;# commented because causes problems with loading proj
     }
 }
 
@@ -382,43 +427,47 @@ proc remove_broken_mul_libs { tech_type } {
     if {$tech_type eq "gf12" || $tech_type eq "45nm" || $tech_type eq "saed32" || $tech_type eq "saed14"} {
         # Don't use mgc_mul or mgc_sqr > 64b, up till 2999b
         for {set i 7} {$i <= 9} {incr i 1} {
-            directive set "/.../*mgc_mul(${i}?,*)" -match glob -QUANTITY 0
-            directive set "/.../*mgc_sqr(${i}?,*)" -match glob -QUANTITY 0
-            directive set "/.../*mgc_mul_pipe(${i}?,*,2,0,1)" -match glob -QUANTITY 0
-            directive set "/.../*mgc_sqr_pipe(${i}?,*,2,0,1)" -match glob -QUANTITY 0
+            for {set j 0} {$j <= 9} {incr j 1} {
+                directive set "/.../*mgc_mul(${i}${j},*)" -match glob -QUANTITY 0
+                directive set "/.../*mgc_sqr(${i}${j},*)" -match glob -QUANTITY 0
+                directive set "/.../*mgc_mul_pipe(${i}${j},*,2,0,1)" -match glob -QUANTITY 0
+                directive set "/.../*mgc_sqr_pipe(${i}${j},*,2,0,1)" -match glob -QUANTITY 0
 
-            if {$tech_type eq "45nm"} {
-                directive set "/.../*mgc_mul_pipe(${i}?,*,2,0,2)" -match glob -QUANTITY 0
-                directive set "/.../*mgc_sqr_pipe(${i}?,*,2,0,2)" -match glob -QUANTITY 0
+                if {$tech_type eq "45nm"} {
+                    directive set "/.../*mgc_mul_pipe(${i}${j},*,2,0,2)" -match glob -QUANTITY 0
+                    directive set "/.../*mgc_sqr_pipe(${i}${j},*,2,0,2)" -match glob -QUANTITY 0
+                }
             }
         }
-
-        for {set i 1} {$i <= 9} {incr i 1} {
-            directive set "/.../*mgc_mul(${i}??,*)" -match glob -QUANTITY 0
-            directive set "/.../*mgc_sqr(${i}??,*)" -match glob -QUANTITY 0
-            directive set "/.../*mgc_mul_pipe(${i}??,*,2,0,1)" -match glob -QUANTITY 0
-            directive set "/.../*mgc_sqr_pipe(${i}??,*,2,0,1)" -match glob -QUANTITY 0
-
-            if {$tech_type eq "45nm"} {
-                directive set "/.../*mgc_mul_pipe(${i}??,*,2,0,2)" -match glob -QUANTITY 0
-                directive set "/.../*mgc_sqr_pipe(${i}??,*,2,0,2)" -match glob -QUANTITY 0
-            }
-        }
-
-        directive set "/.../*mgc_mul(1???,*)" -match glob -QUANTITY 0
-        directive set "/.../*mgc_mul(2???,*)" -match glob -QUANTITY 0
-        directive set "/.../*mgc_sqr(1???,*)" -match glob -QUANTITY 0
-        directive set "/.../*mgc_sqr(2???,*)" -match glob -QUANTITY 0
-        directive set "/.../*mgc_mul_pipe(1???,*,2,0,1)" -match glob -QUANTITY 0
-        directive set "/.../*mgc_mul_pipe(2???,*,2,0,1)" -match glob -QUANTITY 0
-        directive set "/.../*mgc_sqr_pipe(1???,*,2,0,1)" -match glob -QUANTITY 0
-        directive set "/.../*mgc_sqr_pipe(2???,*,2,0,1)" -match glob -QUANTITY 0
         
-        if {$tech_type eq "45nm"} {
-            directive set "/.../*mgc_mul_pipe(1???,*,2,0,2)" -match glob -QUANTITY 0
-            directive set "/.../*mgc_mul_pipe(2???,*,2,0,2)" -match glob -QUANTITY 0
-            directive set "/.../*mgc_sqr_pipe(1???,*,2,0,2)" -match glob -QUANTITY 0
-            directive set "/.../*mgc_sqr_pipe(2???,*,2,0,2)" -match glob -QUANTITY 0
+        for {set i 0} {$i <= 9} {incr i 1} {
+            for {set j 0} {$j <= 9} {incr j 1} {
+                directive set "/.../*mgc_mul(${i}?${j},*)" -match glob -QUANTITY 0
+                directive set "/.../*mgc_sqr(${i}?${j},*)" -match glob -QUANTITY 0
+                directive set "/.../*mgc_mul_pipe(${i}?${j},*,2,0,1)" -match glob -QUANTITY 0
+                directive set "/.../*mgc_sqr_pipe(${i}?${j},*,2,0,1)" -match glob -QUANTITY 0
+
+                if {$tech_type eq "45nm"} {
+                    directive set "/.../*mgc_mul_pipe(${i}?${j},*,2,0,2)" -match glob -QUANTITY 0
+                    directive set "/.../*mgc_sqr_pipe(${i}?${j},*,2,0,2)" -match glob -QUANTITY 0
+                }
+
+                directive set "/.../*mgc_mul(1?${i}${j},*)" -match glob -QUANTITY 0
+                directive set "/.../*mgc_mul(2?${i}${j},*)" -match glob -QUANTITY 0
+                directive set "/.../*mgc_sqr(1?${i}${j},*)" -match glob -QUANTITY 0
+                directive set "/.../*mgc_sqr(2?${i}${j},*)" -match glob -QUANTITY 0
+                directive set "/.../*mgc_mul_pipe(1?${i}${j},*,2,0,1)" -match glob -QUANTITY 0
+                directive set "/.../*mgc_mul_pipe(2?${i}${j},*,2,0,1)" -match glob -QUANTITY 0
+                directive set "/.../*mgc_sqr_pipe(1?${i}${j},*,2,0,1)" -match glob -QUANTITY 0
+                directive set "/.../*mgc_sqr_pipe(2?${i}${j},*,2,0,1)" -match glob -QUANTITY 0
+                
+                if {$tech_type eq "45nm"} {
+                    directive set "/.../*mgc_mul_pipe(1?${i}${j},*,2,0,2)" -match glob -QUANTITY 0
+                    directive set "/.../*mgc_mul_pipe(2?${i}${j},*,2,0,2)" -match glob -QUANTITY 0
+                    directive set "/.../*mgc_sqr_pipe(1?${i}${j},*,2,0,2)" -match glob -QUANTITY 0
+                    directive set "/.../*mgc_sqr_pipe(2?${i}${j},*,2,0,2)" -match glob -QUANTITY 0
+                }
+            }
         }
     }
 }

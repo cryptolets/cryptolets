@@ -43,8 +43,8 @@ lines = ["#ifndef TMP_PARAMS_H", "#define TMP_PARAMS_H", ""]
 # Automated q_prime, mu, all mont transformations
 # so we don't have to define it everywhere manually
 
-q = int(consts.get("q"), 16)
-bitwidth = consts.get("bitwidth")
+q = int(consts.get("q", "1"), 16)
+curve_bitwidth = consts.get("bitwidth", None)
 
 for k in FIELD_CONTS:
     v = consts.get(k, "0")
@@ -52,8 +52,11 @@ for k in FIELD_CONTS:
     lines.append(f'#define FIELD_{k.upper()}_HEX "{v}"')
     lines.append(f'#define FIELD_{k.upper()}_MONT_HEX "{v_mont}"')
 
-q_prime = get_q_prime(q, bitwidth)
-mu = get_mu(q, bitwidth)
+if curve_bitwidth:
+    q_prime = get_q_prime(q, curve_bitwidth)
+    mu = get_mu(q, curve_bitwidth)
+else:
+    q_prime, mu = 0, 0
 
 lines.append(f'#define Q_HEX "{to_hex(q)}"')
 lines.append(f'#define Q_PRIME_HEX "{to_hex(q_prime)}"')

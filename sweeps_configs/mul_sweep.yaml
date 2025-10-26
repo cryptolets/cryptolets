@@ -1,5 +1,5 @@
 # Sweep parameters
-BITWIDTH: [8192]
+BITWIDTH: [254]
 # 64, 96, 128, 192, 254, 255, 256, 377, 381, 384, 448, 511, 512, 521, 753, 768
 WBW: [16, 32, 64, 128]
 TECH_TYPE: [gf12]  # gf12 45nm saed32 fpga fpgahbm fpgahbmvhk158
@@ -70,7 +70,7 @@ SYN: false
 TEST: true          # test C++ code
 TEST_ONLY: false    # only test C++ code with osci
 NUM_TEST_SAMPLES: 1000
-CCORE_TOP: false    # cannot be true when SIM or TEST are true
+CCORE_TOP: true    # cannot be true when SIM or TEST are true
 
 # Defines order of params before project split
 SWEEP_ORDER: [

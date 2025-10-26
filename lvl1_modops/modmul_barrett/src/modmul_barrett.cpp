@@ -4,13 +4,13 @@
 wide_t barrett_reduction(wide_2x_t t, const wide_t q, const wide_2x_t mu) {
 
 #if REDC_TYPE == FIXED_RC
-    wide_t m_red = (t * MU).slc<BITWIDTH>(2 * BITWIDTH); // compile to constant multiplier
+    wide_t m_red = cmul_mu(t);
 #else
     wide_t m_red = mul_f_gen<2*BITWIDTH>(t, mu).slc<BITWIDTH>(2 * BITWIDTH);
 #endif
 
 #if Q_TYPE == FIXED_Q 
-    wide_2x_t mq = m_red * Q; // compile to constant multiplier
+    wide_2x_t mq = cmul_q(m_red);
 #else
     wide_2x_t mq = mul_f(m_red, q);
 #endif
@@ -43,21 +43,21 @@ wide_t modsq_barrett_core(const wide_t x, const wide_t q, const wide_2x_t mu) {
 // special case where we are multiplying by a const
 #ifdef FIELD_A_HEX
     wide_t cmodmul_a_barrett_core(const wide_t x, const wide_t q, const wide_2x_t mu) {
-        wide_2x_t t = x * FIELD_A_INT; // compile to constant multiplier
+        wide_2x_t t = cmul_field_a(x); // compile to constant multiplier
         return barrett_reduction(t, q, mu);
     }
 #endif
 
 #ifdef FIELD_D_HEX
     wide_t cmodmul_d_barrett_core(const wide_t x, const wide_t q, const wide_2x_t mu) {
-        wide_2x_t t = x * FIELD_D_INT; // compile to constant multiplier
+        wide_2x_t t = cmul_field_d(x); // compile to constant multiplier
         return barrett_reduction(t, q, mu);
     }
 #endif
 
 #ifdef FIELD_K_HEX
     wide_t cmodmul_k_barrett_core(const wide_t x, const wide_t q, const wide_2x_t mu) {
-        wide_2x_t t = x * FIELD_K_INT; // compile to constant multiplier
+        wide_2x_t t = cmul_field_k(x); // compile to constant multiplier
         return barrett_reduction(t, q, mu);
     }
 #endif

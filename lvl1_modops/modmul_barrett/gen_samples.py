@@ -7,14 +7,14 @@ from pathlib import Path
 
 import sys
 sys.path.append(str(Path(__file__).resolve().parents[2]))
-from utils.field_helpers import get_field_const
+from utils.field_helpers import get_field_const, get_mu
 
 def modmul_barrett_ref(a, b, q):
     return (a * b) % q
 
 def generate_samples(bitwidth, total_samples, curve_type, json_file, seed=42):
     q = get_field_const(curve_type, "q", json_file)
-    mu = get_field_const(curve_type, "mu", json_file)
+    mu = get_mu(q, bitwidth)
     
     max_val = ((1 << bitwidth) - 1) % q
     mid_val = (max_val // 2) % q
