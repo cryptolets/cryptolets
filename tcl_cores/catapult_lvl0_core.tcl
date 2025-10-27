@@ -4,7 +4,7 @@ set ROOT_DIR [file normalize [file join [file dirname [info script]] ..]]
 source [file join $ROOT_DIR utils util.tcl] ;# Import utilities
 
 # parameter names
-set config_params {PREC_TYPE TECH_TYPE TARGET_PERIOD TARGET_II BITWIDTH WBW MASK_BITS}
+set config_params {PREC_TYPE TECH_TYPE CMUL_TYPE TARGET_PERIOD TARGET_II BITWIDTH WBW MASK_BITS}
 assign_from_env $config_params
 
 # control flags
@@ -27,7 +27,6 @@ set json_file ""
 set KERNEL_DIR [file join $ROOT_DIR $LVL_DIR $KERNEL_NAME]
 set WORK_DIR [enter_work_dir] ;# move to a lvl_dir/kernel/Catapult as working dir
 
-# assert {!(($CCORE_TOP && $TEST) || $CCORE_TOP && $SIM)} "top cannot be ccore for sim or test"
 assert {!($CCORE_TOP && $PREC_TYPE eq "MULTI_PREC")} "top cannot be ccore for multi-precision"
 
 set TEST [expr {$SIM || $TEST}]
@@ -74,15 +73,20 @@ go analyze
 
 # Set design tops
 solution design set $KERNEL_NAME -top
+if {$PREC_TYPE eq "SINGLE_PREC"} {
+    directive set -PIPELINE_INIT_INTERVAL $TARGET_II
+}
+directive set -DESIGN_GOAL latency
 directive set -CCORE_TYPE sequential
 directive set -OUTPUT_REGISTERS false
 directive set -OPT_CONST_MULTS full
-directive set -CLUSTER_FAST_MODE true
+# directive set -CLUSTER_FAST_MODE true
 go compile
 
-if {$KERNEL_NAME eq "cmul_f"} {
-    directive set /$KERNEL_NAME -CLUSTER addtree
-}
+# if {$KERNEL_NAME eq "cmul_f"} {
+#     # directive set /$KERNEL_NAME -CLUSTER addtree
+#     # directive set /$KERNEL_NAME -CLUSTER_TYPE sequential
+# }
 
 run_osci_test $CURVE_TYPE
 if {$TEST_ONLY} { exit 0 }
@@ -93,10 +97,6 @@ go libraries
 set_clock $TARGET_PERIOD
 go assembly
 
-if {$PREC_TYPE eq "SINGLE_PREC"} {
-    directive set -PIPELINE_INIT_INTERVAL $TARGET_II
-}
-directive set -DESIGN_GOAL latency
 go schedule
 
 extract_verify_syn_save

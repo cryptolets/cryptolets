@@ -7,7 +7,7 @@ source [file join $ROOT_DIR utils util.tcl] ;# Import utilities
 set config_params {
     MODMUL_TYPE CURVE_TYPE FIELD_A CURVE_PARAMS_TYPE 
     REDC_TYPE Q_TYPE PREC_TYPE TECH_TYPE TARGET_PERIOD 
-    CCORE_PERIOD_RATIO MUL_TYPE TARGET_II BITWIDTH WBW MASK_BITS
+    CCORE_PERIOD_RATIO MUL_TYPE CMUL_TYPE TARGET_II BITWIDTH WBW MASK_BITS
     BASE_MUL_WIDTH KAR_BASE_MUL_WIDTH
 }
 assign_from_env $config_params
@@ -33,8 +33,6 @@ set SWEEP_KEY $env(SWEEP_KEY)
 
 set KERNEL_DIR [file join $ROOT_DIR $LVL_DIR $KERNEL_NAME]
 set WORK_DIR [enter_work_dir] ;# move to a lvl_dir/kernel/Catapult as working dir
-
-assert {!($CCORE_MUL_F && $MODMUL_TYPE eq "MODMUL_TYPE_BARRETT")} "CCORE_MUL_F not supported with MODMUL_TYPE_BARRETT"
 
 set TEST [expr {$SIM || $TEST}]
 set HAS_MODSQ [expr {$KERNEL_NAME eq "point_add"}] ;# only for sw, te has no modsq's
@@ -124,7 +122,7 @@ run_osci_test $CURVE_TYPE $MODMUL_TYPE
 if {$TEST_ONLY} { exit 0 }
 
 directive set -OPT_CONST_MULTS full
-directive set -CLUSTER_FAST_MODE true
+# directive set -CLUSTER_FAST_MODE true
 
 if {$PREC_TYPE eq "SINGLE_PREC"} {
     directive set -PIPELINE_INIT_INTERVAL $TARGET_II
@@ -144,7 +142,7 @@ proc cmul_op_run { cmul_op cmul_period} {
         solution design set $cmul_op -top -ccore
         solution rename $cmul_op_sol_name
         go compile
-        directive set /$cmul_op -CLUSTER addtree
+        # directive set /$cmul_op -CLUSTER addtree
         go schedule
         branch_if_ccore_comb $cmul_op 
         go extract
@@ -274,7 +272,7 @@ if {$CCORE_MODMUL} {
             if {$modmul_name eq "cmodmul_k_${modmul_suffix}"} { solution library add "\[CCORE\] $cmul_field_k_sol" }
 
             go compile
-            directive set /${modmul_name}_core -CLUSTER addtree
+            # directive set /${modmul_name}_core -CLUSTER addtree
 
             go libraries
             if {$CCORE_MUL_F && $MUL_TYPE ne "MUL_NORMAL"} {

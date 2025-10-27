@@ -264,19 +264,18 @@ proc run_osci_test {{CURVE_TYPE ""} {MODMUL_TYPE ""}} {
 proc extract_verify_syn_save {} {
     global WORK_DIR KERNEL_NAME sol_name table_name \
             SIM CCORE_TOP TECH_TYPE 
-            
-    if {$SIM} {
-        if {$CCORE_TOP} {
-            solution rename "verify_$sol_name"
-        } else {
-            solution rename $sol_name
-        }
-
-        go extract
-        project save
-        solution table export -file [file join $WORK_DIR $table_name]
-        run_scverify
+    
+    go new ;# doing this otherwise there will be issues in gui
+    if {$SIM && $CCORE_TOP} {
+        solution rename "verify_$sol_name"
+    } else {
+        solution rename $sol_name
     }
+
+    go extract
+    project save
+    solution table export -file [file join $WORK_DIR $table_name]
+    run_scverify
 
     if {$CCORE_TOP} {
         go libraries

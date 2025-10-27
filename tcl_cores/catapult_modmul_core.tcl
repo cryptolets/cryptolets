@@ -6,7 +6,7 @@ source [file join $ROOT_DIR utils util.tcl] ;# Import utilities
 # parameter names
 set config_params {
     CURVE_TYPE REDC_TYPE Q_TYPE PREC_TYPE TECH_TYPE TARGET_PERIOD 
-    CCORE_PERIOD_RATIO MUL_TYPE TARGET_II BITWIDTH WBW MASK_BITS
+    CCORE_PERIOD_RATIO MUL_TYPE CMUL_TYPE TARGET_II BITWIDTH WBW MASK_BITS
     BASE_MUL_WIDTH KAR_BASE_MUL_WIDTH
 }
 assign_from_env $config_params
@@ -31,9 +31,7 @@ set SWEEP_KEY $env(SWEEP_KEY)
 set KERNEL_DIR [file join $ROOT_DIR $LVL_DIR $KERNEL_NAME]
 set WORK_DIR [enter_work_dir] ;# move to a lvl_dir/kernel/Catapult as working dir
 
-# assert {!(($CCORE_TOP && $TEST) || $CCORE_TOP && $SIM)} "top cannot be ccore for sim or test"
 assert {!($CCORE_TOP && $PREC_TYPE eq "MULTI_PREC")} "top cannot be ccore for multi-precision"
-assert {!($CCORE_MUL_F && $KERNEL_NAME eq "modmul_barrett")} "CCORE_MUL_F not supported with barrett"
 
 set TEST [expr {$SIM || $TEST}]
 set CCORE_TOP [expr {$CCORE_TOP && $TARGET_II <= 1}]
@@ -92,7 +90,7 @@ directive set -DESIGN_GOAL latency
 directive set -CCORE_TYPE sequential
 directive set -OUTPUT_REGISTERS false
 directive set -OPT_CONST_MULTS full
-directive set -CLUSTER_FAST_MODE true
+# directive set -CLUSTER_FAST_MODE true
 set_tech_lib $TECH_TYPE ;# set libraries
 
 proc cmul_op_run { cmul_op cmul_period} {    
@@ -104,10 +102,10 @@ proc cmul_op_run { cmul_op cmul_period} {
         solution rename $cmul_op_sol_name
         go compile
 
-        directive set /$cmul_op -CLUSTER addtree
+        # directive set /$cmul_op -CLUSTER addtree
         go schedule
 
-        branch_if_ccore_comb $cmul_op $cmul_op_sol_name
+        branch_if_ccore_comb $cmul_op
         go extract
         project save
 
@@ -190,7 +188,7 @@ solution rename "test_only_$sol_name"
 go analyze
 
 go compile
-directive set /$KERNEL_NAME -CLUSTER addtree
+# directive set /$KERNEL_NAME -CLUSTER addtree
 
 if {$CCORE_MUL_F && $MUL_TYPE ne "MUL_NORMAL"} {
     solution library add "\[CCORE\] $mul_f_sol" 

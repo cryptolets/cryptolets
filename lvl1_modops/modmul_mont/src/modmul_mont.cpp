@@ -9,7 +9,7 @@ inline wide_t mont_reduction(wide_2x_t t, const wide_t q, const wide_t q_prime) 
 #if REDC_TYPE == FIXED_RC
     wide_t m_red = cmul_q_prime(t_red); // compile to constant multiplier
 #else
-    wide_t m_red = mul_f(t_red, q_prime);
+    wide_t m_red = mul_f(t_red, q_prime).slc<BITWIDTH>(0); // Extract lower BITWIDTH bits
 #endif
 
 #if Q_TYPE == FIXED_Q

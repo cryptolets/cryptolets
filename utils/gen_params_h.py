@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 import argparse, json, pathlib, re, sys
-from common import FIELD_CONTS, to_hex
+from common import FIELD_CONTS, to_hex, compute_naf
 from field_helpers import get_q_prime, get_mu, to_mont
 
 def is_int(v): return re.fullmatch(r"-?\d+", v)
@@ -48,9 +48,12 @@ curve_bitwidth = consts.get("bitwidth", None)
 
 for k in FIELD_CONTS:
     v = consts.get(k, "0")
-    v_mont = to_hex(to_mont(int(v, 16), q))
+    v_mont_int = to_mont(int(v, 16), q)
+    v_mont = to_hex(v_mont_int)
     lines.append(f'#define FIELD_{k.upper()}_HEX "{v}"')
+    lines.append(f'#define FIELD_{k.upper()}_NAF_ARR'+' {'+",".join(map(str, compute_naf(int(v, 16))))+'}')
     lines.append(f'#define FIELD_{k.upper()}_MONT_HEX "{v_mont}"')
+    lines.append(f'#define FIELD_{k.upper()}_MONT_NAF_ARR'+' {'+",".join(map(str, compute_naf(v_mont_int)))+'}')
 
 if curve_bitwidth:
     q_prime = get_q_prime(q, curve_bitwidth)
@@ -59,8 +62,14 @@ else:
     q_prime, mu = 0, 0
 
 lines.append(f'#define Q_HEX "{to_hex(q)}"')
+lines.append('#define Q_NAF_ARR {'+",".join(map(str, compute_naf(q)))+'}')
+
+
 lines.append(f'#define Q_PRIME_HEX "{to_hex(q_prime)}"')
+lines.append('#define Q_PRIME_NAF_ARR {'+",".join(map(str, compute_naf(q_prime)))+'}')
+
 lines.append(f'#define MU_HEX "{to_hex(mu)}"')
+lines.append('#define MU_NAF_ARR {'+",".join(map(str, compute_naf(mu)))+'}')
 
 for k, v in params.items():
     lines.append(f"#define {k.upper()} {v}")

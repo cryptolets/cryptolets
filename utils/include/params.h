@@ -14,6 +14,10 @@
 #define MUL_KARATSUBA  1
 #define MUL_SCHOOLBOOK 2
 
+// Const Multiplier Type
+#define CMUL_NORMAL 0
+#define CMUL_NAF 1
+#define CMUL_SA 2
 
 // --- MOD SPECIFIC PARAMS ---
 // Define if we want fixed q prime with const muls or not

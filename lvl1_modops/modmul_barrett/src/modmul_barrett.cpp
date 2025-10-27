@@ -6,7 +6,7 @@ wide_t barrett_reduction(wide_2x_t t, const wide_t q, const wide_2x_t mu) {
 #if REDC_TYPE == FIXED_RC
     wide_t m_red = cmul_mu(t);
 #else
-    wide_t m_red = mul_f_gen<2*BITWIDTH>(t, mu).slc<BITWIDTH>(2 * BITWIDTH);
+    wide_t m_red = mul_red_gen<2*BITWIDTH, 1>(t, mu).slc<BITWIDTH>(2 * BITWIDTH);
 #endif
 
 #if Q_TYPE == FIXED_Q 

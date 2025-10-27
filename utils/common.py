@@ -42,3 +42,16 @@ for curve in field_data:
             int(field_data[curve]["q"], 16),
             field_data[curve]["form"]
         )
+
+def compute_naf(n):
+    if n == 0: return [0]
+    naf = []
+    while n > 0:
+        if n & 1:
+            z = 2 - (n % 4)
+            naf.append(z)
+            n = n - z
+        else:
+            naf.append(0)
+        n = n >> 1
+    return naf

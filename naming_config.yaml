@@ -6,6 +6,7 @@ SHORT_KEY:
   TARGET_II: ii
   TARGET_PERIOD: p
   MUL_TYPE: mt
+  CMUL_TYPE: cmt
   Q_TYPE: qt
   REDC_TYPE: rct
   KAR_BASE_MUL_WIDTH: kar
@@ -25,6 +26,7 @@ MED_KEY:
   TARGET_II: ii
   TARGET_PERIOD: target_period
   MUL_TYPE: mul_type
+  CMUL_TYPE: cmul_type
   Q_TYPE: q_type
   REDC_TYPE: rc_type
   KAR_BASE_MUL_WIDTH: kar
@@ -44,6 +46,10 @@ VALUE:
     MUL_NORMAL: nor
     MUL_KARATSUBA: kar
     MUL_SCHOOLBOOK: sb
+  CMUL_TYPE:
+    CMUL_NORMAL: cnor
+    CMUL_NAF: cnaf
+    CMUL_SA: csa
   Q_TYPE:
     FIXED_Q: fixedq
     VAR_Q: varq

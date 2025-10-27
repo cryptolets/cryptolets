@@ -217,6 +217,7 @@ def derive_all_attr(parsed_raw_attrs, all_info):
             "bitwidth": bitwidth,
             "masked_bw": masked_bw,
             "mt": all_info.get('mul_type'),
+            "cmt": all_info.get('cmul_type'),
             "bm": all_info.get('bm'),
             "kar": all_info.get('kar'),
             "wbw": all_info.get('wbw'),
@@ -335,7 +336,16 @@ def make_table_string(data):
         return "No data"
 
     keys = list(data[0].keys())
-    col_widths = {k: max(len(str(k)), max(len(str(row[k])) for row in data)) for k in keys}
+
+    # Compute column widths with float formatting considered
+    col_widths = {}
+    for k in keys:
+        max_width = len(str(k))
+        for row in data:
+            v = row[k]
+            s = f"{v:.2f}" if isinstance(v, float) else str(v)
+            max_width = max(max_width, len(s))
+        col_widths[k] = max_width
 
     # Header + separator
     header = " | ".join(f"{k:<{col_widths[k]}}" for k in keys)
@@ -344,8 +354,17 @@ def make_table_string(data):
     # Rows
     rows = []
     for row in data:
-        line = " | ".join(f"{str(row[k]):<{col_widths[k]}}" for k in keys)
-        rows.append(line)
+        formatted = []
+        for k in keys:
+            v = row[k]
+            if isinstance(v, float):
+                s = f"{v:.2f}"
+                formatted.append(f"{s:>{col_widths[k]}}")  # right-align
+            elif isinstance(v, (int, complex)):
+                formatted.append(f"{v:>{col_widths[k]}}")  # right-align
+            else:
+                formatted.append(f"{str(v):<{col_widths[k]}}")  # left-align text
+        rows.append(" | ".join(formatted))
 
     return "\n".join([header, sep] + rows)
 
@@ -384,6 +403,7 @@ def sort_key(row):
         row.get("q_type") or "",
         row.get("bitwidth") or float("inf"),
         row.get("mt") or "",
+        row.get("cmt") or "",
         -row.get("bm") if row.get("bm") else float("inf"),
         -row.get("kar") if row.get("kar") else float("inf"),
     )

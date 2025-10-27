@@ -75,24 +75,43 @@ def config_override(lvl, state, params, order, sweep_bw_maps):
 
 
 # --- filter logic ---
-def override_skip(state, kernel):
+def override_skip(state, kernel, verbos=True):
     """
     Return True if this complete config should be skipped.
     Similar to early 'if' filters in the Bash sweep function.
     """
     msg = "[WARNING] Skipping - {}:\n  Config Params:" + print_short(state)
 
+    if (
+        state.get("CMUL_TYPE") in ("CMUL_NAF", "CMUL_SA") and 
+        (
+            str(kernel) in ("add_f", "sub_f") or
+            any([
+                state.get("Q_TYPE") == "FIXED_Q", 
+                state.get("REDC_TYPE") == "FIXED_RC", 
+                state.get("CURVE_PARAMS_TYPE") == "FIXED_CURVE_PARAMS"
+            ])
+        )
+    ):  
+        if verbos:
+            print(msg.format(
+                    f"{kernel} doesn't use const mul"
+                ))
+        return True 
+
     if state.get("CURVE_TYPE") == "RAND_CURVE":
         if state.get("Q_TYPE") == "FIXED_Q" or state.get("REDC_TYPE") == "FIXED_RC":
-            print(msg.format(
-                f"Prevents RAND_CURVE with FIXED_Q or FIXED_RC"
-            ))
+            if verbos:
+                print(msg.format(
+                    f"Prevents RAND_CURVE with FIXED_Q or FIXED_RC"
+                ))
             return True
 
         if state.get("CURVE_PARAMS_TYPE") == "FIXED_CURVE_PARAMS":
-            print(msg.format(
-                f"Prevents RAND_CURVE with FIXED_CURVE_PARAMS"
-            ))
+            if verbos:
+                print(msg.format(
+                    f"Prevents RAND_CURVE with FIXED_CURVE_PARAMS"
+                ))
             return True
 
     if (
@@ -105,9 +124,10 @@ def override_skip(state, kernel):
         )
     ):
         # because we can map the same design to a RAND_CURVE design
-        print(msg.format(
-            f"Prevents specific curves with VAR_Q and VAR_RC and VAR_CURVE_PARAMS (if it exists)"
-        )) 
+        if verbos:
+            print(msg.format(
+                f"Prevents specific curves with VAR_Q and VAR_RC and VAR_CURVE_PARAMS (if it exists)"
+            )) 
         return True
     
     if (
@@ -116,29 +136,33 @@ def override_skip(state, kernel):
         state.get("FIELD_A") != "AVAR" and 
         state.get("CURVE_PARAMS_TYPE") == "FIXED_CURVE_PARAMS"
     ):
-        print(msg.format(
-                f"For point_add only FIELD_A=AVAR uses FIXED_CURVE_PARAMS in formula"
-            ))
+        if verbos:
+            print(msg.format(
+                    f"For point_add only FIELD_A=AVAR uses FIXED_CURVE_PARAMS in formula"
+                ))
         return True
 
     # Skip unsupported MULTI_PREC kernels
     if state.get("PREC_TYPE") == "MULTI_PREC":             
         if str(kernel) in mp_unsupported_kernels:
-            print(msg.format(
-                f"{str(kernel)} does not support MULTI_PREC"
-            ))
+            if verbos:
+                print(msg.format(
+                    f"{str(kernel)} does not support MULTI_PREC"
+                ))
             return True
 
         if state.get("CURVE_TYPE") and state.get("CURVE_TYPE") != "RAND_CURVE":
-            print(msg.format(
-                f"{state.get('CURVE_TYPE')} does not support MULTI_PREC"
-            ))
+            if verbos:
+                print(msg.format(
+                    f"{state.get('CURVE_TYPE')} does not support MULTI_PREC"
+                ))
             return True
 
         if state.get("MUL_TYPE") and state.get("MUL_TYPE") != "MUL_NORMAL":
-            print(msg.format(
-                f"{state.get('MUL_TYPE')} does not support MULTI_PREC"
-            ))
+            if verbos:
+                print(msg.format(
+                    f"{state.get('MUL_TYPE')} does not support MULTI_PREC"
+                ))
             return True
 
     if (

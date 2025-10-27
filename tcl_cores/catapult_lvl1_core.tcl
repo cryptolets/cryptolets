@@ -28,7 +28,6 @@ set SWEEP_KEY $env(SWEEP_KEY)
 set KERNEL_DIR [file join $ROOT_DIR $LVL_DIR $KERNEL_NAME]
 set WORK_DIR [enter_work_dir] ;# move to a lvl_dir/kernel/Catapult as working dir
 
-# assert {!(($CCORE_TOP && $TEST) || $CCORE_TOP && $SIM)} "top cannot be ccore for sim or test"
 assert {!($CCORE_TOP && $PREC_TYPE eq "MULTI_PREC")} "top cannot be ccore for multi-precision"
 
 set TEST [expr {$SIM || $TEST}]
