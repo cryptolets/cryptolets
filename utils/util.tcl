@@ -208,7 +208,7 @@ proc gen_tmp_params_h {config_params {json_file ""} {CURVE_TYPE ""}} {
     return $tmp_params_dir
 }
 
-proc run_osci_test {{CURVE_TYPE ""} {MODMUL_TYPE ""}} {
+proc run_osci_test {{CURVE_TYPE ""} {MODMUL_TYPE ""} {BITSHIFT_DIRECTION ""}} {
     global TEST BITWIDTH KERNEL_DIR ROOT_DIR NUM_TEST_SAMPLES
     # generate samples csv file and run initial C++ tests
     if {$TEST} {
@@ -242,6 +242,10 @@ proc run_osci_test {{CURVE_TYPE ""} {MODMUL_TYPE ""}} {
 
         if {$MODMUL_TYPE ne ""} {
             lappend cmd --modmul-type $MODMUL_TYPE
+        }
+
+        if {$BITSHIFT_DIRECTION ne ""} {
+            lappend cmd --bitshift-direction $BITSHIFT_DIRECTION
         }
 
         exec tcsh -c "$cmd"

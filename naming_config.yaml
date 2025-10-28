@@ -20,6 +20,7 @@ SHORT_KEY:
   MASK_BITS: mb
   CURVE_PARAMS_TYPE: cpt
   MODMUL_TYPE: mmt
+  BITSHIFT_DIRECTION: bsd
   
 MED_KEY:
   BITWIDTH: bitwidth
@@ -40,6 +41,7 @@ MED_KEY:
   MASK_BITS: mb
   CURVE_PARAMS_TYPE: curve_pt
   MODMUL_TYPE: modmul_type
+  BITSHIFT_DIRECTION: bitshift_dir
 
 VALUE:
   MUL_TYPE:
@@ -65,3 +67,6 @@ VALUE:
   MODMUL_TYPE:
     MODMUL_TYPE_MONT: mmmont
     MODMUL_TYPE_BARRETT: mmbarrett
+  BITSHIFT_DIRECTION:
+    BITSHIFT_RIGHT: bsr
+    BITSHIFT_LEFT: bsl

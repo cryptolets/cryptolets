@@ -45,4 +45,8 @@
 #define FIXED_CURVE_PARAMS 0
 #define VAR_CURVE_PARAMS 1
 
+// Bitshift
+#define BITSHIFT_LEFT 0
+#define BITSHIFT_RIGHT 1
+
 #endif // _PARAMS_H_

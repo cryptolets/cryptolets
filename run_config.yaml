@@ -10,10 +10,10 @@ MULTIPLE_KERNELS: ["add_f", "sub_f", "cmul_f"]
 
 # --- Kernel registry ---
 KERNELS: [
-  "add_f", "sub_f", "cmul_f",
+  "add_f", "sub_f", "cmul_f", "bitshift",
   "mul_f", "sq_f",
   "modadd", "modsub", "modmul_mont", "modmul_barrett",
-  "point_add", "point_add_te"
+  "point_add", "point_add_te",
   ]
 
 # --- Parameter sweep grouping ---
@@ -24,11 +24,13 @@ SWEEP_GROUP_MAP:
   modmul: ["modmul_mont", "modmul_barrett"]
   padd_sw: ["point_add"]
   padd_te: ["point_add_te"]
+  bitshift: ["bitshift"]
 
-# --- Core architecture grouping ---
+# --- Core tcl grouping ---
 CORE_GROUP_MAP:
   lvl0: ["add_f", "sub_f", "cmul_f"]
   mul: ["mul_f", "sq_f"]
   lvl1: ["modadd", "modsub"]
   modmul: ["modmul_mont", "modmul_barrett"]
   padd: ["point_add", point_add_te]
+  bitshift: ["bitshift"]
