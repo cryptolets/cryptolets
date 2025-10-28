@@ -85,12 +85,12 @@ def override_skip(state, kernel, verbos=True):
     if (
         state.get("CMUL_TYPE") in ("CMUL_NAF", "CMUL_SA") and 
         (
-            str(kernel) in ("add_f", "sub_f") or
-            any([
-                state.get("Q_TYPE") == "FIXED_Q", 
-                state.get("REDC_TYPE") == "FIXED_RC", 
-                state.get("CURVE_PARAMS_TYPE") == "FIXED_CURVE_PARAMS"
-            ])
+            str(kernel) != "cmul_f" and
+            (
+                state.get("Q_TYPE", "VAR_Q") == "VAR_Q" and
+                state.get("REDC_TYPE", "VAR_RC") == "VAR_RC" and
+                state.get("CURVE_PARAMS_TYPE", "VAR_CURVE_PARAMS") == "VAR_CURVE_PARAMS"
+            )
         )
     ):  
         if verbos:

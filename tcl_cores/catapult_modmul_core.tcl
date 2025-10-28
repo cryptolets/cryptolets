@@ -91,9 +91,12 @@ directive set -CCORE_TYPE sequential
 directive set -OUTPUT_REGISTERS false
 directive set -OPT_CONST_MULTS full
 # directive set -CLUSTER_FAST_MODE true
+directive set REGISTER_THRESHOLD [expr (8 * $BITWIDTH)]
 set_tech_lib $TECH_TYPE ;# set libraries
 
 proc cmul_op_run { cmul_op cmul_period} {    
+    global BITWIDTH
+
     set cmul_op_sol_name "comb_check_${cmul_op}"
     if {[catch {project get /SOLUTION/$cmul_op_sol_name.v* -match glob} err]} {
         go new
@@ -106,6 +109,10 @@ proc cmul_op_run { cmul_op cmul_period} {
         go schedule
 
         branch_if_ccore_comb $cmul_op
+
+        go new
+        solution rename $cmul_op
+
         go extract
         project save
 
@@ -133,7 +140,6 @@ if {$HAS_CMUL_MU} {
     solution table export -file [file join $WORK_DIR $table_name]
 }
 
-
 if {$CCORE_MUL_F} {
     # I think it should be safe to use diff clock periods, 
     # since this is what ccore points does
@@ -150,9 +156,13 @@ if {$CCORE_MUL_F} {
             solution rename $mul_op_sol_name
             go architect
             remove_broken_mul_libs $TECH_TYPE
-            go schedule
 
+            go schedule
             branch_if_ccore_comb $mul_op 
+
+            go new
+            solution rename $mul_op
+
             go extract
             project save
 
@@ -185,10 +195,7 @@ if {$HAS_CMUL_Q_PRIME} { solution design set "cmul_q_prime" -ccore }
 if {$HAS_CMUL_MU} { solution design set "cmul_mu" -ccore }
 
 solution rename "test_only_$sol_name"
-go analyze
-
 go compile
-# directive set /$KERNEL_NAME -CLUSTER addtree
 
 if {$CCORE_MUL_F && $MUL_TYPE ne "MUL_NORMAL"} {
     solution library add "\[CCORE\] $mul_f_sol" 

@@ -130,6 +130,7 @@ if {$PREC_TYPE eq "SINGLE_PREC"} {
 directive set -DESIGN_GOAL latency
 directive set -CCORE_TYPE sequential
 directive set -OUTPUT_REGISTERS false
+directive set REGISTER_THRESHOLD [expr (8 * $BITWIDTH)]
 set_tech_lib $TECH_TYPE ;# set libraries
 
 proc cmul_op_run { cmul_op cmul_period} {
@@ -145,6 +146,10 @@ proc cmul_op_run { cmul_op cmul_period} {
         # directive set /$cmul_op -CLUSTER addtree
         go schedule
         branch_if_ccore_comb $cmul_op 
+
+        go new
+        solution rename $cmul_op
+
         go extract
         project save
 
@@ -210,6 +215,10 @@ if {$CCORE_MUL_F} {
             go schedule
 
             branch_if_ccore_comb $mul_op 
+
+            go new
+            solution rename $mul_op
+
             go extract
             project save
             return "[solution get /name].[solution get /VERSION]"
@@ -292,7 +301,11 @@ if {$CCORE_MODMUL} {
             remove_broken_mul_libs $TECH_TYPE
             go schedule
 
-            branch_if_ccore_comb "${modmul_name}_core"
+            branch_if_ccore_comb $modmul_name
+
+            go new
+            solution rename $modmul_name
+
             go extract
             project save
             return "[solution get /name].[solution get /VERSION]"
@@ -334,7 +347,11 @@ if {$CCORE_MODADDSUB} {
         if {[catch {project get /SOLUTION/$mod_op.v* -match glob} err]} {
             go new
             set_clock $mod_ops_period
-            solution design set "${mod_op}_core" -top -ccore -combinational
+            solution design set "${mod_op}_core" -top -ccore
+            go schedule
+            branch_if_ccore_comb $mod_op
+
+            go new
             solution rename $mod_op
             go extract
             project save

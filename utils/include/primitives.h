@@ -76,29 +76,9 @@ typedef struct {
     static const int Q_PRIME_NAF_LEN = sizeof(Q_PRIME_NAF) / sizeof(Q_PRIME_NAF[0]);
 #endif
 
-// Helper functions to get MU bit len
-constexpr int nibble_bits(char c) {
-    c = (c >= 'a' && c <= 'f') ? (c - 'a' + 'A') : c;
-    switch (c) {
-        case '0': return 0;
-        case '1': return 1;
-        case '2': case '3': return 2;
-        case '4': case '5': case '6': case '7': return 3;
-        default:  return 4; // 8–F
-    }
-}
-
-constexpr int bitlen_from_hex(const char* s) {
-    int n = 0;
-    while (s[n] != '\0') ++n;
-    if (n == 0) return 1;
-    return 4 * (n - 1) + nibble_bits(s[0]);
-}
-
 // Barrett constant
 #ifdef MU_HEX
     static const wide_2x_t MU = ac::bit_fill_hex<wide_2x_t>(MU_HEX);
-    static constexpr int MU_BIT_LEN = bitlen_from_hex(MU_HEX);
     static const int MU_NAF[] = MU_NAF_ARR;
     static const int MU_NAF_LEN = sizeof(MU_NAF) / sizeof(MU_NAF[0]);
 #endif

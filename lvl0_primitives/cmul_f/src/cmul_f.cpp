@@ -16,14 +16,7 @@ wide_2x_t cmul_q(const wide_t x) {
 }
 
 wide_t cmul_mu(const wide_2x_t x) {
-#if CMUL_TYPE == CMUL_NAF || CMUL_TYPE == CMUL_SA
     return cmul_f_gen<2*BITWIDTH, MU_NAF_LEN>(x, MU, MU_NAF).slc<BITWIDTH>(2*BITWIDTH);
-#else // CMUL_NORMAL
-    // When specific curves MU ends up being BITWIDTH+1, so doing (2xBITWIDTH) x (2xBITWIDTH)
-    // takes a lot of compile time, so we can reduce the MU bitwidth at compile time
-    // to reduce compile runtime
-    return ((ac_int<4*BITWIDTH, false>)(x * (MU.slc<MU_BIT_LEN>(0)))).slc<BITWIDTH>(2 * BITWIDTH);
-#endif
 }
 
 // For field constant multiplications in montgomery domain
@@ -33,7 +26,6 @@ wide_2x_t cmul_field_a_mont(const wide_t x) {
 
 wide_2x_t cmul_field_d_mont(const wide_t x) {
     return cmul_f_gen<BITWIDTH, FIELD_D_MONT_NAF_LEN>(x, FIELD_D_MONT, FIELD_D_MONT_NAF);
-    // return x * FIELD_D_MONT;
 }
 
 wide_2x_t cmul_field_k_mont(const wide_t x) {

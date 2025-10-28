@@ -1,5 +1,5 @@
 # Sweep parameters for Short Weierstrass Point Addition
-BITWIDTH: [753]
+BITWIDTH: [254]
 # 64, 96, 128, 192, 254, 255, 256, 377, 381, 383, 384, 448, 511, 512, 521, 753, 768
 
 WBW: [16, 32, 64, 128]
@@ -19,14 +19,14 @@ MODMUL_TYPE: [MODMUL_TYPE_MONT, MODMUL_TYPE_BARRETT] # MODMUL_TYPE_MONT, MODMUL_
 # a=2 : MNT4753
 # a=-3 : SECP256R1, SECP384R1, SECP521R1, W_256_MONT, W_255_MERS, 
 #        W_384_MONT, W_383_MERS, W_512_MONT, W_511_MERS
-CURVE_TYPE: [RAND_CURVE, MNT4753]
+CURVE_TYPE: [RAND_CURVE, BN254]
 
 PREC_TYPE: [SINGLE_PREC]  # SINGLE_PREC, MULTI_PREC
 CCORE_PERIOD_RATIO: [1]
 
 # for RAND_CURVE can select what "a" to pick which will specify what formula will be used
 # for other CURVE_TYPE's this value will be overrided
-FIELD_A: [A2] # A0: a=0, A2: a=2, ANEG3: a=-3, AVAR: variable a
+FIELD_A: [A0] # A0: a=0, A2: a=2, ANEG3: a=-3, AVAR: variable a
 
 BASE_MUL_WIDTH:
   8: [8]
@@ -95,7 +95,8 @@ NUM_TEST_SAMPLES: 1000
 CCORE_MUL_F: false  # make mul_f ccore, false = more compile time, better design latency
 CCORE_MODADDSUB: false # make modadd,modsub,moddouble ccore, false = more compile time, better design latency
 CCORE_MODMUL: true
-CCORE_CMUL: true
+CCORE_CMUL: false
+CCORE_TOP: false
 
 # Defines order of params before project split
 SWEEP_ORDER: [

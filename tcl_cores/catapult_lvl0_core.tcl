@@ -83,10 +83,10 @@ directive set -OPT_CONST_MULTS full
 # directive set -CLUSTER_FAST_MODE true
 go compile
 
-# if {$KERNEL_NAME eq "cmul_f"} {
-#     # directive set /$KERNEL_NAME -CLUSTER addtree
-#     # directive set /$KERNEL_NAME -CLUSTER_TYPE sequential
-# }
+if {$KERNEL_NAME eq "cmul_f"} {
+    # directive set /$KERNEL_NAME -CLUSTER addtree
+    directive set REGISTER_THRESHOLD [expr (8 * $BITWIDTH)]
+}
 
 run_osci_test $CURVE_TYPE
 if {$TEST_ONLY} { exit 0 }
