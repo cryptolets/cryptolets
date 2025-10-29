@@ -80,6 +80,7 @@ directive set -DESIGN_GOAL latency
 directive set -CCORE_TYPE sequential
 directive set -OUTPUT_REGISTERS false
 directive set -OPT_CONST_MULTS full
+directive set -X_PHD_SYNTHESIS true
 # directive set -CLUSTER_FAST_MODE true
 go compile
 

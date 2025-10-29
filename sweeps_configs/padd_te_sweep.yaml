@@ -1,5 +1,5 @@
 # Sweep parameters for Twisted Edwards Point Addition
-BITWIDTH: [254]
+BITWIDTH: [255]
 # 64, 96, 128, 192, 254, 255, 256, 377, 381, 383, 384, 448, 511, 512, 521, 753, 768
 
 WBW: [16, 32, 64, 128]
@@ -19,14 +19,14 @@ MODMUL_TYPE: [MODMUL_TYPE_MONT, MODMUL_TYPE_BARRETT] # MODMUL_TYPE_MONT, MODMUL_
 #        ED_256_MONT, ED_255_MERS, ED_384_MONT, ED_383_MERS, 
 #        ED_511_MERS, ED_512_MONT
 # variable a = ED448, BN254_ED
-CURVE_TYPE: [RAND_CURVE, BN254_ED]
+CURVE_TYPE: [ED25519, RAND_CURVE]
 
 PREC_TYPE: [SINGLE_PREC]  # SINGLE_PREC, MULTI_PREC
 CCORE_PERIOD_RATIO: [1]
 
 # for RAND_CURVE can select what "a" to pick which will specify what formula will be used
 # for other CURVE_TYPE's this value will be overrided
-FIELD_A: [AVAR] # ANEG1: a=-1, AVAR: variable a
+FIELD_A: [ANEG1] # ANEG1: a=-1, AVAR: variable a
 
 BASE_MUL_WIDTH:
   8: [8]
@@ -91,12 +91,12 @@ KAR_BASE_MUL_WIDTH:
 SIM: true           # verify RTL
 SYN: false
 TEST: true          # test C++ code
-TEST_ONLY: true    # only test C++ code with osci
+TEST_ONLY: false    # only test C++ code with osci
 NUM_TEST_SAMPLES: 1000
 CCORE_MUL_F: false  # make mul_f ccore, false = more compile time, better design latency
 CCORE_MODADDSUB: false # make modadd,modsub,moddouble ccore, false = more compile time, better design latency
 CCORE_MODMUL: true   # false is needed for multi-prec
-CCORE_CMUL: true
+CCORE_CMUL: false
 CCORE_TOP: false
 
 # Defines order of params before project split

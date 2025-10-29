@@ -2,6 +2,8 @@
 
 // For experimenting in isolation
 wide_t cmul_f(const wide_t a) {
+    // return cmul_f_gen<BITWIDTH, Q_PRIME_NAF_LEN>(a, Q_PRIME, Q_PRIME_NAF);
+    // return cmul_f_gen<2*BITWIDTH, MU_NAF_LEN>(a, MU, MU_NAF).slc<BITWIDTH>(2*BITWIDTH);
     return cmul_f_gen<BITWIDTH, Q_PRIME_NAF_LEN>(a, Q_PRIME, Q_PRIME_NAF).slc<BITWIDTH>(0);
 };
 

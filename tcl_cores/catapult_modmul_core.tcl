@@ -78,6 +78,7 @@ solution file add [file join $ROOT_DIR lvl0_primitives/cmul_f/src/cmul_f.cpp]
 
 go analyze
 solution design set $KERNEL_NAME -top
+directive set -X_PHD_SYNTHESIS true
 
 go compile
 run_osci_test $CURVE_TYPE

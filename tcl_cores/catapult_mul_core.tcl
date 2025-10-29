@@ -68,6 +68,7 @@ go analyze
 
 # Set design tops
 solution design set $KERNEL_NAME -top
+directive set -X_PHD_SYNTHESIS true
 
 go compile
 # directive set /$KERNEL_NAME -CLUSTER addtree

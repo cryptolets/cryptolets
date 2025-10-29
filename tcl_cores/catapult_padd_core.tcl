@@ -116,6 +116,7 @@ solution file add [file join $ROOT_DIR lvl1_modops/modmul_barrett/src/modmul_bar
 
 go analyze
 solution design set $KERNEL_NAME -top
+directive set -X_PHD_SYNTHESIS true
 
 go compile
 run_osci_test $CURVE_TYPE $MODMUL_TYPE
