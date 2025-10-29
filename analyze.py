@@ -54,7 +54,7 @@ ATTR_TO_COL_NAME = {
 ASIC_TECH_TYPES = ["45nm", "gf12", "saed32", "saed14"]
 FPGA_TECH_TYPES = ["fpga", "fpgahbm", "fpgahbmvhk158"]
 
-def parse_table_csv(csv_fn):
+def parse_table_csv(csv_fn, no_syn=False):
     flows = []
     was_sep_row = False
 
@@ -64,6 +64,8 @@ def parse_table_csv(csv_fn):
         # Iterate through each row in the CSV
         for row in csv_reader:
             if len(row) < 2:
+                if no_syn and (len(row) > 0 and (row[0] in ("Design Compiler", "Vivado"))):
+                    break
                 was_sep_row = True
             else:
                 if was_sep_row:
@@ -456,7 +458,7 @@ if __name__ == "__main__":
             if table_info["tech_type"] in ASIC_TECH_TYPES and os.path.isdir(catapult_proj_dir_fp):
                 syn_raw_attrs = parse_dc_reports(catapult_proj_dir_fp, kernel)
 
-            parsed_raw_attrs = parse_table_csv(fp)
+            parsed_raw_attrs = parse_table_csv(fp, args.no_syn)
 
             # override catapult data with dc reports
             if not args.no_syn:
