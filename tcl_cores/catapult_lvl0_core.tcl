@@ -80,13 +80,17 @@ directive set -DESIGN_GOAL latency
 directive set -CCORE_TYPE sequential
 directive set -OUTPUT_REGISTERS false
 directive set -OPT_CONST_MULTS full
-directive set -X_PHD_SYNTHESIS true
+if {![is_fpga $TECH_TYPE]} {
+    directive set -X_PHD_SYNTHESIS true
+}
 # directive set -CLUSTER_FAST_MODE true
 go compile
 
 if {$KERNEL_NAME eq "cmul_f"} {
     # directive set /$KERNEL_NAME -CLUSTER addtree
-    directive set REGISTER_THRESHOLD [expr (8 * $BITWIDTH)]
+    if {$CMUL_TYPE ne "CMUL_NORMAL"} {
+        directive set REGISTER_THRESHOLD [expr (8 * $BITWIDTH)]
+    }
 }
 
 run_osci_test $CURVE_TYPE

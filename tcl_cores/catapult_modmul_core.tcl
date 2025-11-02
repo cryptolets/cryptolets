@@ -78,7 +78,10 @@ solution file add [file join $ROOT_DIR lvl0_primitives/cmul_f/src/cmul_f.cpp]
 
 go analyze
 solution design set $KERNEL_NAME -top
-directive set -X_PHD_SYNTHESIS true
+
+if {![is_fpga $TECH_TYPE]} {
+    directive set -X_PHD_SYNTHESIS true
+}
 
 go compile
 run_osci_test $CURVE_TYPE
@@ -91,19 +94,25 @@ directive set -DESIGN_GOAL latency
 directive set -CCORE_TYPE sequential
 directive set -OUTPUT_REGISTERS false
 directive set -OPT_CONST_MULTS full
-# directive set -CLUSTER_FAST_MODE true
-directive set REGISTER_THRESHOLD [expr (8 * $BITWIDTH)]
+
+if {$CMUL_TYPE ne "CMUL_NORMAL"} {
+    directive set REGISTER_THRESHOLD [expr (8 * $BITWIDTH)]
+}
+if {[is_fpga $TECH_TYPE]} {
+    directive set DSP_EXTRACTION yes
+    directive set DSP_EXTRACTION_TRAV_PREADD_FANOUT true
+    directive set DSP_EXTRACTION_UNFOLD_MAC true
+}
 set_tech_lib $TECH_TYPE ;# set libraries
 
 proc cmul_op_run { cmul_op cmul_period} {    
     global BITWIDTH
 
-    set cmul_op_sol_name "comb_check_${cmul_op}"
-    if {[catch {project get /SOLUTION/$cmul_op_sol_name.v* -match glob} err]} {
+    if {[catch {project get /SOLUTION/$cmul_op.v* -match glob} err]} {
         go new
         set_clock $cmul_period
         solution design set $cmul_op -top -ccore
-        solution rename $cmul_op_sol_name
+        solution rename "comb_check_${cmul_op}"
         go compile
 
         # directive set /$cmul_op -CLUSTER addtree
@@ -119,8 +128,8 @@ proc cmul_op_run { cmul_op cmul_period} {
 
         return "[solution get /name].[solution get /VERSION]"
     } else {
-        set l [project get /SOLUTION/$cmul_op_sol_name.v*/VERSION -match glob]
-        return "${cmul_op_sol_name}.[lindex $l [expr [llength $l] - 1]]"
+        set l [project get /SOLUTION/$cmul_op.v*/VERSION -match glob]
+        return "${cmul_op}.[lindex $l [expr [llength $l] - 1]]"
     }
 }
 
@@ -147,14 +156,13 @@ if {$CCORE_MUL_F} {
     set mul_period [expr $TARGET_PERIOD * $CCORE_PERIOD_RATIO]
 
     proc mul_op_run { mul_op mul_period} {
-        glob TECH_TYPE
+        global TECH_TYPE
 
-        set mul_op_sol_name "${mul_op}"
-        if {[catch {project get /SOLUTION/$mul_op_sol_name.v* -match glob} err]} {
+        if {[catch {project get /SOLUTION/$mul_op.v* -match glob} err]} {
             go new
             set_clock $mul_period
             solution design set $mul_op -top -ccore
-            solution rename $mul_op_sol_name
+            solution rename "comb_check_${mul_op}"
             go architect
             remove_broken_mul_libs $TECH_TYPE
 
@@ -169,8 +177,8 @@ if {$CCORE_MUL_F} {
 
             return "[solution get /name].[solution get /VERSION]"
         } else {
-            set l [project get /SOLUTION/$mul_op_sol_name.v*/VERSION -match glob]
-            return "${mul_op_sol_name}.[lindex $l [expr [llength $l] - 1]]"
+            set l [project get /SOLUTION/$mul_op.v*/VERSION -match glob]
+            return "${mul_op}.[lindex $l [expr [llength $l] - 1]]"
         }
     }
 

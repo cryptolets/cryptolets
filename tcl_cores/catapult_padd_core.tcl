@@ -23,6 +23,8 @@ set CCORE_MODADDSUB $env(CCORE_MODADDSUB)
 set CCORE_MODMUL $env(CCORE_MODMUL)
 set CCORE_CMUL $env(CCORE_CMUL)
 set CCORE_TOP $env(CCORE_TOP)
+set PROCESS_LVL_HANDSHAKE $env(PROCESS_LVL_HANDSHAKE)
+set CLOCK_UNCERTAINTY_PERCENT 0
 
 # run config
 set THREADS_PER_PROCESS $env(THREADS_PER_PROCESS)
@@ -76,6 +78,8 @@ set proj_name "Catapult_${SWEEP_KEY}"
 set table_name "table_${SWEEP_KEY}.csv"
 set sol_name $KERNEL_NAME
 
+del_existing_table $table_name
+
 open_or_create_proj $proj_name
 puts "\n=== Starting project $proj_name ==="
 
@@ -116,7 +120,11 @@ solution file add [file join $ROOT_DIR lvl1_modops/modmul_barrett/src/modmul_bar
 
 go analyze
 solution design set $KERNEL_NAME -top
-directive set -X_PHD_SYNTHESIS true
+
+# FPGA tech node doesn't support this
+if {![is_fpga $TECH_TYPE]} {
+    directive set -X_PHD_SYNTHESIS true
+}
 
 go compile
 run_osci_test $CURVE_TYPE $MODMUL_TYPE
@@ -130,19 +138,36 @@ if {$PREC_TYPE eq "SINGLE_PREC"} {
 }
 directive set -DESIGN_GOAL latency
 directive set -CCORE_TYPE sequential
-directive set -OUTPUT_REGISTERS false
-directive set REGISTER_THRESHOLD [expr (8 * $BITWIDTH)]
+
+if {$CMUL_TYPE ne "CMUL_NORMAL"} {
+    directive set REGISTER_THRESHOLD [expr (8 * $BITWIDTH)]
+}
+
+if {[is_fpga $TECH_TYPE]} {
+    directive set DSP_EXTRACTION yes
+    directive set DSP_EXTRACTION_TRAV_PREADD_FANOUT true
+    directive set DSP_EXTRACTION_UNFOLD_MAC true
+} else {
+    directive set -OUTPUT_REGISTERS false
+}
+
+if {$PROCESS_LVL_HANDSHAKE} {
+    directive set TRANSACTION_DONE_SIGNAL false
+    directive set START_FLAG "start"
+    directive set DONE_FLAG "done"
+    directive set READY_FLAG "ready"
+}
+
 set_tech_lib $TECH_TYPE ;# set libraries
 
 proc cmul_op_run { cmul_op cmul_period} {
-    global BITWIDTH
+    global BITWIDTH CLOCK_UNCERTAINTY_PERCENT
 
-    set cmul_op_sol_name "${cmul_op}"
-    if {[catch {project get /SOLUTION/$cmul_op_sol_name.v* -match glob} err]} {
+    if {[catch {project get /SOLUTION/$cmul_op.v* -match glob} err]} {
         go new
-        set_clock $cmul_period
+        set_clock $cmul_period $CLOCK_UNCERTAINTY_PERCENT
         solution design set $cmul_op -top -ccore
-        solution rename $cmul_op_sol_name
+        solution rename "comb_check_${cmul_op}"
         go compile
         # directive set /$cmul_op -CLUSTER addtree
         go schedule
@@ -156,8 +181,8 @@ proc cmul_op_run { cmul_op cmul_period} {
 
         return "[solution get /name].[solution get /VERSION]"
     } else {
-        set l [project get /SOLUTION/$cmul_op_sol_name.v*/VERSION -match glob]
-        return "${cmul_op_sol_name}.[lindex $l [expr [llength $l] - 1]]"
+        set l [project get /SOLUTION/$cmul_op.v*/VERSION -match glob]
+        return "${cmul_op}.[lindex $l [expr [llength $l] - 1]]"
     }
 }
 
@@ -203,14 +228,13 @@ if {$CCORE_MUL_F} {
     set mul_period [expr $mod_ops_period * $CCORE_PERIOD_RATIO]
 
     proc mul_op_run { mul_op mul_period} {
-        glob TECH_TYPE
+        global TECH_TYPE CLOCK_UNCERTAINTY_PERCENT
 
-        set mul_op_sol_name "${mul_op}"
-        if {[catch {project get /SOLUTION/$mul_op_sol_name.v* -match glob} err]} {
+        if {[catch {project get /SOLUTION/$mul_op.v* -match glob} err]} {
             go new
-            set_clock $mul_period
+            set_clock $mul_period $CLOCK_UNCERTAINTY_PERCENT
             solution design set $mul_op -top -ccore
-            solution rename $mul_op_sol_name
+            solution rename "comb_check_${mul_op}"
             go architect
             remove_broken_mul_libs $TECH_TYPE
             go schedule
@@ -224,8 +248,8 @@ if {$CCORE_MUL_F} {
             project save
             return "[solution get /name].[solution get /VERSION]"
         } else {
-            set l [project get /SOLUTION/$mul_op_sol_name.v*/VERSION -match glob]
-            return "${mul_op_sol_name}.[lindex $l [expr [llength $l] - 1]]"
+            set l [project get /SOLUTION/$mul_op.v*/VERSION -match glob]
+            return "${mul_op}.[lindex $l [expr [llength $l] - 1]]"
         }
     }
 
@@ -246,10 +270,11 @@ if {$CCORE_MODMUL} {
             global TECH_TYPE MUL_TYPE CCORE_MUL_F sq_f_sol mul_f_sol \
                 HAS_CMUL_Q HAS_CMUL_Q_PRIME HAS_CMUL_MU cmul_suffix modmul_suffix \
                 cmul_q_sol cmul_q_prime_sol cmul_mu_sol \
-                cmul_field_a_sol cmul_field_d_sol cmul_field_k_sol
+                cmul_field_a_sol cmul_field_d_sol cmul_field_k_sol \
+                CLOCK_UNCERTAINTY_PERCENT
 
             go new
-            set_clock $mod_ops_period
+            set_clock $mod_ops_period $CLOCK_UNCERTAINTY_PERCENT
             solution design set ${modmul_name}_core -top -ccore
             if {$CCORE_MUL_F && $MUL_TYPE ne "MUL_NORMAL"} {
                 if {$modmul_name eq "modsq_${modmul_suffix}"} {
@@ -264,7 +289,7 @@ if {$CCORE_MODMUL} {
             if {$modmul_name eq "cmodmul_d_${modmul_suffix}"} { solution design set "cmul_field_d${cmul_suffix}" -ccore }
             if {$modmul_name eq "cmodmul_k_${modmul_suffix}"} { solution design set "cmul_field_k${cmul_suffix}" -ccore }
 
-            solution rename $modmul_name
+            solution rename "comb_check_$modmul_name"
 
             go analyze
             if {$CCORE_MUL_F && $MUL_TYPE ne "MUL_NORMAL"} {
@@ -302,7 +327,7 @@ if {$CCORE_MODMUL} {
             remove_broken_mul_libs $TECH_TYPE
             go schedule
 
-            branch_if_ccore_comb $modmul_name
+            branch_if_ccore_comb "${modmul_name}_core"
 
             go new
             solution rename $modmul_name
@@ -345,15 +370,19 @@ if {$CCORE_MODMUL} {
 
 if {$CCORE_MODADDSUB} {
     proc mod_ops_run { mod_op mod_ops_period } {
+        global CLOCK_UNCERTAINTY_PERCENT
+
         if {[catch {project get /SOLUTION/$mod_op.v* -match glob} err]} {
             go new
-            set_clock $mod_ops_period
+            set_clock $mod_ops_period $CLOCK_UNCERTAINTY_PERCENT
             solution design set "${mod_op}_core" -top -ccore
+            solution rename "comb_check_${mod_op}"
             go schedule
-            branch_if_ccore_comb $mod_op
+            branch_if_ccore_comb "${mod_op}_core"
 
             go new
             solution rename $mod_op
+
             go extract
             project save
             return "[solution get /name].[solution get /VERSION]"
@@ -373,7 +402,7 @@ if {$CCORE_MODADDSUB} {
 }
 
 go new
-set_clock $TARGET_PERIOD
+set_clock $TARGET_PERIOD $CLOCK_UNCERTAINTY_PERCENT
 solution design set $KERNEL_NAME -top
 if {$CCORE_MODMUL} {
     solution design set "modmul_${modmul_suffix}_core" -ccore

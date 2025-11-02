@@ -32,6 +32,16 @@ proc override_default_options {} {
     options set Flows/SCVerify/MAX_ERROR_CNT 1
     options set Flows/DesignCompiler/OutNetlistFormat verilog
     options set Flows/Vivado/XILINX_VIVADO /eda/xilinx//Vivado/2024.2/
+    # options set Flows/Vivado/retiming true
+    # options set Flows/Vivado/ImplementationStrategy Performance_ExtraTimingOpt
+}
+
+proc is_fpga {tech_type} {
+    return [expr {
+        $tech_type eq "fpgahbmvhk158" ||
+        $tech_type eq "fpgahbm" ||
+        $tech_type eq "fpga"
+    }]
 }
 
 proc set_tech_lib {tech_type} {
@@ -75,6 +85,7 @@ proc set_tech_lib {tech_type} {
             -part xcvh1782-lsva4737-3HP-e-S
     } elseif {$tech_type eq "fpgahbmvhk158"} {
         solution library add mgc_Xilinx-VERSAL-hbm-2MP_beh \
+            -file "$ROOT_DIR/../mgc_Xilinx-VERSAL-hbm-2MP_beh.lib" \
             -- -rtlsyntool Vivado -manufacturer Xilinx \
             -family VERSAL-hbm -speed -2MP \
             -part xcvh1582-vsva3697-2MP-e-S
@@ -129,9 +140,9 @@ proc del_existing_table {table_name} {
 # }
 
 # Clock constraints
-proc set_clock {period} {
+proc set_clock {period {clock_uncertainty_ratio 0}} {
     set clk_high_time [expr {$period / 2}]
-    set clk_uncertainty [expr {$period * 0}]
+    set clk_uncertainty [expr {$period * $clock_uncertainty_ratio}]
 
     directive set -CLOCKS [
         list clk [list \

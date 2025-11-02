@@ -396,10 +396,10 @@ def sort_key(row):
         # vnum,
         row.get("sol") or "",
         row.get("tech_type") or "",
+        -row.get("target_period") or float("inf"),
         row.get("modmul_type") or "",
         row.get("curve_type") or "",
         row.get("a") or "",
-        row.get("target_period") or float("inf"),
         row.get("ii") or float("inf"),
         row.get("bitshift_dir") or "",
         row.get("curve_pt") or "",
@@ -509,6 +509,8 @@ if __name__ == "__main__":
         if not args.tech_type:
             all_metrics = drop_column(all_metrics, "tech_type")
 
+        all_metrics = drop_column(all_metrics, "ctime") # not accurate
+
         only_top = [row for row in all_metrics if row["sol"].startswith(kernel)]
         num_runs = len(only_top)
 
@@ -537,8 +539,8 @@ if __name__ == "__main__":
         if num_runs > 0:
             ctime_fmt = lambda t: f"{int(t)//3600}h {(int(t)%3600)//60}m {int(t)%60}s"
             print("")
-            print(f"Total compile time = {ctime_fmt(tot_ctime)}")
-            print(f"Avg compile time = {ctime_fmt(tot_ctime / num_runs)}")
+            # print(f"Total compile time = {ctime_fmt(tot_ctime)}")
+            # print(f"Avg compile time = {ctime_fmt(tot_ctime / num_runs)}")
             print(f"Num of runs = {num_runs}")
 
         out_fn = f"{kernel}_{tech_type}" if not mp else f"{kernel}_{tech_type}_mp"
