@@ -1,30 +1,19 @@
-# Sweep parameters for Twisted Edwards Point Addition
-BITWIDTH: [255, 377]
-# 64, 96, 128, 192, 254, 255, 256, 377, 381, 384, 448, 511, 512, 521, 753, 768
-
+# Sweep parameters for CycloneMSM (Twisted Edwards Point Addition) but on ASIC
+BITWIDTH: [377]
 WBW: [16, 32, 64, 128]
 TECH_TYPE: [gf12]  # gf12 45nm saed32 fpga fpgahbm fpgahbmvhk158
 TARGET_II: [1]
 TARGET_PERIOD: [1]  # in ns
-MUL_TYPE: [MUL_NORMAL] # MUL_NORMAL, MUL_SCHOOLBOOK, MUL_KARATSUBA
+MUL_TYPE: [MUL_SCHOOLBOOK, MUL_KARATSUBA] # MUL_NORMAL, MUL_SCHOOLBOOK, MUL_KARATSUBA
 CMUL_TYPE: [CMUL_NORMAL] # CMUL_NORMAL, CMUL_NAF, CMUL_SA
 Q_TYPE: [FIXED_Q, VAR_Q] # VAR_Q, FIXED_Q
 REDC_TYPE: [FIXED_RC, VAR_RC] # VAR_RC, FIXED_RC
-CURVE_PARAMS_TYPE: [FIXED_CURVE_PARAMS, VAR_CURVE_PARAMS] # FIXED_CURVE_PARAMS, VAR_CURVE_PARAMS
+CURVE_PARAMS_TYPE: [VAR_CURVE_PARAMS] # FIXED_CURVE_PARAMS, VAR_CURVE_PARAMS # CycloneMSM doesn't have any fixed curve params
 MODMUL_TYPE: [MODMUL_TYPE_MONT, MODMUL_TYPE_BARRETT] # MODMUL_TYPE_MONT, MODMUL_TYPE_BARRETT
-
-# curve types: 
-# RAND_CURVE
-# a=-1 : ED25519, BLS12_377_ON_TE
-# variable 1 = ED448
-CURVE_TYPE: [ED25519, BLS12_377_ON_TE, RAND_CURVE]
-
+CURVE_TYPE: [BLS12_377_ON_TE, RAND_CURVE] # RAND_CURVE, BLS12_377_ON_TE
 PREC_TYPE: [SINGLE_PREC]  # SINGLE_PREC, MULTI_PREC
-CCORE_PERIOD_RATIO: [0.95, 0.90]
-
-# for RAND_CURVE can select what "a" to pick which will specify what formula will be used
-# for other CURVE_TYPE's this value will be overrided
-FIELD_A: [ANEG1] # ANEG1: a=-1, AVAR: variable a
+CCORE_PERIOD_RATIO: [1]
+FIELD_A: [ANEG1] # ANEG1: a=-1
 
 BASE_MUL_WIDTH:
   8: [8]
@@ -84,6 +73,7 @@ KAR_BASE_MUL_WIDTH:
   768: [384, 192, 96, 48]
   1024: [512, 256, 128, 64]
 
+
 # Control flags
 SIM: true           # verify RTL
 SYN: false
@@ -92,7 +82,7 @@ TEST_ONLY: false    # only test C++ code with osci
 NUM_TEST_SAMPLES: 1000
 CCORE_MUL_F: false  # make mul_f ccore, false = more compile time, better design latency
 CCORE_MODADDSUB: false # make modadd,modsub,moddouble ccore, false = more compile time, better design latency
-CCORE_MODMUL: true   # false is good for multi-prec
+CCORE_MODMUL: true   # false is needed for multi-prec
 CCORE_CMUL: true
 CCORE_TOP: true
 PROCESS_LVL_HANDSHAKE: false

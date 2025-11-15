@@ -49,3 +49,34 @@ def point_add_te_ref(P0, P1, q, a, d, k):
         result.T = modmul(E, H, q)       # T3 = E*H
         result.Z = modmul(F, G, q)       # Z3 = F*G
     return result
+
+def point_add_cyclonemsm_ref(P0, P1, q):
+    # https://github.com/JumpCrypto/cyclone/blob/main/msm/src/preprocess.rs#L91
+    
+    result = EC_point_EP()
+    
+    # step 1
+    r1 = modsub(P0.Y, P0.X, q)
+    r2 = modsub(P1.y, P1.x, q)
+    r3 = modadd(P0.Y, P0.X, q)
+    r4 = modadd(P1.y, P1.x, q)
+
+    # step 2
+    r5 = modmul(r1, r2, q)
+    r6 = modmul(r3, r4, q)
+    r7 = modmul(P0.T, P1.u, q)
+    r8 = moddouble(P0.Z, q)
+
+    # step 3
+    r1b = modsub(r6, r5, q)
+    r2b = modsub(r8, r7, q)
+    r3b = modadd(r8, r7, q)
+    r4b = modadd(r6, r5, q)
+
+    # step 4
+    result.X = modmul(r1b, r2b, q)
+    result.Y = modmul(r3b, r4b, q)
+    result.Z = modmul(r2b, r3b, q)
+    result.T = modmul(r1b, r4b, q)
+
+    return result

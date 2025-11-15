@@ -5,7 +5,7 @@ source [file join $ROOT_DIR utils util.tcl] ;# Import utilities
 
 # parameter names
 set config_params {
-    CURVE_TYPE REDC_TYPE Q_TYPE PREC_TYPE TECH_TYPE TARGET_PERIOD 
+    MUL_SQ CURVE_TYPE REDC_TYPE Q_TYPE PREC_TYPE TECH_TYPE TARGET_PERIOD 
     CCORE_PERIOD_RATIO MUL_TYPE CMUL_TYPE TARGET_II BITWIDTH WBW MASK_BITS
     BASE_MUL_WIDTH KAR_BASE_MUL_WIDTH
 }
@@ -20,6 +20,7 @@ set NUM_TEST_SAMPLES $env(NUM_TEST_SAMPLES)
 set CCORE_TOP $env(CCORE_TOP)
 set CCORE_MUL_F $env(CCORE_MUL_F)
 set CCORE_CMUL $env(CCORE_CMUL)
+set USE_CLUSTERS $env(USE_CLUSTERS)
 
 # run config
 set THREADS_PER_PROCESS $env(THREADS_PER_PROCESS)
@@ -79,8 +80,9 @@ solution file add [file join $ROOT_DIR lvl0_primitives/cmul_f/src/cmul_f.cpp]
 go analyze
 solution design set $KERNEL_NAME -top
 
-if {![is_fpga $TECH_TYPE]} {
-    directive set -X_PHD_SYNTHESIS true
+if {$USE_CLUSTERS && ![is_fpga $TECH_TYPE]} {
+    directive set -CLUSTER addtree
+    directive set -CLUSTER_FAST_MODE true
 }
 
 go compile
@@ -133,21 +135,23 @@ proc cmul_op_run { cmul_op cmul_period} {
     }
 }
 
-set cmul_period [expr $TARGET_PERIOD * $CCORE_PERIOD_RATIO]
+if {$CCORE_CMUL} {
+    set cmul_period [expr $TARGET_PERIOD * $CCORE_PERIOD_RATIO]
 
-if {$HAS_CMUL_Q} {
-    set cmul_q_sol [cmul_op_run cmul_q $cmul_period]
-    solution table export -file [file join $WORK_DIR $table_name]
-}
+    if {$HAS_CMUL_Q} {
+        set cmul_q_sol [cmul_op_run cmul_q $cmul_period]
+        solution table export -file [file join $WORK_DIR $table_name]
+    }
 
-if {$HAS_CMUL_Q_PRIME} {
-    set cmul_q_prime_sol [cmul_op_run cmul_q_prime $cmul_period]
-    solution table export -file [file join $WORK_DIR $table_name]
-}
+    if {$HAS_CMUL_Q_PRIME} {
+        set cmul_q_prime_sol [cmul_op_run cmul_q_prime $cmul_period]
+        solution table export -file [file join $WORK_DIR $table_name]
+    }
 
-if {$HAS_CMUL_MU} {
-    set cmul_mu_sol [cmul_op_run cmul_mu $cmul_period]
-    solution table export -file [file join $WORK_DIR $table_name]
+    if {$HAS_CMUL_MU} {
+        set cmul_mu_sol [cmul_op_run cmul_mu $cmul_period]
+        solution table export -file [file join $WORK_DIR $table_name]
+    }
 }
 
 if {$CCORE_MUL_F} {
@@ -183,11 +187,13 @@ if {$CCORE_MUL_F} {
     }
 
     if {$MUL_TYPE ne "MUL_NORMAL"} {
-        set mul_f_sol [mul_op_run mul_f $mul_period]
-        solution table export -file [file join $WORK_DIR $table_name]
-
-        # set sq_f_sol [mul_op_run sq_f $mul_period]
-        # solution table export -file [file join $WORK_DIR $table_name]
+        if {$MUL_SQ == 0} {
+            set mul_f_sol [mul_op_run mul_f $mul_period]
+            solution table export -file [file join $WORK_DIR $table_name]
+        } else {
+            set sq_f_sol [mul_op_run sq_f $mul_period]
+            solution table export -file [file join $WORK_DIR $table_name]
+        }
     }
 }
 
@@ -197,7 +203,8 @@ set_clock $TARGET_PERIOD
 solution design set $KERNEL_NAME -top
 
 if {$CCORE_MUL_F && $MUL_TYPE ne "MUL_NORMAL"} {
-    solution design set mul_f -ccore
+    if {$MUL_SQ == 0} { solution design set mul_f -ccore }
+    else { solution design set sq_f -ccore }
 }
 if {$HAS_CMUL_Q} { solution design set "cmul_q" -ccore }
 if {$HAS_CMUL_Q_PRIME} { solution design set "cmul_q_prime" -ccore }
@@ -207,7 +214,8 @@ solution rename "test_only_$sol_name"
 go compile
 
 if {$CCORE_MUL_F && $MUL_TYPE ne "MUL_NORMAL"} {
-    solution library add "\[CCORE\] $mul_f_sol" 
+    if {$MUL_SQ == 0} { solution library add "\[CCORE\] $mul_f_sol" }
+    else { solution library add "\[CCORE\] $sq_f_sol" }
 }
 if {$HAS_CMUL_Q} { solution library add "\[CCORE\] $cmul_q_sol" }
 if {$HAS_CMUL_Q_PRIME} {solution library add "\[CCORE\] $cmul_q_prime_sol" }
@@ -215,7 +223,11 @@ if {$HAS_CMUL_MU} { solution library add "\[CCORE\] $cmul_mu_sol" }
 go libraries
 
 if {$CCORE_MUL_F && $MUL_TYPE ne "MUL_NORMAL"} { 
-    directive set /$KERNEL_NAME/mul_f -MAP_TO_MODULE "\[CCORE\] $mul_f_sol" 
+    if {$MUL_SQ == 0} {
+        directive set /$KERNEL_NAME/mul_f -MAP_TO_MODULE "\[CCORE\] $mul_f_sol" 
+    } else {
+        directive set /$KERNEL_NAME/sq_f -MAP_TO_MODULE "\[CCORE\] $sq_f_sol"
+    }
 }
 if {$HAS_CMUL_Q} { directive set /$KERNEL_NAME/cmul_q -MAP_TO_MODULE "\[CCORE\] $cmul_q_sol" }
 if {$HAS_CMUL_Q_PRIME} { directive set /$KERNEL_NAME/cmul_q_prime -MAP_TO_MODULE "\[CCORE\] $cmul_q_prime_sol" }
@@ -226,3 +238,4 @@ remove_broken_mul_libs $TECH_TYPE
 go schedule
 
 extract_verify_syn_save
+exit 0

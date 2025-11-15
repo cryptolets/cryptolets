@@ -1,5 +1,5 @@
-# Sweep parameters for Twisted Edwards Point Addition
-BITWIDTH: [255, 377]
+# Sweep parameters for Short Weierstrass Point Addition
+BITWIDTH: [753]
 # 64, 96, 128, 192, 254, 255, 256, 377, 381, 384, 448, 511, 512, 521, 753, 768
 
 WBW: [16, 32, 64, 128]
@@ -10,21 +10,19 @@ MUL_TYPE: [MUL_NORMAL] # MUL_NORMAL, MUL_SCHOOLBOOK, MUL_KARATSUBA
 CMUL_TYPE: [CMUL_NORMAL] # CMUL_NORMAL, CMUL_NAF, CMUL_SA
 Q_TYPE: [FIXED_Q, VAR_Q] # VAR_Q, FIXED_Q
 REDC_TYPE: [FIXED_RC, VAR_RC] # VAR_RC, FIXED_RC
-CURVE_PARAMS_TYPE: [FIXED_CURVE_PARAMS, VAR_CURVE_PARAMS] # FIXED_CURVE_PARAMS, VAR_CURVE_PARAMS
-MODMUL_TYPE: [MODMUL_TYPE_MONT, MODMUL_TYPE_BARRETT] # MODMUL_TYPE_MONT, MODMUL_TYPE_BARRETT
+CURVE_PARAMS_TYPE: [VAR_CURVE_PARAMS] # FIXED_CURVE_PARAMS, VAR_CURVE_PARAMS
+MODMUL_TYPE: [MODMUL_TYPE_BARRETT, MODMUL_TYPE_MONT] # MODMUL_TYPE_MONT, MODMUL_TYPE_BARRETT
 
-# curve types: 
-# RAND_CURVE
-# a=-1 : ED25519, BLS12_377_ON_TE
-# variable 1 = ED448
-CURVE_TYPE: [ED25519, BLS12_377_ON_TE, RAND_CURVE]
+# CURVE_TYPE: [BN254, BLS12_377, BLS12_381, MNT4753, RAND_CURVE]
+CURVE_TYPE: [MNT4753, RAND_CURVE]
 
 PREC_TYPE: [SINGLE_PREC]  # SINGLE_PREC, MULTI_PREC
 CCORE_PERIOD_RATIO: [0.95, 0.90]
 
 # for RAND_CURVE can select what "a" to pick which will specify what formula will be used
 # for other CURVE_TYPE's this value will be overrided
-FIELD_A: [ANEG1] # ANEG1: a=-1, AVAR: variable a
+FIELD_A: [A2] # A0: a=0, A2: a=2, ANEG3: a=-3, AVAR: variable a
+
 
 BASE_MUL_WIDTH:
   8: [8]
@@ -92,7 +90,7 @@ TEST_ONLY: false    # only test C++ code with osci
 NUM_TEST_SAMPLES: 1000
 CCORE_MUL_F: false  # make mul_f ccore, false = more compile time, better design latency
 CCORE_MODADDSUB: false # make modadd,modsub,moddouble ccore, false = more compile time, better design latency
-CCORE_MODMUL: true   # false is good for multi-prec
+CCORE_MODMUL: true
 CCORE_CMUL: true
 CCORE_TOP: true
 PROCESS_LVL_HANDSHAKE: false
@@ -100,7 +98,7 @@ USE_CLUSTERS: true # use use carry save adder for adder trees
 
 # Defines order of params before project split
 SWEEP_ORDER: [
-  TECH_TYPE, MODMUL_TYPE, CURVE_TYPE, FIELD_A, CURVE_PARAMS_TYPE, REDC_TYPE, Q_TYPE, PREC_TYPE,
+  TECH_TYPE, MODMUL_TYPE, CURVE_TYPE, FIELD_A, CURVE_PARAMS_TYPE, REDC_TYPE, Q_TYPE, PREC_TYPE, 
   TARGET_PERIOD, TARGET_II, MUL_TYPE, CMUL_TYPE, CCORE_PERIOD_RATIO,
   BITWIDTH, WBW, BASE_MUL_WIDTH, KAR_BASE_MUL_WIDTH
   ]

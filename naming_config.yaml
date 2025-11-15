@@ -21,6 +21,7 @@ SHORT_KEY:
   CURVE_PARAMS_TYPE: cpt
   MODMUL_TYPE: mmt
   BITSHIFT_DIRECTION: bsd
+  MUL_SQ: msq
   
 MED_KEY:
   BITWIDTH: bitwidth
@@ -42,6 +43,7 @@ MED_KEY:
   CURVE_PARAMS_TYPE: curve_pt
   MODMUL_TYPE: modmul_type
   BITSHIFT_DIRECTION: bitshift_dir
+  MUL_SQ: mul_sq
 
 VALUE:
   MUL_TYPE:

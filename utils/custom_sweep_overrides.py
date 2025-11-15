@@ -75,7 +75,7 @@ def config_override(lvl, state, params, order, sweep_bw_maps):
 
 
 # --- filter logic ---
-def override_skip(state, kernel, verbos=True):
+def override_skip(state, kernel, verbos=False):
     """
     Return True if this complete config should be skipped.
     Similar to early 'if' filters in the Bash sweep function.
@@ -132,8 +132,10 @@ def override_skip(state, kernel, verbos=True):
     
     if (
         state.get("CURVE_TYPE") != "RAND_CURVE" and
-        str(kernel) == "point_add" and 
-        state.get("FIELD_A") != "AVAR" and 
+        (
+            str(kernel) == "point_add" and state.get("FIELD_A") != "AVAR" or
+            str(kernel) == "point_add_cyclonemsm"
+        ) and 
         state.get("CURVE_PARAMS_TYPE") == "FIXED_CURVE_PARAMS"
     ):
         if verbos:

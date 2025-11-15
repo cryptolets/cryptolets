@@ -25,6 +25,7 @@ typedef ac_int<BITWIDTH, false>         wide_t;
 typedef ac_int<BITWIDTH+1, false>       wide_1_t;
 typedef ac_int<BITWIDTH+2, false>       wide_2_t;
 typedef ac_int<BITWIDTH*2, false>       wide_2x_t;
+typedef ac_int<BITWIDTH*4, false>       wide_4x_t;
 typedef ac_int<(BITWIDTH*2)+1, false>   wide_2x_1_t;
 typedef ac_int<(BITWIDTH*2)+2, false>   wide_2x_2_t;
 typedef ac_int<BITWIDTH+1, true>        wide_signed_t;

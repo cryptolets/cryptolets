@@ -75,6 +75,15 @@
     "q": "4aad957a68b2955982d1347970dec005293a3afc43c8afeb95aee9ac33fd9ff",
     "bitwidth": 251
   },
+  "BLS12_377_ON_TE": {
+    "form": "TwistedEdwards",
+    "desc": "https://eprint.iacr.org/2022/1396.pdf",
+    "a": "1ae3a4617c510eac63b05c06ca1493b1a22d9f300f5138f1ef3622fba094800170b5d44300000008508c00000000000",
+    "q": "1ae3a4617c510eac63b05c06ca1493b1a22d9f300f5138f1ef3622fba094800170b5d44300000008508c00000000001",
+    "d": "cb5d5818b4d2796505bb385732fe3a1bbc34cc60d19690bf8b2d97f059909cb9aeca3c3871e9f27016092b426b700b",
+    "k": "0196bab03169a4f2ca0b7670ae65fc7437786998c1a32d217f165b2fe0b32139735d947870e3d3e4e02c125684d6e016",
+    "bitwidth": 377
+  },
   "BLS12_381": {
     "form": "Weierstrass",
     "desc": "https://docs.rs/ark-bls12-381/latest/ark_bls12_381/",
@@ -159,78 +168,6 @@
     "q": "fffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141",
     "bitwidth": 256
   },
-  "SECP256R1": {
-    "form": "Weierstrass",
-    "desc": "https://docs.rs/ark-secp256r1/latest/ark_secp256r1/",
-    "a": "ffffffff00000001000000000000000000000000fffffffffffffffffffffffc",
-    "b": "5ac635d8aa3a93e7b3ebbd55769886bc651d06b0cc53b0f63bce3c3e27d2604b",
-    "q": "ffffffff00000001000000000000000000000000ffffffffffffffffffffffff",
-    "bitwidth": 256
-  },
-  "SECP384R1": {
-    "form": "Weierstrass",
-    "desc": "https://neuromancer.sk/std/secg/secp384r1#",
-    "a": "fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffeffffffff0000000000000000fffffffc",
-    "b": "b3312fa7e23ee7e4988e056be3f82d19181d9c6efe8141120314088f5013875ac656398d8a2ed19d2a85c8edd3ec2aef",
-    "q": "fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffeffffffff0000000000000000ffffffff",
-    "bitwidth": 384
-  },
-  "SECP521R1": {
-    "form": "Weierstrass",
-    "desc": "https://neuromancer.sk/std/secg/secp521r1",
-    "a": "01fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffc",
-    "b": "0051953eb9618e1c9a1f929a21a0b68540eea2da725b99b315f3b8b489918ef109e156193951ec7e937b1652c0bd3bb1bf073573df883d2c34f1ef451fd46b503f00",
-    "q": "01ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
-    "bitwidth": 521
-  },
-  "W_256_MONT": {
-    "form": "Weierstrass",
-    "desc": "https://neuromancer.sk/std/nums/w-256-mont#",
-    "a": "ffa7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffc",
-    "b": "14e6a",
-    "q": "ffa7ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
-    "bitwidth": 256
-  },
-  "W_255_MERS": {
-    "form": "Weierstrass",
-    "desc": "https://neuromancer.sk/std/nums/w-255-mers#",
-    "a": "7ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffd00",
-    "b": "7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffab46",
-    "q": "7ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffd03",
-    "bitwidth": 256
-  },
-  "W_384_MONT": {
-    "form": "Weierstrass",
-    "desc": "https://neuromancer.sk/std/nums/w-384-mont",
-    "a": "b0fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffc",
-    "b": "6c96",
-    "q": "b0ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
-    "bitwidth": 384
-  },
-  "W_383_MERS": {
-    "form": "Weierstrass",
-    "desc": "https://neuromancer.sk/std/nums/w-383-mers",
-    "a": "7ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe58",
-    "b": "17dbc",
-    "q": "7ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe5b",
-    "bitwidth": 383
-  },
-  "W_512_MONT": {
-    "form": "Weierstrass",
-    "desc": "https://neuromancer.sk/std/nums/w-512-mont",
-    "a": "fe14fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffc",
-    "b": "185ed",
-    "q": "fe14ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
-    "bitwidth": 512
-  },
-  "W_511_MERS": {
-    "form": "Weierstrass",
-    "desc": "https://neuromancer.sk/std/nums/w-511-mers",
-    "a": "7ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe1c",
-    "b": "879da",
-    "q": "7ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe1f",
-    "bitwidth": 511
-  },
   "ED25519": {
     "form": "TwistedEdwards",
     "desc": "https://docs.rs/ark-ed25519/latest/ark_ed25519/",
@@ -248,59 +185,5 @@
     "k": "af1697b8fe1b5e33e49e718526e745995a8c2ae4854a1e6f01363b47825425cf399939024c99fd35a10132e0b1f6c3884879865b7542ad73",
     "q": "fffffffffffffffffffffffffffffffffffffffffffffffffffffffeffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
     "bitwidth": 448
-  },
-  "ED_256_MONT": {
-    "form": "TwistedEdwards",
-    "desc": "https://neuromancer.sk/std/nums/ed-256-mont#",
-    "a": "ffa7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe",
-    "d": "350a",
-    "k": "6a14",
-    "q": "ffa7ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
-    "bitwidth": 256
-  },
-  "ED_255_MERS": {
-    "form": "TwistedEdwards",
-    "desc": "https://neuromancer.sk/std/nums/ed-255-mers#",
-    "a": "7ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffd02",
-    "d": "ea97",
-    "k": "1d52e",
-    "q": "7ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffd03",
-    "bitwidth": 255
-  },
-  "ED_384_MONT": {
-    "form": "TwistedEdwards",
-    "desc": "Curve from https://eprint.iacr.org/2014/130.pdf. No generator present.",
-    "a": "b0fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe",
-    "d": "6f17",
-    "k": "de2e",
-    "q": "b0ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
-    "bitwidth": 384
-  },
-  "ED_383_MERS": {
-    "form": "TwistedEdwards",
-    "desc": "https://neuromancer.sk/std/nums/ed-383-mers",
-    "a": "7ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe5a",
-    "d": "7fed6",
-    "k": "ffdac",
-    "q": "7ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe5b",
-    "bitwidth": 383
-  },
-  "ED_511_MERS": {
-    "form": "TwistedEdwards",
-    "desc": "Curve from https://eprint.iacr.org/2014/130.pdf. No generator present.",
-    "a": "7ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe1e",
-    "d": "10bf7d",
-    "k": "217efa",
-    "q": "7ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe1f",
-    "bitwidth": 511
-  },
-  "ED_512_MONT": {
-    "form": "TwistedEdwards",
-    "desc": "Curve from https://eprint.iacr.org/2014/130.pdf. No generator present.",
-    "a": "fe14fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe",
-    "d": "12a9c",
-    "k": "25538",
-    "q": "fe14ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
-    "bitwidth": 512
   }
 }

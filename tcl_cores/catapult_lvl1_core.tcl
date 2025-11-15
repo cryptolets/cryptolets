@@ -87,3 +87,4 @@ directive set -DESIGN_GOAL latency
 go schedule
 
 extract_verify_syn_save
+exit 0

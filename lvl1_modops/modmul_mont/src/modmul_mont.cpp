@@ -130,7 +130,15 @@ wide_t modmul_mont(
     const wide_t q_prime = Q_PRIME;
 #endif
 
+#ifdef MUL_SQ
+    #if MUL_SQ == 1
+        return modsq_mont_core(x, q, q_prime);
+    #else
+        return modmul_mont_core(x, y, q, q_prime);
+    #endif
+#else
     return modmul_mont_core(x, y, q, q_prime);
+#endif
 }
 
 wide_t modsq_mont(

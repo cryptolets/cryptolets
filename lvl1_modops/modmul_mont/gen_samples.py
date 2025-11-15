@@ -10,8 +10,11 @@ sys.path.append(str(Path(__file__).resolve().parents[2]))
 from utils.field_helpers import \
     get_field_const, to_mont, from_mont, get_q_prime
 
-def modmul_mont_ref(a, b, q, R):
-    return (a * b * R) % q
+def modmul_mont_ref(a, b, q, R, mul_sq=False):
+    if mul_sq:
+        return (a * a * R) % q
+    else:
+        return (a * b * R) % q
 
 def generate_samples(bitwidth, total_samples, curve_type, json_file, seed=42):
     q = get_field_const(curve_type, "q", json_file)
@@ -43,7 +46,7 @@ def generate_samples(bitwidth, total_samples, curve_type, json_file, seed=42):
 
     return samples
 
-def write_csv_files(samples, bitwidth, samples_path=None, golden_path=None):
+def write_csv_files(samples, bitwidth, samples_path=None, golden_path=None, mul_sq=False):
     R = pow(2, bitwidth)
 
     samples_mont = []
@@ -69,7 +72,7 @@ def write_csv_files(samples, bitwidth, samples_path=None, golden_path=None):
         writer = csv.writer(f, lineterminator=os.linesep)
         writer.writerow(["o_sample"])
         for a, b, q, q_prime in samples:
-            writer.writerow([modmul_mont_ref(a, b, q, R)])
+            writer.writerow([modmul_mont_ref(a, b, q, R, mul_sq)])
 
     print(f"Generated {samples_file} and {golden_file}")
 
@@ -83,9 +86,10 @@ if __name__ == "__main__":
     parser.add_argument("--samples-file", type=str, help="Optional path for samples CSV file.")
     parser.add_argument("--golden-file", type=str, help="Optional path for golden CSV file.")
     parser.add_argument("--json-file", type=str, help="json file to get field constant from.")
+    parser.add_argument("--mul-sq", action="store_true", default=False, help="Generate square samples.")
     args = parser.parse_args()
 
     samples = generate_samples(args.bw, args.n, args.curve_type, args.json_file)
-    write_csv_files(samples, args.bw, args.samples_file, args.golden_file)
+    write_csv_files(samples, args.bw, args.samples_file, args.golden_file, args.mul_sq)
 
 

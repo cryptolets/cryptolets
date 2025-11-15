@@ -14,6 +14,7 @@ set TEST $env(TEST)
 set TEST_ONLY $env(TEST_ONLY)
 set NUM_TEST_SAMPLES $env(NUM_TEST_SAMPLES)
 set CCORE_TOP $env(CCORE_TOP)
+set USE_CLUSTERS $env(USE_CLUSTERS)
 
 # run config
 set THREADS_PER_PROCESS $env(THREADS_PER_PROCESS)
@@ -81,13 +82,12 @@ directive set -CCORE_TYPE sequential
 directive set -OUTPUT_REGISTERS false
 directive set -OPT_CONST_MULTS full
 if {![is_fpga $TECH_TYPE]} {
-    directive set -X_PHD_SYNTHESIS true
+    directive set -CLUSTER addtree
+    directive set -CLUSTER_FAST_MODE true
 }
-# directive set -CLUSTER_FAST_MODE true
 go compile
 
 if {$KERNEL_NAME eq "cmul_f"} {
-    # directive set /$KERNEL_NAME -CLUSTER addtree
     if {$CMUL_TYPE ne "CMUL_NORMAL"} {
         directive set REGISTER_THRESHOLD [expr (8 * $BITWIDTH)]
     }
@@ -105,3 +105,4 @@ go assembly
 go schedule
 
 extract_verify_syn_save
+exit 0

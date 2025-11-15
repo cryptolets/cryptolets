@@ -207,6 +207,7 @@ def derive_all_attr(parsed_raw_attrs, all_info):
         
         row = {
             "sol": sol,
+            "mul_sq": int(all_info.get("mul_sq")) if all_info.get("mul_sq") is not None else None,
             "tech_type": all_info.get("tech_type"),
             "modmul_type": all_info.get("modmul_type"),
             "curve_type": all_info.get("curve_type"),
@@ -230,6 +231,7 @@ def derive_all_attr(parsed_raw_attrs, all_info):
             "cpr": float(all_info.get('cpr', 1)),
             "fmax": round(1000/minclkprd, 2) if (minclkprd and minclkprd != 0) else None,
             "cycles": cycles,
+            "pdbl_cycles": None,
             "latency": latency,
             "ii": ii,
             "area": area,
@@ -267,6 +269,8 @@ def drop_none_columns(data):
     for k in keys:
         if any(row[k] is not None for row in data):
             keep_keys.append(k)
+
+    keep_keys.append("pdbl_cycles")
 
     # rebuild rows with only kept keys
     new_data = [{k: row[k] for k in keep_keys} for row in data]
@@ -394,6 +398,7 @@ def sort_key(row):
 
     return (
         # vnum,
+        row.get("mul_sq") if row.get("mul_sq") is not None else float("inf"),
         row.get("sol") or "",
         row.get("tech_type") or "",
         -row.get("target_period") or float("inf"),
@@ -466,8 +471,39 @@ if __name__ == "__main__":
                     for attr in syn_raw_attrs[sol]:
                         if syn_raw_attrs[sol][attr]:
                             parsed_raw_attrs[sol][attr] = syn_raw_attrs[sol][attr]
+            
+            derived_metrics = derive_all_attr(parsed_raw_attrs, table_info)
 
-            all_metrics += derive_all_attr(parsed_raw_attrs, table_info)
+            # Parse point double cycles from cycle_set.tcl
+            for metric in derived_metrics:
+                if kernel == "point_add":
+                    if metric['sol'].startswith(kernel):
+                        cycle_set_fp = catapult_proj_dir_fp + f"/test_only_{kernel}.v2/cycle_set.tcl"
+                        c_steps = [0, 0, 0]
+                        if os.path.isfile(cycle_set_fp):
+                            with open(cycle_set_fp, "r") as f:
+                                for line in f:
+                                    if "point_add_core:mux" in line:
+                                        cycles = int(line.split("CSTEPS_FROM {{.. ==")[-1].replace("}}", ""))
+                                        num = 1 if "#1" in line else 2 if "#2" in line else 0
+                                        c_steps[num] = cycles
+                        
+                        point_add_cycles = c_steps[1]
+                        point_double_cycles = c_steps[2]
+
+                        if point_add_cycles == metric['cycles'] + 1:
+                            point_add_cycles -= 1
+                            point_double_cycles -= 1
+
+                        # sanity check
+                        assert point_add_cycles == metric['cycles'], "point add cycles mismatch"
+                        metric['pdbl_cycles'] = point_double_cycles
+                
+                # For Twisted Edwards Point Double latency is same as point add
+                elif kernel in ["point_add_te", "point_add_cyclonemsm"]:
+                    metric['pdbl_cycles'] = metric['cycles']
+
+            all_metrics += derived_metrics
 
         # filter and clean
         all_metrics = filter_mp(all_metrics, mp)
@@ -480,7 +516,7 @@ if __name__ == "__main__":
         all_metrics = [
             row for row in all_metrics \
                 if not str(row.get('sol')).startswith("verify") and \
-                   not str(row.get('sol')).startswith("test_only") and \
+                   not str(row.get('sol')).startswith("test_o") and \
                    not str(row.get('sol')).startswith("comb_check")
             ]
 

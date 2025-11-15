@@ -32,8 +32,6 @@ proc override_default_options {} {
     options set Flows/SCVerify/MAX_ERROR_CNT 1
     options set Flows/DesignCompiler/OutNetlistFormat verilog
     options set Flows/Vivado/XILINX_VIVADO /eda/xilinx//Vivado/2024.2/
-    # options set Flows/Vivado/retiming true
-    # options set Flows/Vivado/ImplementationStrategy Performance_ExtraTimingOpt
 }
 
 proc is_fpga {tech_type} {
@@ -90,11 +88,12 @@ proc set_tech_lib {tech_type} {
             -family VERSAL-hbm -speed -2MP \
             -part xcvh1582-vsva3697-2MP-e-S
     } elseif {$tech_type eq "fpga"} {
-        # # Virtex Ultra+ used by other papers
-        solution library add mgc_Xilinx-VIRTEX-uplus-1_beh \
+        # Virtex Ultra+ used by other papers
+        solution library add mgc_Xilinx-VIRTEX-uplus-2_beh \
+            -file "$ROOT_DIR/../mgc_Xilinx-VIRTEX-uplus-2_beh.lib" \
             -- -rtlsyntool Vivado -manufacturer Xilinx \
-            -family VIRTEX-uplus -speed -1 \
-            -part xcvu9p-flga2104-1-e
+            -family VIRTEX-uplus -speed -2 \
+            -part xcvu9p-flga2104-2-i
     }
 }
 
@@ -220,7 +219,7 @@ proc gen_tmp_params_h {config_params {json_file ""} {CURVE_TYPE ""}} {
 }
 
 proc run_osci_test {{CURVE_TYPE ""} {MODMUL_TYPE ""} {BITSHIFT_DIRECTION ""}} {
-    global TEST BITWIDTH KERNEL_DIR ROOT_DIR NUM_TEST_SAMPLES
+    global TEST BITWIDTH KERNEL_DIR ROOT_DIR NUM_TEST_SAMPLES MUL_SQ
     # generate samples csv file and run initial C++ tests
     if {$TEST} {
         set proj_dir [project get /PROJECT_DIR]
@@ -258,7 +257,12 @@ proc run_osci_test {{CURVE_TYPE ""} {MODMUL_TYPE ""} {BITSHIFT_DIRECTION ""}} {
         if {$BITSHIFT_DIRECTION ne ""} {
             lappend cmd --bitshift-direction $BITSHIFT_DIRECTION
         }
+        
+        if {[info exists MUL_SQ] && $MUL_SQ == 1} {
+            lappend cmd --mul-sq
+        }
 
+        puts "running cmd: $cmd"
         exec tcsh -c "$cmd"
 
         flow package require /SCVerify
@@ -278,11 +282,11 @@ proc run_osci_test {{CURVE_TYPE ""} {MODMUL_TYPE ""} {BITSHIFT_DIRECTION ""}} {
 # This logic is because if we make CCORE_TOP we cannot do verify
 proc extract_verify_syn_save {} {
     global WORK_DIR KERNEL_NAME sol_name table_name \
-            SIM CCORE_TOP TECH_TYPE 
+            SIM CCORE_TOP TECH_TYPE PROCESS_LVL_HANDSHAKE
     
     go new ;# doing this otherwise there will be issues in gui
-    if {$SIM && $CCORE_TOP} {
-        solution rename "verify_$sol_name"
+    if {$SIM || $CCORE_TOP} {
+        solution rename "test_only_$sol_name"
     } else {
         solution rename $sol_name
     }
@@ -296,14 +300,26 @@ proc extract_verify_syn_save {} {
         go libraries
         
         solution rename "comb_check_$sol_name"
-        solution design set $KERNEL_NAME -ccore 
+        solution design set $KERNEL_NAME -ccore
+        
+        if {![info exists PROCESS_LVL_HANDSHAKE]} { set PROCESS_LVL_HANDSHAKE false }
+        if {$PROCESS_LVL_HANDSHAKE} {
+            directive set TRANSACTION_DONE_SIGNAL false
+            directive set /$KERNEL_NAME -CCORE_SYNC_MODE handshake   
+        }
 
         go schedule
         branch_if_ccore_comb $KERNEL_NAME
-
+    } 
+    
+    if {$SIM || $CCORE_TOP} {
+        go new
         solution rename $sol_name
-        go extract
     }
+
+    go extract
+    project save
+    solution table export -file [file join $WORK_DIR $table_name]
 
     run_syn $TECH_TYPE
     solution table export -file [file join $WORK_DIR $table_name]

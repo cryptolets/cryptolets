@@ -17,6 +17,7 @@ set TEST $env(TEST)
 set TEST_ONLY $env(TEST_ONLY)
 set NUM_TEST_SAMPLES $env(NUM_TEST_SAMPLES)
 set CCORE_TOP $env(CCORE_TOP)
+set USE_CLUSTERS $env(USE_CLUSTERS)
 
 # run config
 set THREADS_PER_PROCESS $env(THREADS_PER_PROCESS)
@@ -68,12 +69,12 @@ go analyze
 
 # Set design tops
 solution design set $KERNEL_NAME -top
-if {![is_fpga $TECH_TYPE]} {
-    directive set -X_PHD_SYNTHESIS true
+if {$USE_CLUSTERS && ![is_fpga $TECH_TYPE]} {
+    directive set -CLUSTER addtree
+    directive set -CLUSTER_FAST_MODE true
 }
 
 go compile
-# directive set /$KERNEL_NAME -CLUSTER addtree
 
 run_osci_test
 if {$TEST_ONLY} { exit 0 }
@@ -95,3 +96,4 @@ remove_broken_mul_libs $TECH_TYPE
 go schedule
 
 extract_verify_syn_save
+exit 0

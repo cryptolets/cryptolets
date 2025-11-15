@@ -1,5 +1,5 @@
 # Sweep parameters for Twisted Edwards Point Addition
-BITWIDTH: [255]
+BITWIDTH: [255, 377, 448]
 # 64, 96, 128, 192, 254, 255, 256, 377, 381, 383, 384, 448, 511, 512, 521, 753, 768
 
 WBW: [16, 32, 64, 128]
@@ -8,9 +8,9 @@ TARGET_II: [1]
 TARGET_PERIOD: [1]  # in ns
 MUL_TYPE: [MUL_SCHOOLBOOK] # MUL_NORMAL, MUL_SCHOOLBOOK, MUL_KARATSUBA
 CMUL_TYPE: [CMUL_NORMAL] # CMUL_NORMAL, CMUL_NAF, CMUL_SA
-Q_TYPE: [FIXED_Q, VAR_Q] # VAR_Q, FIXED_Q
-REDC_TYPE: [FIXED_RC, VAR_RC] # VAR_RC, FIXED_RC
-CURVE_PARAMS_TYPE: [FIXED_CURVE_PARAMS, VAR_CURVE_PARAMS] # FIXED_CURVE_PARAMS, VAR_CURVE_PARAMS
+Q_TYPE: [FIXED_Q] # VAR_Q, FIXED_Q
+REDC_TYPE: [FIXED_RC] # VAR_RC, FIXED_RC
+CURVE_PARAMS_TYPE: [FIXED_CURVE_PARAMS] # FIXED_CURVE_PARAMS, VAR_CURVE_PARAMS
 MODMUL_TYPE: [MODMUL_TYPE_MONT, MODMUL_TYPE_BARRETT] # MODMUL_TYPE_MONT, MODMUL_TYPE_BARRETT
 
 # curve types: 
@@ -19,14 +19,14 @@ MODMUL_TYPE: [MODMUL_TYPE_MONT, MODMUL_TYPE_BARRETT] # MODMUL_TYPE_MONT, MODMUL_
 #        ED_256_MONT, ED_255_MERS, ED_384_MONT, ED_383_MERS, 
 #        ED_511_MERS, ED_512_MONT
 # variable a = ED448, BN254_ED
-CURVE_TYPE: [ED25519, RAND_CURVE]
+CURVE_TYPE: [ED25519, ED448, BLS12_377_ON_TE]
 
 PREC_TYPE: [SINGLE_PREC]  # SINGLE_PREC, MULTI_PREC
 CCORE_PERIOD_RATIO: [1]
 
 # for RAND_CURVE can select what "a" to pick which will specify what formula will be used
 # for other CURVE_TYPE's this value will be overrided
-FIELD_A: [ANEG1] # ANEG1: a=-1, AVAR: variable a
+FIELD_A: [ANEG1, AVAR] # ANEG1: a=-1, AVAR: variable a
 
 BASE_MUL_WIDTH:
   8: [8]
@@ -97,7 +97,9 @@ CCORE_MUL_F: false  # make mul_f ccore, false = more compile time, better design
 CCORE_MODADDSUB: false # make modadd,modsub,moddouble ccore, false = more compile time, better design latency
 CCORE_MODMUL: true   # false is needed for multi-prec
 CCORE_CMUL: false
-CCORE_TOP: false
+CCORE_TOP: true
+PROCESS_LVL_HANDSHAKE: false
+USE_CLUSTERS: true # use use carry save adder for adder trees
 
 # Defines order of params before project split
 SWEEP_ORDER: [

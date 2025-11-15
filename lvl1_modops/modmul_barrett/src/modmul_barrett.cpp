@@ -94,7 +94,15 @@ wide_t modmul_barrett(
     const wide_2x_t mu = MU;
 #endif
 
+#ifdef MUL_SQ
+    #if MUL_SQ == 1
+        return modsq_barrett_core(x, q, mu);
+    #else
+        return modmul_barrett_core(x, y, q, mu);
+    #endif
+#else
     return modmul_barrett_core(x, y, q, mu);
+#endif
 }
 
 wide_t modsq_barrett(

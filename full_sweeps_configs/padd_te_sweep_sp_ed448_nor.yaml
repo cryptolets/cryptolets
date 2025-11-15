@@ -1,5 +1,5 @@
 # Sweep parameters for Twisted Edwards Point Addition
-BITWIDTH: [255, 377]
+BITWIDTH: [448]
 # 64, 96, 128, 192, 254, 255, 256, 377, 381, 384, 448, 511, 512, 521, 753, 768
 
 WBW: [16, 32, 64, 128]
@@ -17,14 +17,14 @@ MODMUL_TYPE: [MODMUL_TYPE_MONT, MODMUL_TYPE_BARRETT] # MODMUL_TYPE_MONT, MODMUL_
 # RAND_CURVE
 # a=-1 : ED25519, BLS12_377_ON_TE
 # variable 1 = ED448
-CURVE_TYPE: [ED25519, BLS12_377_ON_TE, RAND_CURVE]
+CURVE_TYPE: [ED448, RAND_CURVE]
 
 PREC_TYPE: [SINGLE_PREC]  # SINGLE_PREC, MULTI_PREC
 CCORE_PERIOD_RATIO: [0.95, 0.90]
 
 # for RAND_CURVE can select what "a" to pick which will specify what formula will be used
 # for other CURVE_TYPE's this value will be overrided
-FIELD_A: [ANEG1] # ANEG1: a=-1, AVAR: variable a
+FIELD_A: [AVAR] # ANEG1: a=-1, AVAR: variable a
 
 BASE_MUL_WIDTH:
   8: [8]
