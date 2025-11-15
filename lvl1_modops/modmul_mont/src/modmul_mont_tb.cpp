@@ -67,19 +67,16 @@ CCS_MAIN(int argc, char **argv)    // required for sc verify flow in Catapult
   for (vector<STIMULUS_TYPE>::iterator it = samples.begin(); it != samples.end(); ++it) {
     STIMULUS_TYPE stimulus_element = *it;
 
-#if Q_TYPE == FIXED_Q
     stimulus_element.o_sample = CCS_DESIGN(modmul_mont)(
       stimulus_element.a_sample,
       stimulus_element.b_sample
-    );
-#else // variable Q
-    stimulus_element.o_sample = CCS_DESIGN(modmul_mont)(
-          stimulus_element.a_sample,
-          stimulus_element.b_sample,
-          stimulus_element.q_sample,
-          stimulus_element.q_prime_sample
-        );
+#if Q_TYPE == VAR_Q
+      , stimulus_element.q_sample
 #endif
+#if REDC_TYPE == VAR_RC
+      , stimulus_element.q_prime_sample
+#endif
+    );
 
     samples_out.push_back(stimulus_element);
   }

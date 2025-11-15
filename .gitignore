@@ -25,3 +25,8 @@ lib/
 logs/
 
 OLD_*
+results/
+run_logs/
+
+vivado*
+tmp*

@@ -1,6 +1,7 @@
 import csv
 import os
 import math
+from utils.naming_short import decoder
 
 # things we want to extract from the tables
 ATTR_TO_COL_NAME = {
@@ -50,10 +51,10 @@ ATTR_TO_COL_NAME = {
     ]
 }
 
-ASIC_TECH_TYPES = ["45nm", "gf12", "saed32"]
-FPGA_TECH_TYPES = ["fpga"]
+ASIC_TECH_TYPES = ["45nm", "gf12", "saed32", "saed14"]
+FPGA_TECH_TYPES = ["fpga", "fpgahbm", "fpgahbmvhk158"]
 
-def parse_table_csv(csv_fn):
+def parse_table_csv(csv_fn, no_syn=False):
     flows = []
     was_sep_row = False
 
@@ -63,6 +64,8 @@ def parse_table_csv(csv_fn):
         # Iterate through each row in the CSV
         for row in csv_reader:
             if len(row) < 2:
+                if no_syn and (len(row) > 0 and (row[0] in ("Design Compiler", "Vivado"))):
+                    break
                 was_sep_row = True
             else:
                 if was_sep_row:
@@ -102,133 +105,141 @@ def parse_table_csv(csv_fn):
 
     return parsed_raw_attrs
 
-def parse_sol_name(sol_name):    
-    # bw   ->  "sol"
-    # mod  ->  "sol"
-    # mul  ->  "sol_bm${bm}_kar${kar}"
-    # padd ->  "sol_bm${bm}_kar${kar}"
+def parse_dc_reports(catapult_proj_dir_fp, kernel):
+    data = {}
+    for d in os.listdir(catapult_proj_dir_fp):
+        sol_dir = os.path.join(catapult_proj_dir_fp, d)
+        if os.path.isdir(sol_dir) and d.startswith(f"{kernel}.v"):
+            # QoR report
+            rpt_qor = os.path.join(sol_dir, "gate_synthesis_dc", "reports", "report_qor.rpt")
+            slack, area = None, None
+            if os.path.isfile(rpt_qor):
+                with open(rpt_qor, "r") as f:
+                    for line in f:
+                        line = line.strip()
+                        if line.startswith("Critical Path Slack:"):
+                            slack = line.split("Critical Path Slack:")[1].strip()
+                        elif line.startswith("Cell Area:"):
+                            area = line.split("Cell Area:")[1].strip()
 
-    # mp ->  starts with "sol_limbs${limbs}" instead of "sol"
+            # Power report
+            rpt_power = os.path.join(sol_dir, "gate_synthesis_dc", "reports", "report_power.rpt")
+            total_power = None
+            if os.path.isfile(rpt_power):
+                with open(rpt_power, "r") as f:
+                    header_found = False
+                    for line in f:
+                        line = line.strip()
+                        if not line:
+                            continue
+                        if line.startswith("Hierarchy"):
+                            header_found = True
+                            continue
+                        if header_found:
+                            if line.startswith("-"):  # skip separator
+                                continue
+                            parts = line.split()
+                            if len(parts) >= 5:
+                                # 0=module, 1=Switch, 2=Int, 3=Leak, 4=Total, 5=% 
+                                total_power = parts[4]
+                            break
 
-    sol_name = sol_name.split(".")[0] # remove version
-    parts = sol_name.split("_")
-    info = {
-        "limbs": None,
-        "bm": None,
-        "kar": None,
-        "q_type": None,
-    }
+            data[os.path.basename(sol_dir)] = {
+                "slack": slack,
+                "area": area,
+                "power": total_power
+            }
 
-    if parts[0].startswith("sol_limbs"):
-        info["limbs"] = int(parts[0].replace("sol_limbs", ""))
-
-    for p in parts:
-        if p.startswith("bm"):
-            info["bm"] = int(p[2:])
-        elif p.startswith("kar"):
-            info["kar"] = int(p[3:])
-        elif p.startswith("qt"):
-            info["q_type"] = p[2:]
-        elif p.startswith("limbs"):
-            info["limbs"] = int(p.replace("limbs", ""))
-
-    return info
-
+    return data
 
 def parse_table_name(table_name):
-    # bw   ->  "table_bw${bitwidth}_${tech_type}_ii${target_ii}_f${period}ns.csv"
-    # mod  ->  "table_bw${bitwidth}_${tech_type}_ii${target_ii}_qt${q_type}_f${period}ns.csv"
-    # mul  ->  "table_bw${bitwidth}_${tech_type}_ii${target_ii}_mt${mul_type}_f${period}ns.csv"
-    # padd ->  "table_bw${bitwidth}_${tech_type}_ii${target_ii}_mt${mul_type}_f${period}ns.csv"
+    # strip prefix/suffix
+    tag = table_name.replace(".csv", "").replace("table_", "")
+    
+    # decode using naming_short (medium-form keys)
+    decoded = decoder(tag, key_type="med")
 
-    # mp -> starts with "table_mp_" instead of "table_
-    name = table_name.replace(".csv", "")
-    parts = name.split("_")
-    info = {
-        "bitwidth": None,
-        "limbs": None,
-        "wbw": None,
-        "tech_type": None,
-        "target_ii": None,
-        "q_type": None,
-        "mul_type": None,
-        "target_freq": None,
-        "target_period": None
-    }
+    # cast numeric values
+    result = {}
+    for k, v in decoded.items():
+        if v is None:
+            result[k] = None
+            continue
+        try:
+            if "." in str(v):
+                result[k] = float(v)
+            else:
+                result[k] = int(v)
+        except ValueError:
+            result[k] = v
 
-    for p in parts:
-        if p.startswith("bw"):
-            info["bitwidth"] = int(p[2:])
-        elif p.startswith("ii"):
-            info["target_ii"] = int(p[2:])
-        elif p.startswith("qt"):
-            info["q_type"] = p[2:]
-        elif p.startswith("mt"):
-            info["mul_type"] = p[2:]
-        elif p.startswith("tt"):
-            info["tech_type"] = p[2:]
-        elif p.startswith("f"):
-            info["target_freq"] = float(p[1:].replace("MHz", ""))
-        elif p.startswith("p"):
-            info["target_period"] = float(p[1:].replace("ns", ""))
-        elif p.startswith("ct"):
-            info["curve_type"] = name.split("_ct")[-1]
+    return result
 
-    return info
+def to_float(val):
+    return None if val in (None, "") else round(float(val), 2)
 
-def derive_all_attr(parsed_raw_attrs, table_info):
-    def to_float(val):
-        return None if val in (None, "") else round(float(val), 2)
+def to_float_prec(val):
+    return None if val in (None, "") else float(val)
 
+def derive_all_attr(parsed_raw_attrs, all_info):    
     results = []
     for sol, a in parsed_raw_attrs.items():
         cycles = round(float(a.get("cycles"))) if a.get("cycles") else None
-        period = float(a.get("period")) if a.get("period") else None
-        slack = float(a.get("slack")) if a.get("slack") else None
+        period = to_float_prec(a.get("period"))
+        slack = to_float_prec(a.get("slack"))
+        power = to_float_prec(a.get("power"))
         ii, area = to_float(a.get("ii")), to_float(a.get("area"))
-        sol_info = parse_sol_name(sol)
-        
-        all_info = {}
-        for k in set(table_info) | set(sol_info):
-            v1 = table_info.get(k)
-            v2 = sol_info.get(k)
-            all_info[k] = v2 if v2 is not None else v1
 
         period = period if period else all_info["target_period"]
-        minclkprd = period-slack if (period and slack) else None
+        minclkprd = period-slack if (period is not None and slack is not None) else None
         latency = None
-        if period and slack:
+        if (period is not None and slack is not None):
             if cycles > 0:
                 latency = round(cycles*(period-slack), 2)
             else:
                 latency = round(period-slack, 2)        
 
-        ctime_raw = float(a.get('ctime', 0)) # total compile time
-
+        ctime_raw = to_float_prec(a.get("ctime")) # total compile time
+        bitwidth = all_info.get('bitwidth')
+        mb = all_info.get('mb', 0)
+        bitwidth, masked_bw = (bitwidth - mb), bitwidth
+        if bitwidth == masked_bw: masked_bw = None
+        
         row = {
             "sol": sol,
-            "tech_type": all_info.get("tech_type", None),
-            "curve_type": all_info.get("curve_type", None),
-            "target_period": round(period, 2) if period else all_info["target_period"],
+            "mul_sq": int(all_info.get("mul_sq")) if all_info.get("mul_sq") is not None else None,
+            "tech_type": all_info.get("tech_type"),
+            "modmul_type": all_info.get("modmul_type"),
+            "curve_type": all_info.get("curve_type"),
+            "a": all_info.get("a"),
+            "target_period": round(period, 2) if period else all_info.get("target_period"),
             "target_freq": round(1000/period, 2) if period else None,
-            "bitwidth": all_info['bitwidth'],
-            "q_type": all_info['q_type'],
-            "mt": all_info['mul_type'],
-            "bm": all_info['bm'],
-            "kar": all_info['kar'],
-            "limbs": all_info['limbs'],
-            "wbw": all_info['bitwidth'] // all_info['limbs'] if all_info['limbs'] else None,
-            "ctime_raw": ctime_raw,
-            "ctime": f"{int(ctime_raw) // 60}m {int(ctime_raw) % 60}s",
+            "curve_pt": all_info.get('curve_pt'),
+            "bitshift_dir": all_info.get('bitshift_dir'),
+            "rc_type": all_info.get('rc_type'),
+            "q_type": all_info.get('q_type'),
+            "bitwidth": bitwidth,
+            "masked_bw": masked_bw,
+            "mt": all_info.get('mul_type'),
+            "cmt": all_info.get('cmul_type'),
+            "bm": all_info.get('bm'),
+            "kar": all_info.get('kar'),
+            "wbw": all_info.get('wbw'),
+            "ctime_raw": ctime_raw if ctime_raw else 0,
+            "ctime": f"{int(ctime_raw) // 60}m {int(ctime_raw) % 60}s" if ctime_raw else -1,
             "minclkprd": round(minclkprd, 2) if minclkprd else None,
+            "cpr": float(all_info.get('cpr', 1)),
             "fmax": round(1000/minclkprd, 2) if (minclkprd and minclkprd != 0) else None,
             "cycles": cycles,
+            "pdbl_cycles": None,
             "latency": latency,
             "ii": ii,
             "area": area,
+            "power": f"{power:.2e}" if power else None,
         }
 
-        if all_info['tech_type'] in ASIC_TECH_TYPES:
+        if all_info.get('tech_type') in ASIC_TECH_TYPES:
+            row["area (mm^2)"] = round(area/1e6, 2) if area else area
             row["reg"] = to_float(a.get("reg"))
             row["memory"] = to_float(a.get("memory"))
         elif all_info['tech_type'] in FPGA_TECH_TYPES:
@@ -259,6 +270,8 @@ def drop_none_columns(data):
         if any(row[k] is not None for row in data):
             keep_keys.append(k)
 
+    keep_keys.append("pdbl_cycles")
+
     # rebuild rows with only kept keys
     new_data = [{k: row[k] for k in keep_keys} for row in data]
     return new_data
@@ -285,11 +298,11 @@ def get_tot(data, col="ctime_raw"):
 
 def filter_mp(data, mp=False):
     if mp:
-        # keep only MP rows (limbs is not None)
-        return [row for row in data if row.get("limbs") is not None]
+        # keep only MP rows (wbw is not None)
+        return [row for row in data if row.get("wbw") is not None]
     else:
-        # keep only non-MP rows (limbs is None)
-        return [row for row in data if row.get("limbs") is None]
+        # keep only non-MP rows (wbw is None)
+        return [row for row in data if row.get("wbw") is None]
 
 def find_max_area_min_latency_by_q(data):
     """
@@ -330,7 +343,16 @@ def make_table_string(data):
         return "No data"
 
     keys = list(data[0].keys())
-    col_widths = {k: max(len(str(k)), max(len(str(row[k])) for row in data)) for k in keys}
+
+    # Compute column widths with float formatting considered
+    col_widths = {}
+    for k in keys:
+        max_width = len(str(k))
+        for row in data:
+            v = row[k]
+            s = f"{v:.2f}" if isinstance(v, float) else str(v)
+            max_width = max(max_width, len(s))
+        col_widths[k] = max_width
 
     # Header + separator
     header = " | ".join(f"{k:<{col_widths[k]}}" for k in keys)
@@ -339,8 +361,17 @@ def make_table_string(data):
     # Rows
     rows = []
     for row in data:
-        line = " | ".join(f"{str(row[k]):<{col_widths[k]}}" for k in keys)
-        rows.append(line)
+        formatted = []
+        for k in keys:
+            v = row[k]
+            if isinstance(v, float):
+                s = f"{v:.2f}"
+                formatted.append(f"{s:>{col_widths[k]}}")  # right-align
+            elif isinstance(v, (int, complex)):
+                formatted.append(f"{v:>{col_widths[k]}}")  # right-align
+            else:
+                formatted.append(f"{str(v):<{col_widths[k]}}")  # left-align text
+        rows.append(" | ".join(formatted))
 
     return "\n".join([header, sep] + rows)
 
@@ -366,14 +397,22 @@ def sort_key(row):
     vnum = int(row["sol"].split(".")[-1][1:])
 
     return (
-        vnum,
+        # vnum,
+        row.get("mul_sq") if row.get("mul_sq") is not None else float("inf"),
+        row.get("sol") or "",
         row.get("tech_type") or "",
+        -row.get("target_period") or float("inf"),
+        row.get("modmul_type") or "",
         row.get("curve_type") or "",
-        row.get("target_period") or float("inf"),
+        row.get("a") or "",
         row.get("ii") or float("inf"),
+        row.get("bitshift_dir") or "",
+        row.get("curve_pt") or "",
+        row.get("rc_type") or "",
         row.get("q_type") or "",
-        row.get("mt") or "",
         row.get("bitwidth") or float("inf"),
+        row.get("mt") or "",
+        row.get("cmt") or "",
         -row.get("bm") if row.get("bm") else float("inf"),
         -row.get("kar") if row.get("kar") else float("inf"),
     )
@@ -388,10 +427,13 @@ if __name__ == "__main__":
     parser.add_argument("-o", "--out-txt", action="store_true", help="Write TXT output")
     parser.add_argument("-c", "--out-csv", action="store_true", help="Write CSV output")
     parser.add_argument("-t", "--tech-type", action="store_true", help="Show tech type")
+    parser.add_argument("--proj-dir", type=str, default="Catapult", help="switch between project dirs")
     parser.add_argument("--ccore", action="store_true", help="Include Catapult ccore solutions (default: only top-level sols)")
     parser.add_argument("--freq", action="store_true", help="show freq metrics")
     parser.add_argument("--period", type=str, help="Filter results by clock period value")
     parser.add_argument("--curve", type=str, help="Filter results by curve type")
+    parser.add_argument("--bitwidth", type=int, help="Filter results by bitwidth")
+    parser.add_argument("--no-syn", action="store_true", help="Do not include synthesis results")
     args = parser.parse_args()
 
     kernel = os.path.basename(os.path.normpath(args.kernel))
@@ -399,7 +441,7 @@ if __name__ == "__main__":
     mp = args.mp
     tech_type = "asic" if args.asic else "fpga"
 
-    catapult_dir = f"{kernel_path}/Catapult/"
+    catapult_dir = f"{kernel_path}/{args.proj_dir}/"
     all_metrics = []
 
     if os.path.isdir(catapult_dir):
@@ -408,12 +450,60 @@ if __name__ == "__main__":
                 continue
             
             fp = os.path.join(catapult_dir, fn)
+            proj_sweep_key = fn.split("table_")[-1].split(".")[0]
+            catapult_proj_dir_fp = os.path.join(catapult_dir, f"Catapult_{proj_sweep_key}")
             table_info = parse_table_name(fn)
+            syn_raw_attrs = {}
 
-            if not table_info["tech_type"] in ASIC_TECH_TYPES:
+            if tech_type == "asic" and not table_info.get("tech_type") in ASIC_TECH_TYPES:
+                continue
+            if tech_type == "fpga" and not table_info.get("tech_type") in FPGA_TECH_TYPES:
                 continue
 
-            all_metrics += derive_all_attr(parse_table_csv(fp), table_info)
+            if table_info["tech_type"] in ASIC_TECH_TYPES and os.path.isdir(catapult_proj_dir_fp):
+                syn_raw_attrs = parse_dc_reports(catapult_proj_dir_fp, kernel)
+
+            parsed_raw_attrs = parse_table_csv(fp, args.no_syn)
+
+            # override catapult data with dc reports
+            if not args.no_syn:
+                for sol in syn_raw_attrs:
+                    for attr in syn_raw_attrs[sol]:
+                        if syn_raw_attrs[sol][attr]:
+                            parsed_raw_attrs[sol][attr] = syn_raw_attrs[sol][attr]
+            
+            derived_metrics = derive_all_attr(parsed_raw_attrs, table_info)
+
+            # Parse point double cycles from cycle_set.tcl
+            for metric in derived_metrics:
+                if kernel == "point_add":
+                    if metric['sol'].startswith(kernel):
+                        cycle_set_fp = catapult_proj_dir_fp + f"/test_only_{kernel}.v2/cycle_set.tcl"
+                        c_steps = [0, 0, 0]
+                        if os.path.isfile(cycle_set_fp):
+                            with open(cycle_set_fp, "r") as f:
+                                for line in f:
+                                    if "point_add_core:mux" in line:
+                                        cycles = int(line.split("CSTEPS_FROM {{.. ==")[-1].replace("}}", ""))
+                                        num = 1 if "#1" in line else 2 if "#2" in line else 0
+                                        c_steps[num] = cycles
+                        
+                        point_add_cycles = c_steps[1]
+                        point_double_cycles = c_steps[2]
+
+                        if point_add_cycles == metric['cycles'] + 1:
+                            point_add_cycles -= 1
+                            point_double_cycles -= 1
+
+                        # sanity check
+                        assert point_add_cycles == metric['cycles'], "point add cycles mismatch"
+                        metric['pdbl_cycles'] = point_double_cycles
+                
+                # For Twisted Edwards Point Double latency is same as point add
+                elif kernel in ["point_add_te", "point_add_cyclonemsm"]:
+                    metric['pdbl_cycles'] = metric['cycles']
+
+            all_metrics += derived_metrics
 
         # filter and clean
         all_metrics = filter_mp(all_metrics, mp)
@@ -421,6 +511,14 @@ if __name__ == "__main__":
         all_metrics = drop_none_columns(all_metrics)
         tot_ctime = get_tot(all_metrics, "ctime_raw")
         all_metrics = drop_column(all_metrics, "ctime_raw")
+
+        # filter out test only and verify solutions, keep only top level
+        all_metrics = [
+            row for row in all_metrics \
+                if not str(row.get('sol')).startswith("verify") and \
+                   not str(row.get('sol')).startswith("test_o") and \
+                   not str(row.get('sol')).startswith("comb_check")
+            ]
 
         # Filter by period as float if requested
         if args.period:
@@ -434,6 +532,9 @@ if __name__ == "__main__":
         if args.curve:
             all_metrics = [row for row in all_metrics if str(row.get('curve_type')) == args.curve]
 
+        if args.bitwidth:
+            all_metrics = [row for row in all_metrics if int(row.get('bitwidth')) == args.bitwidth]
+
         if args.freq:
             all_metrics = drop_column(all_metrics, "target_period")
             all_metrics = drop_column(all_metrics, "minclkprd")
@@ -444,7 +545,9 @@ if __name__ == "__main__":
         if not args.tech_type:
             all_metrics = drop_column(all_metrics, "tech_type")
 
-        only_top = [row for row in all_metrics if row["sol"].startswith("sol")]
+        all_metrics = drop_column(all_metrics, "ctime") # not accurate
+
+        only_top = [row for row in all_metrics if row["sol"].startswith(kernel)]
         num_runs = len(only_top)
 
         if not args.ccore:
@@ -454,26 +557,26 @@ if __name__ == "__main__":
         table_str = make_table_string(all_metrics)
         print(table_str)
 
-        # Find and print designs with min area and min latency by q_type
-        area_latency_results = find_max_area_min_latency_by_q(all_metrics)
-        for q_type in ["fixedq", "varq"]:
-            print(f"\nDesign with minimum area ({q_type}):")
-            if area_latency_results[q_type]['min_area']:
-                print(make_table_string([area_latency_results[q_type]['min_area']]))
-            else:
-                print("None found.")
+        # # Find and print designs with min area and min latency by q_type
+        # area_latency_results = find_max_area_min_latency_by_q(all_metrics)
+        # for q_type in ["fixedq", "varq"]:
+        #     print(f"\nDesign with minimum area ({q_type}):")
+        #     if area_latency_results[q_type]['min_area']:
+        #         print(make_table_string([area_latency_results[q_type]['min_area']]))
+        #     else:
+        #         print("None found.")
             
-            print(f"\nDesign with minimum latency ({q_type}):")
-            if area_latency_results[q_type]['min_latency']:
-                print(make_table_string([area_latency_results[q_type]['min_latency']]))
-            else:
-                print("None found.")
+        #     print(f"\nDesign with minimum latency ({q_type}):")
+        #     if area_latency_results[q_type]['min_latency']:
+        #         print(make_table_string([area_latency_results[q_type]['min_latency']]))
+        #     else:
+        #         print("None found.")
 
         if num_runs > 0:
             ctime_fmt = lambda t: f"{int(t)//3600}h {(int(t)%3600)//60}m {int(t)%60}s"
             print("")
-            print(f"Total compile time = {ctime_fmt(tot_ctime)}")
-            print(f"Avg compile time = {ctime_fmt(tot_ctime / num_runs)}")
+            # print(f"Total compile time = {ctime_fmt(tot_ctime)}")
+            # print(f"Avg compile time = {ctime_fmt(tot_ctime / num_runs)}")
             print(f"Num of runs = {num_runs}")
 
         out_fn = f"{kernel}_{tech_type}" if not mp else f"{kernel}_{tech_type}_mp"

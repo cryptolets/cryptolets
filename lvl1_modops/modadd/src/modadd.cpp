@@ -2,7 +2,7 @@
 
 // Core implementation (shared by both fixed and variable Q)
 
-#if PRECISION_MODE == PREC_SINGLE
+#if PREC_TYPE == SINGLE_PREC
 
 wide_t modadd_core(const wide_t a, const wide_t b, const wide_t q) {
     wide_1_t adder_out = a + b;
@@ -20,7 +20,7 @@ wide_t moddouble_core(const wide_t a, const wide_t q) {
     return (!reduced_out[BITWIDTH]) ? (wide_t)reduced_out : (wide_t)adder_out;
 }
 
-#else // PREC_MULTI
+#elif PREC_TYPE == MULTI_PREC
 
 wide_t modadd_core(
     const wide_t a, 
@@ -32,7 +32,7 @@ wide_t modadd_core(
     ac_int<1, false> c_0 = 0;
 
     wide_t reduced_out;
-    ac_int<1, true> c_1 = 0;
+    ac_int<1, false> c_1 = 0;
     
     // Use one loop to ensure word level ops overlap
     for (int i = 0; i < LIMBS; i++) {
@@ -42,17 +42,18 @@ wide_t modadd_core(
         c_0 = w_i_ext_0[WBW];
 
         // 2. reduced_out = adder_out - q;
-        word_signed_t w_i_ext_1 = adder_out.slc<WBW>(i * WBW) - q.slc<WBW>(i * WBW) + c_1;
+        word_signed_t w_i_ext_1 = adder_out.slc<WBW>(i * WBW) - q.slc<WBW>(i * WBW) - c_1;
         reduced_out.set_slc(i*WBW, w_i_ext_1.slc<WBW>(0));
         c_1 = w_i_ext_1[WBW];
     }
 
     wide_t result;
+
     // 3. if !c_1 then reduced_out else adder_out;
     for (int i = 0; i < LIMBS; i++) {        
         word_t reduced_out_w = reduced_out.slc<WBW>(i * WBW);
         word_t adder_out_w = adder_out.slc<WBW>(i * WBW);
-        word_t r_w = !c_1 ? reduced_out_w : adder_out_w;
+        word_t r_w = ((!c_1) | (c_0 == 1)) ? reduced_out_w : adder_out_w;
         result.set_slc(i * WBW, r_w);
     }
 

@@ -1,0 +1,37 @@
+# --- System configuration defaults ---
+TOTAL_THREADS: 40
+THREADS_PER_PROCESS: 4
+RTL_FILE: "rtl" # rtl and rtl_concat
+DRY_RUN: false
+GUI_MODE: false
+
+# --- Multi-kernel batch mode ---
+MULTIPLE_KERNELS: ["add_f", "sub_f", "cmul_f"]
+
+# --- Kernel registry ---
+KERNELS: [
+  "add_f", "sub_f", "cmul_f", "bitshift",
+  "mul_f", "sq_f",
+  "modadd", "modsub", "modmul_mont", "modmul_barrett",
+  "point_add", "point_add_te", "point_add_cyclonemsm",
+  ]
+
+# --- Parameter sweep grouping ---
+SWEEP_GROUP_MAP:
+  lvl0: ["add_f", "sub_f", "cmul_f"]
+  mul: ["mul_f", "sq_f"]
+  lvl1: ["modadd", "modsub"]
+  modmul: ["modmul_mont", "modmul_barrett"]
+  padd_sw: ["point_add"]
+  padd_te: ["point_add_te"]
+  padd_cyclonemsm: ["point_add_cyclonemsm"]
+  bitshift: ["bitshift"]
+
+# --- Core tcl grouping ---
+CORE_GROUP_MAP:
+  lvl0: ["add_f", "sub_f", "cmul_f"]
+  mul: ["mul_f", "sq_f"]
+  lvl1: ["modadd", "modsub"]
+  modmul: ["modmul_mont", "modmul_barrett"]
+  padd: ["point_add", point_add_te, point_add_cyclonemsm]
+  bitshift: ["bitshift"]

@@ -2,8 +2,10 @@
 # Common helper procs for Catapult
 
 # Ensure kernel/Catapult dir exists and cd into it
-proc enter_work_dir {kernel_dir} {
-    set work_dir [file join $kernel_dir Catapult]
+proc enter_work_dir {} {
+    global KERNEL_DIR
+
+    set work_dir [file join $KERNEL_DIR Catapult]
     if {![file exists $work_dir]} {
         file mkdir $work_dir
     }
@@ -11,31 +13,60 @@ proc enter_work_dir {kernel_dir} {
     return $work_dir
 }
 
+proc assign_from_env {params} {
+    foreach p $params {
+        if {[info exists ::env($p)]} {
+            set ::$p $::env($p)
+        } else {
+            puts "Warning: env($p) not defined"
+        }
+    }
+}
+
 proc override_default_options {} {
     options defaults
     options set /Input/CppStandard c++14
     options set /Input/TargetPlatform x86_64
+    options set Output/OutputVHDL false ;# we want only verilog output
+    options set Output/RTLSchem false ;# rtl schematics take up a ton of space
     options set Flows/SCVerify/MAX_ERROR_CNT 1
+    options set Flows/DesignCompiler/OutNetlistFormat verilog
+    options set Flows/Vivado/XILINX_VIVADO /eda/xilinx//Vivado/2024.2/
 }
 
-proc set_tech_lib {tech_type root_dir} {
+proc is_fpga {tech_type} {
+    return [expr {
+        $tech_type eq "fpgahbmvhk158" ||
+        $tech_type eq "fpgahbm" ||
+        $tech_type eq "fpga"
+    }]
+}
+
+proc set_tech_lib {tech_type} {
+    global ROOT_DIR
+    
     solution library remove *
     if {$tech_type eq "45nm"} {
+        set custom_dc_script_path [file normalize "$ROOT_DIR/dc_custom_scripts"]
+        options set Flows/DesignCompiler/CustomScriptDirPath "$custom_dc_script_path"
+        options set ComponentLibs/TechLibSearchPath [file normalize "$ROOT_DIR/../45nm_db"] -append
+
         solution library add nangate-45nm_beh \
-            -- -rtlsyntool OasysRTL -vendor Nangate -technology 045nm
+            -- -rtlsyntool DesignCompiler -vendor Nangate -technology 045nm
     } elseif {$tech_type eq "gf12"} {
-        set custom_dc_script_path [file normalize "$root_dir/dc_custom_scripts"]
+        set custom_dc_script_path [file normalize "$ROOT_DIR/dc_custom_scripts"]
         options set Flows/DesignCompiler/CustomScriptDirPath "$custom_dc_script_path"
         options set ComponentLibs/TechLibSearchPath "/ip/arm/gf12/sc7p5mcpp84_base_slvt_c14/r1p0/db" -append
 
         solution library add sc7p5mcpp84_12lp_base_slvt_c14_tt_nominal_max_0p90v_25c_dc \
-            -file "$root_dir/../gf12_libs/sc7p5mcpp84_12lp_base_slvt_c14_tt_nominal_max_0p90v_25c_dc_smooth.lib" \
+            -file "$ROOT_DIR/../gf12_libs/sc7p5mcpp84_12lp_base_slvt_c14_tt_nominal_max_0p90v_25c_dc_smooth.lib" \
             -- -rtlsyntool DesignCompiler -vendor GlobalFoundries -technology 012nm
 
     } elseif {$tech_type eq "saed32"} {
         # add custom dc script path
-        set custom_dc_script_path [file normalize "$root_dir/dc_custom_scripts"]
+        set custom_dc_script_path [file normalize "$ROOT_DIR/dc_custom_scripts"]
         options set Flows/DesignCompiler/CustomScriptDirPath "$custom_dc_script_path"
+        # it prob just needs some of these paths, but linking all for now just to be safe 
         options set ComponentLibs/TechLibSearchPath "/ip/synopsys/saed32/v02_2024/" -append
         options set ComponentLibs/TechLibSearchPath "/ip/synopsys/saed32/v02_2024/tech/tf" -append
         options set ComponentLibs/TechLibSearchPath "/ip/synopsys/saed32/v02_2024/lib/stdcell_lvt/lef" -append
@@ -44,45 +75,73 @@ proc set_tech_lib {tech_type root_dir} {
 
         solution library add saed32lvt_tt0p78v125c_beh \
             -- -rtlsyntool DesignCompiler -vendor SAED32 -technology {lvt tt0p78v125c}        
-    } else {
-        options set Flows/Vivado/XILINX_VIVADO /eda/xilinx//Vivado/2024.2/
-        
-        solution library add mgc_Xilinx-VIRTEX-uplus-1_beh \
+    } elseif {$tech_type eq "fpgahbm"} {
+        # Top of the line Versal HBM
+        solution library add mgc_Xilinx-VERSAL-hbm-3HP_beh \
             -- -rtlsyntool Vivado -manufacturer Xilinx \
-            -family VIRTEX-uplus -speed -1 \
-            -part xcvu9p-flga2104-1-e
+            -family VERSAL-hbm -speed -3HP \
+            -part xcvh1782-lsva4737-3HP-e-S
+    } elseif {$tech_type eq "fpgahbmvhk158"} {
+        solution library add mgc_Xilinx-VERSAL-hbm-2MP_beh \
+            -file "$ROOT_DIR/../mgc_Xilinx-VERSAL-hbm-2MP_beh.lib" \
+            -- -rtlsyntool Vivado -manufacturer Xilinx \
+            -family VERSAL-hbm -speed -2MP \
+            -part xcvh1582-vsva3697-2MP-e-S
+    } elseif {$tech_type eq "fpga"} {
+        # Virtex Ultra+ used by other papers
+        solution library add mgc_Xilinx-VIRTEX-uplus-2_beh \
+            -file "$ROOT_DIR/../mgc_Xilinx-VIRTEX-uplus-2_beh.lib" \
+            -- -rtlsyntool Vivado -manufacturer Xilinx \
+            -family VIRTEX-uplus -speed -2 \
+            -part xcvu9p-flga2104-2-i
     }
 }
 
 # Project handling
-proc open_or_create_proj {proj_name work_dir} {
-    set proj_ccs [file join $work_dir "${proj_name}.ccs"]
-    set proj_dir [file join $work_dir $proj_name]
+proc open_or_create_proj {proj_name} {
+    global WORK_DIR
 
+    set proj_ccs [file join $WORK_DIR "${proj_name}.ccs"]
+    set proj_dir [file join $WORK_DIR $proj_name]
+
+    if {[file exists $proj_dir]} {
+        puts "Removing existing project dir: $proj_dir"
+        file delete -force $proj_dir
+    }
     if {[file exists $proj_ccs]} {
-        puts "Opening existing project: $proj_name"
-        project load $proj_ccs
-    } else {
-        puts "Creating new project at: $proj_name"
-        project new -name $proj_name -directory $proj_dir
-        project save
+        puts "Removing existing project file: $proj_ccs"
+        file delete -force $proj_ccs
+    }
+
+    puts "Creating new project: $proj_name"
+    project new -name $proj_name -directory $proj_dir
+    project save
+}
+
+proc del_existing_table {table_name} {
+    global WORK_DIR
+    set table_file [file join $WORK_DIR "${table_name}"]
+
+    if {[file exists $table_file]} {
+        puts "Removing existing table file: $table_file"
+        file delete -force $table_file
     }
 }
 
-# Solution handling
-proc open_or_create_solution {sol_name} {
-    if {[catch {solution new -state new $sol_name} err]} {
-        puts "Creating new solution: $sol_name"
-        solution new $sol_name
-    } else {
-        puts "Opened existing solution: $sol_name"
-    }
-}
+# # Solution handling
+# proc open_or_create_solution {sol_name} {
+#     if {[catch {solution new -state new $sol_name} err]} {
+#         puts "Creating new solution: $sol_name"
+#         solution new $sol_name
+#     } else {
+#         puts "Opened existing solution: $sol_name"
+#     }
+# }
 
 # Clock constraints
-proc set_clock {period} {
+proc set_clock {period {clock_uncertainty_ratio 0}} {
     set clk_high_time [expr {$period / 2}]
-    set clk_uncertainty [expr {$period * 0}]
+    set clk_uncertainty [expr {$period * $clock_uncertainty_ratio}]
 
     directive set -CLOCKS [
         list clk [list \
@@ -94,34 +153,73 @@ proc set_clock {period} {
 }
 
 # Build include flags from list of include dirs
-proc build_include_flags {root_dir include_dirs} {
+proc build_include_flags {include_dirs} {
+    global ROOT_DIR
     set include_flags ""
     foreach dir $include_dirs {
-        append include_flags " -I[file join $root_dir $dir]"
+        append include_flags " -I[file join $ROOT_DIR $dir]"
     }
     return $include_flags
 }
 
-proc handle_kar_depths {mul_type bitwidth kar_mul_depth_map} {
-    if {$mul_type eq "kar"} {
-        return [dict get $kar_mul_depth_map $bitwidth]
-    } else {
-        return [list $bitwidth]
+proc gen_field_consts {{FIELD_A "A0"}} {
+    global BITWIDTH ROOT_DIR CURVE_TYPE
+
+    set proj_dir [project get /PROJECT_DIR]
+    set py_exec [file join $ROOT_DIR .venv/bin/ python]
+
+    if {$CURVE_TYPE ne "RAND_CURVE"} {
+        puts "\[INFO\] Skipping field constant generation (curve_type=$CURVE_TYPE)"
+        return [file join $ROOT_DIR field_const.json]
     }
+
+    set json_file [file join $proj_dir field_const.json]
+    set gen_field_const_py [file join $ROOT_DIR utils gen_field_const.py]
+    set cmd [list $py_exec $gen_field_const_py --bitwidth $BITWIDTH --json-file $json_file --field-a $FIELD_A]
+
+    exec tcsh -c "$cmd"
+    return $json_file
 }
 
-proc run_gen_field_const {bitwidth curve_type root_dir} {
-    if {$curve_type eq "RAND_CURVE"} {
-        set proj_dir [project get /PROJECT_DIR]
-        set py_exec [file join $root_dir .venv/bin/ python]
-        set py_file [file join $root_dir utils gen_field_const.py]
-        set json_file [file join $proj_dir field_const.json]
-        set cmd [list $py_exec $py_file --bitwidth $bitwidth --json-file $json_file]
-        exec tcsh -c "$cmd"
+proc gen_tmp_params_h {config_params {json_file ""} {CURVE_TYPE ""}} {
+    global ROOT_DIR
+
+    set proj_dir [project get /PROJECT_DIR]
+    set py_exec [file join $ROOT_DIR .venv/bin/ python]
+
+    set gen_params_h_py [file join $ROOT_DIR utils gen_params_h.py]
+    set tmp_params_dir [file join $proj_dir include]
+    file mkdir $tmp_params_dir
+    set tmp_params_fp [file join $tmp_params_dir tmp_params.h]
+
+    # Build --params argument list from config_params array
+    set param_args {}
+    foreach key $config_params {
+        if {[info exists ::env($key)]} {
+            set val $::env($key)
+            lappend param_args "${key}=${val}"
+        } else {
+            puts "\[WARN\] env($key) not defined"
+        }
     }
+
+    # Base command
+    set cmd [list $py_exec $gen_params_h_py --out $tmp_params_fp]
+
+    # Add optional JSON and curve args
+    if {$CURVE_TYPE ne "" && $json_file ne ""} {
+        lappend cmd --json-file $json_file --curve-type $CURVE_TYPE
+    }
+
+    # Add runtime params
+    lappend cmd --params {*}$param_args
+
+    exec tcsh -c "$cmd"
+    return $tmp_params_dir
 }
 
-proc run_osci_test {kernel_dir work_dir root_dir bitwidth NUM_TEST_SAMPLES TEST GEN_SAMPLES {curve_type ""}} {
+proc run_osci_test {{CURVE_TYPE ""} {MODMUL_TYPE ""} {BITSHIFT_DIRECTION ""}} {
+    global TEST BITWIDTH KERNEL_DIR ROOT_DIR NUM_TEST_SAMPLES MUL_SQ
     # generate samples csv file and run initial C++ tests
     if {$TEST} {
         set proj_dir [project get /PROJECT_DIR]
@@ -130,31 +228,42 @@ proc run_osci_test {kernel_dir work_dir root_dir bitwidth NUM_TEST_SAMPLES TEST 
             file mkdir $outputs_dir
         }
 
-        set sample_fp [file join $proj_dir samples/samples_${bitwidth}.csv]
-        set output_fp [file join $outputs_dir output_${bitwidth}.csv]
-        set golden_fp [file join $proj_dir goldens/golden_${bitwidth}.csv]
+        set sample_fp [file join $proj_dir samples/samples_${BITWIDTH}.csv]
+        set output_fp [file join $outputs_dir output_${BITWIDTH}.csv]
+        set golden_fp [file join $proj_dir goldens/golden_${BITWIDTH}.csv]
 
-        if {$GEN_SAMPLES} {
-            set py_exec [file join $root_dir .venv/bin/ python]
-            set cmd [list $py_exec [file join $kernel_dir gen_samples.py] \
-              --bw $bitwidth \
-              --n $NUM_TEST_SAMPLES \
-              --samples-file $sample_fp \
-              --golden-file $golden_fp]
+        set py_exec [file join $ROOT_DIR .venv/bin/ python]
+        set cmd [list $py_exec [file join $KERNEL_DIR gen_samples.py] \
+            --bw $BITWIDTH \
+            --n $NUM_TEST_SAMPLES \
+            --samples-file $sample_fp \
+            --golden-file $golden_fp]
 
-            if {$curve_type ne ""} {
-                if {$curve_type ne "RAND_CURVE"} {
-                    set json_file [file join $root_dir field_const.json]
-                } else {
-                    set json_file [file join $proj_dir field_const.json]
-                }
-
-                lappend cmd --curve_type $curve_type
-                lappend cmd --json-file $json_file
+        if {$CURVE_TYPE ne ""} {
+            if {$CURVE_TYPE ne "RAND_CURVE"} {
+                set json_file [file join $ROOT_DIR field_const.json]
+            } else {
+                set json_file [file join $proj_dir field_const.json]
             }
 
-            exec tcsh -c "$cmd"
+            lappend cmd --curve_type $CURVE_TYPE
+            lappend cmd --json-file $json_file
         }
+
+        if {$MODMUL_TYPE ne ""} {
+            lappend cmd --modmul-type $MODMUL_TYPE
+        }
+
+        if {$BITSHIFT_DIRECTION ne ""} {
+            lappend cmd --bitshift-direction $BITSHIFT_DIRECTION
+        }
+        
+        if {[info exists MUL_SQ] && $MUL_SQ == 1} {
+            lappend cmd --mul-sq
+        }
+
+        puts "running cmd: $cmd"
+        exec tcsh -c "$cmd"
 
         flow package require /SCVerify
         flow package option set /SCVerify/INVOKE_ARGS "$sample_fp $output_fp"
@@ -162,42 +271,138 @@ proc run_osci_test {kernel_dir work_dir root_dir bitwidth NUM_TEST_SAMPLES TEST 
 
         # check if golden and output match
         if {[catch {exec diff -q $golden_fp $output_fp}]} {
-            puts "ERROR: Verifying C++ with osci bitwidth=$bitwidth"
+            puts "ERROR: Verifying C++ with osci BITWIDTH=$BITWIDTH"
             exit 1
         } else {
-            puts "PASS: Output matches golden for bitwidth=$bitwidth"
+            puts "PASS: Output matches golden for BITWIDTH=$BITWIDTH"
         }
     }
-
 }
 
-proc run_scverify {kernel_dir work_dir bitwidth SIM} {
+# This logic is because if we make CCORE_TOP we cannot do verify
+proc extract_verify_syn_save {} {
+    global WORK_DIR KERNEL_NAME sol_name table_name \
+            SIM CCORE_TOP TECH_TYPE PROCESS_LVL_HANDSHAKE
+    
+    go new ;# doing this otherwise there will be issues in gui
+    if {$SIM || $CCORE_TOP} {
+        solution rename "test_only_$sol_name"
+    } else {
+        solution rename $sol_name
+    }
+
+    go extract
+    project save
+    solution table export -file [file join $WORK_DIR $table_name]
+    run_scverify
+
+    if {$CCORE_TOP} {
+        go libraries
+        
+        solution rename "comb_check_$sol_name"
+        solution design set $KERNEL_NAME -ccore
+        
+        if {![info exists PROCESS_LVL_HANDSHAKE]} { set PROCESS_LVL_HANDSHAKE false }
+        if {$PROCESS_LVL_HANDSHAKE} {
+            directive set TRANSACTION_DONE_SIGNAL false
+            directive set /$KERNEL_NAME -CCORE_SYNC_MODE handshake   
+        }
+
+        go schedule
+        branch_if_ccore_comb $KERNEL_NAME
+    } 
+    
+    if {$SIM || $CCORE_TOP} {
+        go new
+        solution rename $sol_name
+    }
+
+    go extract
+    project save
+    solution table export -file [file join $WORK_DIR $table_name]
+
+    run_syn $TECH_TYPE
+    solution table export -file [file join $WORK_DIR $table_name]
+    project save
+}
+
+proc run_scverify {} {
+    global BITWIDTH SIM
+
     if {$SIM} {
-        puts "Sim: Running SCVerify for bitwidth=$bitwidth"
+        options set Flows/QuestaSIM/Path /eda/mentor/questasim/linux_x86_64
+        # If MGLS_LICENSE_FILE is set, copy it to SALT_LICENSE_SERVER
+        if { [info exists ::env(MGLS_LICENSE_FILE)] } {
+            set ::env(SALT_LICENSE_SERVER) $::env(MGLS_LICENSE_FILE)
+        }
+
+        puts "Sim: Running SCVerify for BITWIDTH=$BITWIDTH"
         set proj_dir [project get /PROJECT_DIR]
-        set sample_fp [file join $proj_dir samples/samples_${bitwidth}.csv]
-        set output_fp [file join $proj_dir outputs/output_${bitwidth}.csv]
-        set golden_fp [file join $proj_dir goldens/golden_${bitwidth}.csv]
+        set sample_fp [file join $proj_dir samples/samples_${BITWIDTH}.csv]
+        set output_fp [file join $proj_dir outputs/output_${BITWIDTH}.csv]
+        set golden_fp [file join $proj_dir goldens/golden_${BITWIDTH}.csv]
+
+        if {[file exists $output_fp]} {
+            file delete -force $output_fp
+        }
 
         flow package require /SCVerify
         flow package option set /SCVerify/INVOKE_ARGS "$sample_fp $output_fp"
         flow run /SCVerify/launch_make ./scverify/Verify_rtl_v_msim.mk {} SIMTOOL=msim sim
 
         if {[catch {exec diff -q $golden_fp $output_fp}]} {
-            puts "ERROR: Verifying with SCVerify bitwidth=$bitwidth"
+            puts "ERROR: Verifying with SCVerify BITWIDTH=$BITWIDTH"
             exit 1
         } else {
-            puts "PASS: Output matches golden for bitwidth=$bitwidth"
+            puts "PASS: Output matches golden for BITWIDTH=$BITWIDTH"
         }
     }
 }
 
-proc run_syn {tech_type SYN root_dir {RTL_FILE "rtl"}} {
+proc inject_threads_vivado {syn_file_path} {
+    global THREADS_PER_PROCESS
+
+    # Read file
+    set fh [open $syn_file_path r]
+    set content [read $fh]
+    close $fh
+
+    # Block to inject
+    set thread_block "# --- injected by Catapult wrapper ---
+set_param general.maxThreads $THREADS_PER_PROCESS
+set_param synth.maxThreads   $THREADS_PER_PROCESS
+puts \"MAX THREADS: general=\[get_param general.maxThreads\] synth=\[get_param synth.maxThreads\]\"
+# --- end injection ---"
+
+    # Prepend
+    set new_content "$thread_block\n\n$content"
+
+    # Write back
+    set fh [open $syn_file_path w]
+    puts $fh $new_content
+    close $fh
+}
+
+proc run_syn {tech_type} {
+    global SYN RTL_FILE
+
     if {$SYN} {
-        if {$tech_type eq "fpga"} {
+        if {$tech_type eq "fpga" || $tech_type eq "fpgahbm" || $tech_type eq "fpgahbmvhk158"} {
             puts "Syn: Running FPGA Vivado synthesis"
-            go synthesize
-        } elseif {$tech_type eq "saed32" || $tech_type eq "gf12"} {
+
+            # Fixes issue with running Vivado for Versal HBM fpga
+            set ::env(LD_LIBRARY_PATH) "/eda/xilinx/Vivado/2024.2/lib/lnx64.o"
+            catch {unset ::env(LD_PRELOAD)}
+            puts "LD_LIBRARY_PATH is now: $::env(LD_LIBRARY_PATH)"
+
+            set syn_file_path [file join [solution get /SOLUTION_DIR] "vivado_v" "rtl.v.xv"]
+            inject_threads_vivado $syn_file_path
+
+            if {[catch {flow run /Vivado/synthesize -shell $syn_file_path} err]} {
+                puts "ERROR: Vivado synthesis failed -> $err"
+                return -code error $err
+            }
+        } elseif {$tech_type eq "45nm" || $tech_type eq "saed32" || $tech_type eq "gf12"} {
             puts "Syn: Running Design Compiler for $tech_type"
             
             # Replace compile commands with compile_ultra in the DC synthesis file
@@ -209,20 +414,24 @@ proc run_syn {tech_type SYN root_dir {RTL_FILE "rtl"}} {
                 puts "Warning: DC file not found at $dc_file_path"
                 return
             }
-            flow run /DesignCompiler/dc_shell ./$RTL_FILE.v.dc
+
+            # ERROR HANDLING DOESN'T WORK
+            if {[catch {flow run /DesignCompiler/dc_shell ./$RTL_FILE.v.dc} err]} {
+                puts "ERROR: DC synthesis failed -> $err"
+                return -code error $err
+            }
         }
     }
 }
 
 proc branch_if_ccore_comb {kernel} {
     set latency_cycles [solution get /DATUM/FIELDS/timing/COLUMNS/tm_latency_cycles/VALUE]
+
     if {$latency_cycles == 0} {
-        set old_sol "[solution get /name].[solution get /VERSION]"
         # for combinational
         go libraries
         solution design set $kernel -combinational
         go architect
-        # solution remove -solution $old_sol -delete ;# commented because causes problems with loading proj
     }
 }
 
@@ -242,57 +451,56 @@ proc get_field_const {curve_type const root_dir} {
     return [exec python3 -c "import json;print(json.load(open('$json_fp'))\['$curve_type'\]\['$const'\])"]
 }
 
-proc get_q_val {q_type} {
-    if {$q_type eq "fixedq"} {
-        return "FIXED_Q"
-    } else {
-        return "VAR_Q"
-    }
-}
-
-proc get_mul_val {mul_type} {
-    if {$mul_type eq "kar"} {
-        return "MUL_KARATSUBA"
-    } elseif {$mul_type eq "sb"} {
-        return "MUL_SCHOOLBOOK"
-    } else {
-        return "MUL_NORMAL"
-    }
-}
-
 proc remove_broken_mul_libs { tech_type } {
     # Make sure mgc_mul's with blank MinClkPrd are not used
 
-    # Don't use mgc_mul or mgc_sqr > 64b, up till 2999b
-    for {set i 7} {$i <= 9} {incr i 1} {
-        directive set "/.../*mgc_mul(${i}?,*)" -match glob -QUANTITY 0
-        directive set "/.../*mgc_mul(${i}?,*)" -match glob -QUANTITY 0
-        directive set "/.../*mgc_sqr(${i}?,*)" -match glob -QUANTITY 0
-        directive set "/.../*mgc_sqr(${i}?,*)" -match glob -QUANTITY 0
-    }
+    if {$tech_type eq "gf12" || $tech_type eq "45nm" || $tech_type eq "saed32" || $tech_type eq "saed14"} {
+        # Don't use mgc_mul or mgc_sqr > 64b, up till 2999b
+        for {set i 7} {$i <= 9} {incr i 1} {
+            for {set j 0} {$j <= 9} {incr j 1} {
+                directive set "/.../*mgc_mul(${i}${j},*)" -match glob -QUANTITY 0
+                directive set "/.../*mgc_sqr(${i}${j},*)" -match glob -QUANTITY 0
+                directive set "/.../*mgc_mul_pipe(${i}${j},*,2,0,1)" -match glob -QUANTITY 0
+                directive set "/.../*mgc_sqr_pipe(${i}${j},*,2,0,1)" -match glob -QUANTITY 0
 
-    for {set i 1} {$i <= 9} {incr i 1} {
-        directive set "/.../*mgc_mul(${i}??,*)" -match glob -QUANTITY 0
-        directive set "/.../*mgc_mul(${i}??,*)" -match glob -QUANTITY 0
-        directive set "/.../*mgc_sqr(${i}??,*)" -match glob -QUANTITY 0
-        directive set "/.../*mgc_sqr(${i}??,*)" -match glob -QUANTITY 0
-    }
+                if {$tech_type eq "45nm"} {
+                    directive set "/.../*mgc_mul_pipe(${i}${j},*,2,0,2)" -match glob -QUANTITY 0
+                    directive set "/.../*mgc_sqr_pipe(${i}${j},*,2,0,2)" -match glob -QUANTITY 0
+                }
+            }
+        }
+        
+        for {set i 0} {$i <= 9} {incr i 1} {
+            for {set j 0} {$j <= 9} {incr j 1} {
+                directive set "/.../*mgc_mul(${i}?${j},*)" -match glob -QUANTITY 0
+                directive set "/.../*mgc_sqr(${i}?${j},*)" -match glob -QUANTITY 0
+                directive set "/.../*mgc_mul_pipe(${i}?${j},*,2,0,1)" -match glob -QUANTITY 0
+                directive set "/.../*mgc_sqr_pipe(${i}?${j},*,2,0,1)" -match glob -QUANTITY 0
 
-    directive set "/.../*mgc_mul(1???,*)" -match glob -QUANTITY 0
-    directive set "/.../*mgc_mul(2???,*)" -match glob -QUANTITY 0
-    directive set "/.../*mgc_sqr(1???,*)" -match glob -QUANTITY 0
-    directive set "/.../*mgc_sqr(2???,*)" -match glob -QUANTITY 0
+                if {$tech_type eq "45nm"} {
+                    directive set "/.../*mgc_mul_pipe(${i}?${j},*,2,0,2)" -match glob -QUANTITY 0
+                    directive set "/.../*mgc_sqr_pipe(${i}?${j},*,2,0,2)" -match glob -QUANTITY 0
+                }
+
+                directive set "/.../*mgc_mul(1?${i}${j},*)" -match glob -QUANTITY 0
+                directive set "/.../*mgc_mul(2?${i}${j},*)" -match glob -QUANTITY 0
+                directive set "/.../*mgc_sqr(1?${i}${j},*)" -match glob -QUANTITY 0
+                directive set "/.../*mgc_sqr(2?${i}${j},*)" -match glob -QUANTITY 0
+                directive set "/.../*mgc_mul_pipe(1?${i}${j},*,2,0,1)" -match glob -QUANTITY 0
+                directive set "/.../*mgc_mul_pipe(2?${i}${j},*,2,0,1)" -match glob -QUANTITY 0
+                directive set "/.../*mgc_sqr_pipe(1?${i}${j},*,2,0,1)" -match glob -QUANTITY 0
+                directive set "/.../*mgc_sqr_pipe(2?${i}${j},*,2,0,1)" -match glob -QUANTITY 0
+                
+                if {$tech_type eq "45nm"} {
+                    directive set "/.../*mgc_mul_pipe(1?${i}${j},*,2,0,2)" -match glob -QUANTITY 0
+                    directive set "/.../*mgc_mul_pipe(2?${i}${j},*,2,0,2)" -match glob -QUANTITY 0
+                    directive set "/.../*mgc_sqr_pipe(1?${i}${j},*,2,0,2)" -match glob -QUANTITY 0
+                    directive set "/.../*mgc_sqr_pipe(2?${i}${j},*,2,0,2)" -match glob -QUANTITY 0
+                }
+            }
+        }
+    }
 }
-
-# proc create_lib_f {kernel_dir lib_name} {
-#     set lib_dir [file join $kernel_dir lib]
-#     if {![file exists $lib_dir]} {
-#         file mkdir $lib_dir
-#     }
-#     set lib_fp [file join $lib_dir $lib_name]
-#     solution netlist -library -replace $lib_fp
-#     return $lib_fp
-# }
 
 # Replace compile commands with compile_ultra in DC synthesis files
 proc replace_compile_with_ultra {file_path} {

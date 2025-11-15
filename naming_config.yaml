@@ -1,0 +1,74 @@
+# Maps parameter names and values to short forms for sweep naming.
+# Used by naming_short.py for encoding/decoding filenames and directories.
+
+SHORT_KEY:
+  BITWIDTH: bw
+  TARGET_II: ii
+  TARGET_PERIOD: p
+  MUL_TYPE: mt
+  CMUL_TYPE: cmt
+  Q_TYPE: qt
+  REDC_TYPE: rct
+  KAR_BASE_MUL_WIDTH: kar
+  BASE_MUL_WIDTH: bm
+  TECH_TYPE: tt
+  CURVE_TYPE: ct
+  FIELD_A: fa
+  PREC_TYPE: pt
+  WBW: wbw
+  CCORE_PERIOD_RATIO: cpr
+  MASK_BITS: mb
+  CURVE_PARAMS_TYPE: cpt
+  MODMUL_TYPE: mmt
+  BITSHIFT_DIRECTION: bsd
+  MUL_SQ: msq
+  
+MED_KEY:
+  BITWIDTH: bitwidth
+  TARGET_II: ii
+  TARGET_PERIOD: target_period
+  MUL_TYPE: mul_type
+  CMUL_TYPE: cmul_type
+  Q_TYPE: q_type
+  REDC_TYPE: rc_type
+  KAR_BASE_MUL_WIDTH: kar
+  BASE_MUL_WIDTH: bm
+  TECH_TYPE: tech_type
+  CURVE_TYPE: curve_type
+  FIELD_A: a
+  PREC_TYPE: prec_type
+  WBW: wbw
+  CCORE_PERIOD_RATIO: cpr
+  MASK_BITS: mb
+  CURVE_PARAMS_TYPE: curve_pt
+  MODMUL_TYPE: modmul_type
+  BITSHIFT_DIRECTION: bitshift_dir
+  MUL_SQ: mul_sq
+
+VALUE:
+  MUL_TYPE:
+    MUL_NORMAL: nor
+    MUL_KARATSUBA: kar
+    MUL_SCHOOLBOOK: sb
+  CMUL_TYPE:
+    CMUL_NORMAL: cnor
+    CMUL_NAF: cnaf
+    CMUL_SA: csa
+  Q_TYPE:
+    FIXED_Q: fixedq
+    VAR_Q: varq
+  REDC_TYPE:
+    FIXED_RC: fixedrc
+    VAR_RC: varrc
+  PREC_TYPE:
+    SINGLE_PREC: sp
+    MULTI_PREC: mp
+  CURVE_PARAMS_TYPE:
+    FIXED_CURVE_PARAMS: fixedcp
+    VAR_CURVE_PARAMS: varcp
+  MODMUL_TYPE:
+    MODMUL_TYPE_MONT: mmmont
+    MODMUL_TYPE_BARRETT: mmbarrett
+  BITSHIFT_DIRECTION:
+    BITSHIFT_RIGHT: bsr
+    BITSHIFT_LEFT: bsl

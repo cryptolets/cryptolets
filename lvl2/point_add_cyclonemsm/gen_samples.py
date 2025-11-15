@@ -8,103 +8,114 @@ from pathlib import Path
 import sys
 sys.path.append(str(Path(__file__).resolve().parents[2]))
 from utils.field_helpers import (
-    modadd, modsub, modmul, moddouble
-    EC_point_EP, EC_point_EA,
-    get_field_const, to_mont, from_mont
+    TwistedEdwards, get_field_const, to_mont, from_mont,
+    get_q_prime, get_mu
 )
 
+from lvl2.common.padd_te_models import point_add_cyclonemsm_ref
 
-def point_add_cyclonemsm_ref(P0, P1, q):
-    R = EC_point_EP()
-    R1  = modsub(P0.Y, P0.X, q) # R1 = Y1-X1
-    R2  = modsub(P1.y, P1.x, q) # R2 = y2-x2
-    R3  = modadd(P0.Y, P0.X, q) # R3 = Y1+X1
-    R4  = modadd(P1.y, P1.x, q) # R4 = y2+x2
-    R5  = modadd(R1, R2, q)     # R5 = R1+R2
-    R6  = modmul(R3, R4, q)     # R6 = R3*R4
-    R7  = modmul(P0.T, P1.u, q) # R7 = T1*u2
-    R8  = moddouble(P0.Z, q)    # R8 = 2*Z1
-    R9  = modsub(R6, R5, q)     # R9 = R6-R5
-    R10 = modsub(R8, R7, q)     # R10 = R8-R7
-    R11 = modadd(R8, R7, q)     # R11 = R8+R7
-    R12 = modadd(R6, R5, q)     # R12 = R6+R5
-    R.X = modmul(R9, R10, q)    # X3 = R9*R10
-    R.Y = modmul(R11, R12, q)   # Y3 = R11*R12
-    R.Z = modmul(R10, R11, q)   # Z3 = R10*R11
-    R.T = modmul(R9, R12, q)    # T3 = R9*R12 
-    return R
+def write_csv_files(
+    curve_type, total_samples, json_file, 
+    samples_path=None, golden_path=None, 
+    is_modmul_mont=True
+):
+    q = get_field_const(curve_type, "q", json_file)
+    bitwidth = get_field_const(curve_type, "bitwidth", json_file)
+    q_prime = get_q_prime(q, bitwidth)
+    mu = get_mu(q, bitwidth)
 
-def generate_samples(bitwidth, total_samples, seed=42):
-    q = CONST_Q[bitwidth]
-    q_prime = CONST_Q_PRIME[bitwidth]
+    a = get_field_const(curve_type, "a", json_file)
+    d = get_field_const(curve_type, "d", json_file)
+    k = get_field_const(curve_type, "k", json_file)
+    E = TwistedEdwards(q, a=a, d=d)
+
+    # default paths
+    samples_file = Path(samples_path) if samples_path else Path("samples") / f"samples_{bitwidth}.csv"
+    golden_file  = Path(golden_path)  if golden_path  else Path("goldens") / f"golden_{bitwidth}.csv"
+
+    # make sure dirs exist
+    samples_file.parent.mkdir(parents=True, exist_ok=True)
+    golden_file.parent.mkdir(parents=True, exist_ok=True)
+
     samples = []
+    goldens = []
 
-    # Remaining random samples, distributed across sub-bitwidth ranges
-    num_random = max(total_samples - len(samples), 0)
-    if num_random > 0:
-        random.seed(seed)
-        sub_bitwidths = list(range(1, bitwidth + 1))
-        for i in range(num_random):
-            sub_bw = sub_bitwidths[i % len(sub_bitwidths)]
-            sub_max = (1 << sub_bw) - 1
-            X1 = random.randint(0, sub_max) % q
-            Y1 = random.randint(0, sub_max) % q
-            Z1 = random.randint(0, sub_max) % q
-            T1 = random.randint(0, sub_max) % q
+    for i in range(total_samples):
+        if i < total_samples // 2:
+            # Case 1: P1 == P2 (doubling test)
+            P1 = E.random_point()
+            P2 = P1
+        else:
+            # Case 2: P1 != P2 (addition test)
+            while True:
+                P1 = E.random_point()
+                P2 = E.random_point()
+                if P1 != P2:   # ensure distinct
+                    break
 
-            x2 = random.randint(0, sub_max) % q
-            y2 = random.randint(0, sub_max) % q
-            u2 = random.randint(0, sub_max) % q
-            samples.append((X1, Y1, Z1, T1, x2, y2, u2, q, q_prime))
+        P1_ep = E.aff_to_ep(P1)
+        P2_ea = E.aff_to_ea(P2)
 
-    return samples
+        # Convert whole tuples to Montgomery
+        if is_modmul_mont:
+            P1_mont = to_mont(P1_ep.as_tuple(), q)
+            P2_mont = to_mont(P2_ea.as_tuple(), q)
 
-def write_csv_files(samples, bitwidth):
-    samples_dir = Path("samples")
-    goldens_dir = Path("goldens")
-    samples_dir.mkdir(exist_ok=True)
-    goldens_dir.mkdir(exist_ok=True)
+            samples.append((
+                *P1_mont, *P2_mont, q, q_prime, 
+                to_mont(a,q), to_mont(d,q), to_mont(k,q)
+            ))
+        else:
+            samples.append((
+                *P1_ep.as_tuple(), *P2_ea.as_tuple(), q, mu, 
+                a, d, k
+            ))
 
-    R = pow(2, bitwidth)
-    samples_mont = []
-    
-    for X1, Y1, Z1, T1, x2, y2, u2, q, q_prime in samples:
-        X1_mont = (X1 * R) % q
-        Y1_mont = (Y1 * R) % q
-        Z1_mont = (Z1 * R) % q
-        T1_mont = (T1 * R) % q
-        x2_mont = (x2 * R) % q
-        y2_mont = (y2 * R) % q
-        u2_mont = (u2 * R) % q
-        samples_mont.append((X1_mont, Y1_mont, Z1_mont, T1_mont, x2_mont, y2_mont, u2_mont, q, q_prime))
+        golden_ep = point_add_cyclonemsm_ref(P1_ep, P2_ea, q)
+        ref_aff = E.add(P1, P2) # use affine point add for reference (sanity check)
+        golden_aff = E.ep_to_aff(golden_ep)
+        assert (ref_aff.x, ref_aff.y) == (golden_aff.x, golden_aff.y)
 
-    samples_file = samples_dir / f"samples_{bitwidth}.csv"
+        # another sanity check, to see if all points are on curve
+        assert E.is_on_curve(P1) and E.is_on_curve(P2) and E.is_on_curve(golden_aff)
+
+        if is_modmul_mont:
+            golden_ep_mont = to_mont(golden_ep.as_tuple(), q)
+            goldens.append(golden_ep_mont)
+        else:
+            goldens.append(golden_ep.as_tuple())
+
+    # Write samples
     with samples_file.open("w", newline="") as f:
         writer = csv.writer(f)
-        writer.writerow(["X1", "Y1", "Z1", "T1", "x2", "y2", "u2", "q_sample", "q_prime_sample"])
-        writer.writerows(samples_mont)
+        
+        redc_header_name = "q_prime_sample" if is_modmul_mont else "mu_sample"
+        samples_header = [
+            "X1", "Y1", "Z1", "T1", 
+            "x2", "y2", "u2", 
+            "q_sample", redc_header_name
+        ]
+        writer.writerow(samples_header)
+        writer.writerows(samples)
 
-    golden_file = goldens_dir / f"golden_{bitwidth}.csv"
-
-    with golden_file.open("w", newline=os.linesep) as f:
+    # Write goldens
+    with golden_file.open("w", newline="") as f:
         writer = csv.writer(f, lineterminator=os.linesep)
-        writer.writerow(["X3","Y3","Z3", "T3"])
-        for X1, Y1, Z1, T1, x2, y2, u2, q, q_prime in samples:
-            P0 = EC_point_EP(X1, Y1, Z1, T1)
-            P1 = EC_point_EA(x2, y2, u2)
-            res = point_add_cyclonemsm_ref(P0, P1, q)
-            res.X_mont = (res.X * R) % q
-            res.Y_mont = (res.Y * R) % q
-            res.Z_mont = (res.Z * R) % q
-            res.T_mont = (res.T * R) % q
-            writer.writerow([res.X_mont, res.Y_mont, res.Z_mont, res.T_mont])
+        writer.writerow(["X3", "Y3", "Z3", "T3"])
+        writer.writerows(goldens)
+
+    print(f"Generated {samples_file} and {golden_file}")
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Generate samples and golden output for given bitwidth.")
-    parser.add_argument("--bw", type=int, required=True, help="Bitwidth of inputs.")
-    parser.add_argument("--n", type=int, default=10, help="Total number of samples (including edge cases).")
+    parser = argparse.ArgumentParser(description="Generate samples and golden output for given curve/bitwidth.")
+    parser.add_argument("--bw", type=int, required=True, help="Bitwidth of inputs.")  # still present if needed
+    parser.add_argument("--n", type=int, default=10, help="Total number of samples.")
+    parser.add_argument("--curve_type", type=str, default="RAND_CURVE", help="Curve type (e.g., BN128, SECP256K1, BLS12_381).")
+    parser.add_argument("--samples-file", type=str, help="Optional path for samples CSV file.")
+    parser.add_argument("--golden-file", type=str, help="Optional path for golden CSV file.")
+    parser.add_argument("--json-file", type=str, help="json file to get field constant from.")
+    parser.add_argument("--modmul-type", type=str, help="type of modmul (MODMUL_TYPE_MONT, MODMUL_TYPE_BARRETT)")
     args = parser.parse_args()
 
-    samples = generate_samples(args.bw, args.n)
-    write_csv_files(samples, args.bw)
-    print(f"Generated samples/samples_{args.bw}.csv and goldens/golden_{args.bw}.csv")
+    is_modmul_mont = args.modmul_type == "MODMUL_TYPE_MONT"
+    write_csv_files(args.curve_type, args.n, args.json_file, args.samples_file, args.golden_file, is_modmul_mont)

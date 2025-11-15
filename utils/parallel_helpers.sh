@@ -14,79 +14,9 @@ format_duration() {
     fi
 }
 
-# Read sweep params from tcl config file
-declare -a SWEEPS_ALL=()        # names of normal arrays
-declare -a SWEEPS_PROJ_ORDER=()    # projection order
-
-load_tcl_sweep_params() {
-  local file=$1
-
-  while read -r line; do
-    line=${line%%;#*}   # strip comments
-    [[ -z "$line" ]] && continue
-
-    case "$line" in
-      set\ *)
-        var=$(echo "$line" | awk '{print $2}')
-        if [[ "$line" == *"{"*"}"* ]]; then
-          val=$(echo "$line" | cut -d\{ -f2 | cut -d\} -f1)
-          if [[ $var == "SWEEPS_PROJ_ORDER" ]]; then
-            SWEEPS_PROJ_ORDER=($val)
-          else
-            eval "$var=($val)"
-            SWEEPS_ALL+=("$var")
-          fi
-        else
-          val=$(echo "$line" | awk '{print $3}')
-          eval "$var=$val"
-        fi
-        ;;
-    esac
-  done < "$file"
-}
-
-# Basically, so the bit nested for loop recursively and generalizes it
-# It takes SWEEPS_PROJ_ORDER to define the order
-declare -A SWEEP_STATE=()  # holds current param assignments
-sweep_recurse() {
-  local depth=$1
-  local leaf_func=$2   # function to call at leaf
-
-  if (( depth == ${#SWEEPS_PROJ_ORDER[@]} )); then
-    # Call the leaf function with current sweep state
-    "$leaf_func"
-    return
-  fi
-
-  local name=${SWEEPS_PROJ_ORDER[$depth]}
-  eval "values=(\"\${${name}[@]}\")"
-
-  # override BITWIDTHS sweep for specific CURVE_TYPE (non-RAND_CURVE)
-  if [[ $name == "BITWIDTHS" ]] \
-    && [[ -v SWEEP_STATE[CURVE_TYPES] ]] \
-    && [[ ${SWEEP_STATE[CURVE_TYPES]} != "RAND_CURVE" ]]; then
-    
-    json_fp="${ROOT_DIR}/field_const.json"
-    curve_type=${SWEEP_STATE[CURVE_TYPES]}
-    bitwidth=$(python3 -c "import json;d=json.load(open('$json_fp'));print(d['$curve_type']['bitwidth'])")
-    values=("$bitwidth")
-  fi
-
-  for v in "${values[@]}"; do
-    SWEEP_STATE[$name]=$v
-    sweep_recurse $((depth+1)) "$leaf_func"
-  done
-}
-
-# Count total configurations and display them
-count_configs() {
-  ((total_configs++))
-  local line="-"
-  for k in "${SWEEPS_PROJ_ORDER[@]}"; do
-    local key="${k::-1}"   # remove the "s", from sweep array name
-    line+=" $key=${SWEEP_STATE[$k]}"
-  done
-  echo "  $line"
+# Decode one sweep config
+decode_config() {
+  echo "$1" | base64 --decode | jq -r 'to_entries[] | "\(.key)=\(.value)"'
 }
 
 # Function to wait for a slot to become available
@@ -119,7 +49,6 @@ wait_for_slot() {
                     
                     # Clean up timing data
                     unset process_start_times[$pid]
-                    
                     ((running_count--))
                     echo "Slot freed (${#new_pids[@]}/$MAX_PARALLEL processes running)"
                 fi
@@ -152,7 +81,7 @@ wait_for_finish() {
                     end_time=$(date +%s)
                     process_duration=$((end_time - process_start_times[$pid]))
                     duration_str=$(format_duration $process_duration)
-                    
+
                     if [ $exit_code -eq 0 ]; then
                         echo "Process $pid completed successfully in $duration_str"
                         ((completed_count++))

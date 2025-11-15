@@ -7,7 +7,8 @@ from pathlib import Path
 
 import sys
 sys.path.append(str(Path(__file__).resolve().parents[2]))
-from utils.field_helpers import get_field_const
+from utils.field_helpers import \
+    get_field_const, get_q_prime, get_mu
 
 def cmul_f_ref(a, bitwidth, q_prime):
     return (a * q_prime) & (pow(2,bitwidth)-1)
@@ -44,8 +45,9 @@ def write_csv_files(samples, bitwidth, curve_type, json_file, samples_path=None,
     # make sure dirs exist
     samples_file.parent.mkdir(parents=True, exist_ok=True)
     golden_file.parent.mkdir(parents=True, exist_ok=True)
-    
-    q_prime = get_field_const(curve_type, "q_prime", json_file)
+
+    q = get_field_const(curve_type, "q", json_file)
+    q_prime = get_q_prime(q, bitwidth)
 
     with samples_file.open("w", newline="") as f:
         writer = csv.writer(f)

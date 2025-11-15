@@ -3,7 +3,10 @@ import argparse
 import csv
 import random
 import os
+import sys
 from pathlib import Path
+
+sys.set_int_max_str_digits(8600)
 
 def mul_f_ref(a, b):
     return a * b  # change this if needed

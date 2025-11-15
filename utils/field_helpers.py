@@ -1,4 +1,4 @@
-from sympy import randprime, sqrt_mod, mod_inverse
+from sympy import randprime, sqrt_mod, mod_inverse, Integer
 from pathlib import Path
 import random
 import sys
@@ -59,6 +59,14 @@ def from_mont(x, q):
     if isinstance(x, tuple):
         return tuple((xi * R_inv) % q for xi in x)
     return (x * R_inv) % q
+
+def get_q_prime(q, bitwidth):
+    R = Integer(1) << bitwidth
+    return (-mod_inverse(q, R)) % R
+
+def get_mu(q, bitwidth):
+    R = Integer(1) << bitwidth
+    return (Integer(1) << (2 * bitwidth)) // q 
 
 # mod ops
 def modadd(a, b, q):
@@ -157,4 +165,107 @@ class ShortWeierstrass:
 
         x = (X * Z2_inv) % self.q
         y = (Y * Z3_inv) % self.q
+        return EC_point_A(x, y)
+
+
+class TwistedEdwards:
+    def __init__(self, q, a, d):
+        self.q = q
+        self.a = a % q
+        self.d = d % q
+        self.k = (2 * d) % q
+
+    def is_on_curve(self, P: EC_point_A):
+        """Check affine point lies on TE curve: ax² + y² = 1 + dx²y²."""
+        x, y = P.x % self.q, P.y % self.q
+        lhs = (self.a * x * x + y * y) % self.q
+        rhs = (1 + self.d * x * x * y * y) % self.q
+        return lhs == rhs
+
+    def random_point(self):
+        """Generate random affine point on curve."""
+        while True:
+            x = random.randrange(1, self.q)
+            # Solve for y² = (1 - ax²) / (1 - dx²)
+            num = (1 - self.a * x * x) % self.q
+            den = (1 - self.d * x * x) % self.q
+            if den == 0:
+                continue
+            try:
+                den_inv = mod_inverse(den, self.q)
+            except ValueError:
+                continue
+            rhs = (num * den_inv) % self.q
+            roots = sqrt_mod(rhs, self.q, all_roots=True)
+            if roots:
+                return EC_point_A(x, roots[0] % self.q)
+
+    def add(self, P: EC_point_A, Q: EC_point_A):
+        """Affine addition formula for Twisted Edwards."""
+        if P is None: return Q
+        if Q is None: return P
+        x1, y1 = P.x, P.y
+        x2, y2 = Q.x, Q.y
+
+        den_x = (1 + self.d * x1 * x2 * y1 * y2) % self.q
+        den_y = (1 - self.d * x1 * x2 * y1 * y2) % self.q
+        if den_x == 0 or den_y == 0:
+            return None
+
+        try:
+            den_x_inv = mod_inverse(den_x, self.q)
+            den_y_inv = mod_inverse(den_y, self.q)
+        except ValueError:
+            return None
+
+        x3 = ((x1 * y2 + y1 * x2) * den_x_inv) % self.q
+        y3 = ((y1 * y2 - self.a * x1 * x2) * den_y_inv) % self.q
+        return EC_point_A(x3, y3)
+
+    def aff_to_ep(self, P: EC_point_A):
+        if P is None:
+            return EC_point_EP(0, 1, 1, 0)
+        x, y = P.x % self.q, P.y % self.q
+        Z = random.randrange(1, self.q)
+        X = (x * Z) % self.q
+        Y = (y * Z) % self.q
+        T = (x * y * Z) % self.q 
+        return EC_point_EP(X, Y, Z, T)
+
+    def ep_to_aff(self, P: EC_point_EP):
+        if P.Z == 0:
+            return None
+        Z_inv = mod_inverse(P.Z, self.q)
+        x = (P.X * Z_inv) % self.q
+        y = (P.Y * Z_inv) % self.q
+        # optional: sanity check
+        assert (P.T * Z_inv) % self.q == (x * y) % self.q
+        return EC_point_A(x, y)
+
+    def aff_to_ea(self, P: EC_point_A):
+        """Convert affine to extended affine coordinates.
+        Extended affine: (x, y, u) where u = x*y*k
+        """
+        if P is None:
+            return EC_point_EA(0, 1, 0)  # Identity point
+        
+        x, y = P.x % self.q, P.y % self.q
+        u = (x * y * self.k) % self.q
+        
+        return EC_point_EA(x, y, u)
+    
+    def ea_to_aff(self, P: EC_point_EA):
+        """Convert extended affine to affine coordinates.
+        Verify that u = x*y*k and return (x, y).
+        """
+        if P.x == 0 and P.y == 1:
+            return None  # Identity point
+        
+        x = P.x % self.q
+        y = P.y % self.q
+        
+        # Optional: sanity check that u = x*y*k
+        expected_u = (x * y * self.k) % self.q
+        assert P.u % self.q == expected_u, f"Invalid extended affine point: u={P.u}, expected {expected_u}"
+        
         return EC_point_A(x, y)

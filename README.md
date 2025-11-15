@@ -4,7 +4,7 @@
 We need sympy for point generation, so we have a python env now.
 ```
 python3 -m venv .venv
-source .venv/bin/activate
+source .venv/bin/activate.csh
 pip install sympy
 ```
 

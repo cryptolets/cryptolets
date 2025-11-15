@@ -1,0 +1,106 @@
+# Sweep parameters for Twisted Edwards Point Addition
+BITWIDTH: [64, 96, 128, 192, 254, 256, 377, 381, 384, 512, 753, 768]
+# 64, 96, 128, 192, 254, 255, 256, 377, 381, 384, 448, 511, 512, 521, 753, 768
+
+WBW: [16, 32, 64, 128]
+TECH_TYPE: [gf12]  # gf12 45nm saed32 fpga fpgahbm fpgahbmvhk158
+TARGET_II: [1]
+TARGET_PERIOD: [1]  # in ns
+MUL_TYPE: [MUL_SCHOOLBOOK, MUL_KARATSUBA] # MUL_NORMAL, MUL_SCHOOLBOOK, MUL_KARATSUBA
+CMUL_TYPE: [CMUL_NORMAL] # CMUL_NORMAL, CMUL_NAF, CMUL_SA
+Q_TYPE: [VAR_Q] # VAR_Q, FIXED_Q
+REDC_TYPE: [VAR_RC] # VAR_RC, FIXED_RC
+CURVE_PARAMS_TYPE: [VAR_CURVE_PARAMS] # FIXED_CURVE_PARAMS, VAR_CURVE_PARAMS
+MODMUL_TYPE: [MODMUL_TYPE_MONT, MODMUL_TYPE_BARRETT] # MODMUL_TYPE_MONT, MODMUL_TYPE_BARRETT
+
+# curve types: 
+# RAND_CURVE
+# a=-1 : ED25519, BLS12_377_ON_TE
+# variable 1 = ED448
+CURVE_TYPE: [RAND_CURVE]
+
+PREC_TYPE: [SINGLE_PREC]  # SINGLE_PREC, MULTI_PREC
+CCORE_PERIOD_RATIO: [1]
+
+# for RAND_CURVE can select what "a" to pick which will specify what formula will be used
+# for other CURVE_TYPE's this value will be overrided
+FIELD_A: [AVAR] # ANEG1: a=-1, AVAR: variable a
+
+BASE_MUL_WIDTH:
+  8: [8]
+  12: [12]
+  16: [16]
+  24: [24]
+  32: [32]
+  48: [48]
+  64: [16]
+  96: [48]
+  128: [64]
+  192: [48]
+  251: [62]
+  253: [63]
+  254: [63]
+  255: [63]
+  256: [64]
+  377: [47]
+  381: [47]
+  383: [47]
+  384: [48]
+  448: [56]
+  511: [63]
+  512: [64]
+  521: [65]
+  750: [46]
+  753: [47]
+  768: [48]
+  1024: [64]
+
+KAR_BASE_MUL_WIDTH:
+  8: []
+  12: []
+  16: []
+  24: [12]
+  32: [16]
+  48: [24]
+  64: [32, 16]
+  96: [48, 24]
+  128: [64, 32]
+  192: [96, 48]
+  251: [125, 62]
+  253: [126, 63]
+  254: [127, 63]
+  255: [127, 63]
+  256: [128, 64]
+  377: [188, 94, 47]
+  381: [190, 95, 47]
+  383: [191, 95, 47]
+  384: [192, 96, 48]
+  448: [224, 112, 56]
+  511: [255, 127, 63]
+  512: [256, 128, 64]
+  521: [260, 130, 65]
+  750: [375, 187, 93, 46]
+  753: [376, 188, 94, 47]
+  768: [384, 192, 96, 48]
+  1024: [512, 256, 128, 64]
+
+# Control flags
+SIM: true           # verify RTL
+SYN: false
+TEST: true          # test C++ code
+TEST_ONLY: false    # only test C++ code with osci
+NUM_TEST_SAMPLES: 1000
+CCORE_MUL_F: false  # make mul_f ccore, false = more compile time, better design latency
+CCORE_MODADDSUB: false # make modadd,modsub,moddouble ccore, false = more compile time, better design latency
+CCORE_MODMUL: true   # false is good for multi-prec
+CCORE_CMUL: false
+CCORE_TOP: true
+PROCESS_LVL_HANDSHAKE: false
+USE_CLUSTERS: true # use use carry save adder for adder trees
+
+# Defines order of params before project split
+SWEEP_ORDER: [
+  TECH_TYPE, MODMUL_TYPE, CURVE_TYPE, FIELD_A, CURVE_PARAMS_TYPE, REDC_TYPE, Q_TYPE, PREC_TYPE,
+  TARGET_PERIOD, TARGET_II, MUL_TYPE, CMUL_TYPE, CCORE_PERIOD_RATIO,
+  BITWIDTH, WBW, BASE_MUL_WIDTH, KAR_BASE_MUL_WIDTH
+  ]

@@ -4,23 +4,8 @@
 // -------------------------------------------------------------------
 // Precision mode
 // -------------------------------------------------------------------
-#define PREC_SINGLE 0
-#define PREC_MULTI  1
-
-#ifndef PRECISION_MODE
-  #define PRECISION_MODE PREC_SINGLE
-#endif
-
-#ifndef BITWIDTH
-  #define BITWIDTH 64   // default bitwidth
-#endif
-
-#if PRECISION_MODE == PREC_MULTI
-  #ifndef LIMBS
-    #define LIMBS 4       // number of limbs
-  #endif
-  #define WBW (BITWIDTH / LIMBS) // word bitwidth
-#endif
+#define SINGLE_PREC 0
+#define MULTI_PREC  1
 
 // -------------------------------------------------------------------
 // Base Multiplier Config
@@ -29,73 +14,39 @@
 #define MUL_KARATSUBA  1
 #define MUL_SCHOOLBOOK 2
 
-#ifndef MUL_TYPE
-  #define MUL_TYPE MUL_NORMAL
-#endif
-
-// bitwidth for schoolbook or karatsuba, where it will stop decomposing and use normal mul
-// For FPGA, this largely defined by how well the specific DSP handles a certian bitwidth (27-bit)
-// For ASIC, this is defined by what max bitwidth there is a highly optimized mul lib (128-bit)
-#ifndef BASE_MUL_WIDTH
-  #define BASE_MUL_WIDTH 32
-#endif
-
-// how many times to use karatsuba decomp, before using schoolbook (from topdown)
-#ifndef KAR_BASE_MUL_WIDTH
-  #define KAR_BASE_MUL_WIDTH 32
-#endif
-
-// Inline whole mul funcs by default
-#ifndef CCORE_MULS
-  #define CCORE_MULS 0
-#endif
+// Const Multiplier Type
+#define CMUL_NORMAL 0
+#define CMUL_NAF 1
+#define CMUL_SA 2
 
 // --- MOD SPECIFIC PARAMS ---
 // Define if we want fixed q prime with const muls or not
 #define FIXED_Q 0
 #define VAR_Q   1
 
-#ifndef Q_TYPE
-#define Q_TYPE VAR_Q
-#endif
+#define FIXED_RC 0
+#define VAR_RC   1
+
+// Modmul type
+#define MODMUL_TYPE_MONT 0
+#define MODMUL_TYPE_BARRETT 1
 
 // -------------------------------------------------------------------
 // Point Addition Curve Config
 // -------------------------------------------------------------------
-// Short Weierstrass
-#define RAND_CURVE 0
-#define BN128 1
-#define SECP256K1 2
-#define BLS12_377 3
-#define BLS12_381 4
+// Assumptions about a
+#define A0 0     // a=0
+#define ANEG1 1  // a=-1
+#define A2 2     // a=2
+#define ANEG3 3  // a=-3
+#define AVAR 4   // variable a
 
-// Differential add
-#define CURVE25519 8
-#define CURVE448 9
+// Fixed or Variable Curve Params
+#define FIXED_CURVE_PARAMS 0
+#define VAR_CURVE_PARAMS 1
 
-// Twisted Edwards
-#define ED25519 10
-#define ED448 11
-
-#ifndef CURVE_TYPE
-  #define CURVE_TYPE RAND_CURVE
-#endif
-
-// Warning: Fixed placeholder constants, but not functionally correct
-#if Q_TYPE == FIXED_Q
-
-#ifndef Q_HEX
-#define Q_HEX "97946e1350897f8851fabcb69629e447"
-#endif
-
-#ifndef Q_PRIME_HEX
-#define Q_PRIME_HEX "a78765fd00ddebfc871d098ac95d7a89"
-#endif
-
-#ifndef MU_HEX
-#define MU_HEX "1b05a6571679ffcc76b655f190e7c9918"
-#endif
-
-#endif
+// Bitshift
+#define BITSHIFT_LEFT 0
+#define BITSHIFT_RIGHT 1
 
 #endif // _PARAMS_H_
