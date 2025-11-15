@@ -65,8 +65,10 @@ wide_t modsq_barrett_core(const wide_t x, const wide_t q, const wide_2x_t mu) {
 #elif PREC_TYPE == MULTI_PREC
 
 wide_t barrett_reduction_mp(const wide_2x_t x, const wide_t m, const wide_2x_t mu) {
-    // Assume: LIMBS = k, WBW = b, wide_t = k*WBW bits, wide_2x_t = 2*k*WBW bits
+    // https://cacr.uwaterloo.ca/hac/about/chap14.pdf
+    // 14.42 Algorithm Barrett modular reduction
 
+    // Assume: LIMBS = k, WBW = b, wide_t = k*WBW bits, wide_2x_t = 2*k*WBW bits
     // 1. q1 = floor(x / b^{k-1})
     ac_int<2*LIMBS*WBW, false> x_full = x;
     ac_int<LIMBS*WBW+1, false> q1 = x_full >> (WBW * (LIMBS - 1));
