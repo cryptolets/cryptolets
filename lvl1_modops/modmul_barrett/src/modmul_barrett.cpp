@@ -64,13 +64,18 @@ wide_t modsq_barrett_core(const wide_t x, const wide_t q, const wide_2x_t mu) {
 
 #elif PREC_TYPE == MULTI_PREC
 
-wide_t barrett_reduction_mp(const wide_2x_t x, const wide_t m, const wide_2x_t mu) {
+// wide_t modmul_barrett_core(const wide_t x, const wide_t y, const wide_t q, const wide_2x_t mu) {
+//     return 0;
+// }
+wide_t modmul_barrett_core(const wide_t x, const wide_t y, const wide_t m, const wide_2x_t mu) {
     // https://cacr.uwaterloo.ca/hac/about/chap14.pdf
     // 14.42 Algorithm Barrett modular reduction
 
     // Assume: LIMBS = k, WBW = b, wide_t = k*WBW bits, wide_2x_t = 2*k*WBW bits
+    wide_2x_t t = mul_f(x, y);
+
     // 1. q1 = floor(x / b^{k-1})
-    ac_int<2*LIMBS*WBW, false> x_full = x;
+    ac_int<2*LIMBS*WBW, false> x_full = t;
     ac_int<LIMBS*WBW+1, false> q1 = x_full >> (WBW * (LIMBS - 1));
 
     // 1. q2 = q1 * mu
@@ -101,14 +106,6 @@ wide_t barrett_reduction_mp(const wide_2x_t x, const wide_t m, const wide_2x_t m
 
     // 5. Return r as wide_t
     return (wide_t)r;
-}
-
-// wide_t modmul_barrett_core(const wide_t x, const wide_t y, const wide_t q, const wide_2x_t mu) {
-//     return 0;
-// }
-wide_t modmul_barrett_core(const wide_t x, const wide_t y, const wide_t q, const wide_2x_t mu) {
-    wide_2x_t t = mul_f(x, y);
-    return barrett_reduction_mp(t, q, mu);
 }
 
 wide_t modsq_barrett_core(const wide_t x, const wide_t q, const wide_2x_t mu) {
