@@ -99,9 +99,9 @@ wide_t modmul_barrett_core(const wide_t x, const wide_t y, const wide_t m_in, co
     // ac_int<(3*LIMBGROUPS+1)*WBW-BITWIDTH+1, false> q2 = (ac_int<(3*LIMBGROUPS+1)*WBW-BITWIDTH+1, false>)mul_f_gen<(LIMBGROUPS+1)*WBW, 2*LIMBGROUPS*WBW-BITWIDTH+1>(q1, mu);
     // 1. q2 = q1 * mu (schoolbook, WBW-bit multiplier only)
     ac_int<(3 * LIMBGROUPS + 1) * WBW - BITWIDTH + 1, false> q2 = 0;
-    for (int i = 0; i < (BITWIDTH + WBW - 1) / WBW; i++) {
+    for (int i = 0; i < (BITWIDTH + WBW - 1) / WBW + 1; i++) {
         ac_int<WBW, false> c = 0;
-        for (int j = 0; j < (BITWIDTH + WBW - 1) / WBW; j++) {
+        for (int j = 0; j < (BITWIDTH + WBW - 1) / WBW + 1; j++) {
             ac_int<WBW, false> q1_limb = q1.slc<WBW>(i * WBW);
             ac_int<WBW, false> mu_limb = mu.slc<WBW>(j * WBW);
             ac_int<2 * WBW, false> prod = mul_f_gen<WBW>(q1_limb, mu_limb);  // q1_i * mu_j
@@ -112,7 +112,7 @@ wide_t modmul_barrett_core(const wide_t x, const wide_t y, const wide_t m_in, co
             q2.set_slc((i + j) * WBW, uv.slc<WBW>(0));
             c = uv.slc<WBW>(WBW);
         }
-        q2.set_slc((i + ((BITWIDTH + WBW - 1) / WBW) + 1) * WBW, c);
+        q2.set_slc((i + (BITWIDTH + WBW - 1) / WBW + 1) * WBW, c);
         std::cout << "q2 (after column " << i << "): " << q2.to_string(AC_HEX) << std::endl;
     }
 
@@ -131,10 +131,10 @@ wide_t modmul_barrett_core(const wide_t x, const wide_t y, const wide_t m_in, co
     // ac_int<2*LIMBGROUPS*WBW+1, false> q3m = (ac_int<2*LIMBGROUPS*WBW+1, false>)mul_f_gen<2*LIMBGROUPS*WBW-BITWIDTH+1, BITWIDTH>(q3, m);
     // 2. r2 = (q3 * m) mod b^{k+1}
     // Compute q3m = q3 * m using only WBW-bit multiplications
-    ac_int<2*LIMBGROUPS*WBW+1, false> q3m = 0;
-    for (int i = 0; i < LIMBGROUPS - 1; i++) {
+    ac_int<3*LIMBGROUPS*WBW-BITWIDTH+1, false> q3m = 0;
+    for (int i = 0; i < LIMBGROUPS; i++) {
         ac_int<WBW, false> c = 0;
-        for (int j = 0; j < (BITWIDTH + WBW - 1) / WBW; j++) {
+        for (int j = 0; j < (BITWIDTH + WBW - 1) / WBW + 1; j++) {
             ac_int<WBW, false> q3_limb = q3.slc<WBW>(i * WBW);
             ac_int<WBW, false> m_limb = m.slc<WBW>(j * WBW);
             ac_int<2 * WBW, false> prod = mul_f_gen<WBW>(q3_limb, m_limb);
@@ -145,7 +145,7 @@ wide_t modmul_barrett_core(const wide_t x, const wide_t y, const wide_t m_in, co
             q3m.set_slc((i + j) * WBW, uv.slc<WBW>(0));
             c = uv.slc<WBW>(WBW);
         }
-        q3m.set_slc((i + ((BITWIDTH + WBW - 1) / WBW)) * WBW, c);
+        q3m.set_slc((i + (BITWIDTH + WBW - 1) / WBW + 1) * WBW, c);
     }
 
     ac_int<(LIMBGROUPS+1)*WBW, false> r2 = q3m.slc<(LIMBGROUPS+1)*WBW>(0);

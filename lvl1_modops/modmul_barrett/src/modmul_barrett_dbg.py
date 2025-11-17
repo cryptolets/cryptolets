@@ -49,16 +49,15 @@ def modmul_barrett_core(x, y, m, mu, debug=False):
         print(f"q1 = {hex(q1.intValue())}")
 
     # 1. q2 = q1 * mu
-    q2_expect = mul_f_gen(q1, mu, q1.size, mu.size)  # q1.size=(LIMBGROUPS+1)*WBW, mu.size=LIMBGROUPS*WBW
-    if debug:
-        print(f"Expected q2 = {hex(q2_expect.intValue())}")
-
+    # q2_expect = mul_f_gen(q1, mu, q1.size, mu.size)  # q1.size=(LIMBGROUPS+1)*WBW, mu.size=LIMBGROUPS*WBW
+    # if debug:
+    #     print(f"Expected q2 = {hex(q2_expect.intValue())}")
     # 1. q2 = q1 * mu (schoolbook, WBW-bit multiplier only)
     q2_bits = (3 * LIMBGROUPS + 1) * WBW - BITWIDTH + 1
     q2 = bv(0, q2_bits)
-    for i in range((BITWIDTH + WBW - 1) // WBW):
+    for i in range((BITWIDTH + WBW - 1) // WBW + 1):
         c = bv(0, WBW)  # carry
-        for j in range((BITWIDTH + WBW - 1) // WBW):
+        for j in range((BITWIDTH + WBW - 1) // WBW + 1):
             q1_limb = bv((q1.intValue() >> (i * WBW)) & ((1 << WBW) - 1), WBW)
             mu_limb = bv((mu.intValue() >> (j * WBW)) & ((1 << WBW) - 1), WBW)
             prod_bv = mul_f_WBW(q1_limb, mu_limb)
@@ -73,11 +72,11 @@ def modmul_barrett_core(x, y, m, mu, debug=False):
 
             # Carry for next limb
             c = bv(uv.intValue() >> WBW, WBW)
-        n = (BITWIDTH + WBW - 1) // WBW
         # set q2[(i + n + 1)*WBW : (i + n + 2)*WBW] = c[0:WBW]
-        q2_val = q2.intValue() & (~(((1 << WBW) - 1) << ((i + n + 1) * WBW)))
-        q2_val |= (c.intValue() & ((1 << WBW) - 1)) << ((i + n + 1) * WBW)
+        q2_val = q2.intValue() & (~(((1 << WBW) - 1) << ((i + (BITWIDTH + WBW - 1) // WBW + 1) * WBW)))
+        q2_val |= (c.intValue() & ((1 << WBW) - 1)) << ((i + (BITWIDTH + WBW - 1) // WBW + 1) * WBW)
         q2 = bv(q2_val, q2_bits)
+        print(f"q2 (after column {i}) = {hex(q2.intValue())}") if debug else None
     
     q2_full = bv(q2.intValue(), (3 * LIMBGROUPS + 1) * WBW - BITWIDTH + 1)  # q2_full = bv(q2.intValue(), (2 * LIMBGROUPS + 1) * WBW + 1)
     if debug:
@@ -95,7 +94,33 @@ def modmul_barrett_core(x, y, m, mu, debug=False):
         print(f"r1 = {hex(r1.intValue())}")
 
     # 2. r2 = (q3 * m) mod b^{k+1}
-    q3m = mul_f_gen(q3, m, q3.size, m.size)
+    # q3m = mul_f_gen(q3, m, q3.size, m.size)
+    # 2. r2 = (q3 * m) mod b^{k+1} (WBW-bit multiplier only)
+    q3m_bits = 3 * LIMBGROUPS * WBW - BITWIDTH + 1
+    q3m = bv(0, q3m_bits)
+    for i in range(LIMBGROUPS):
+        c = bv(0, WBW)  # carry
+        for j in range((BITWIDTH + WBW - 1) // WBW + 1):
+            q3_limb = bv((q3.intValue() >> (i * WBW)) & ((1 << WBW) - 1), WBW)
+            m_limb = bv((m.intValue() >> (j * WBW)) & ((1 << WBW) - 1), WBW)
+            prod_bv = mul_f_WBW(q3_limb, m_limb)
+
+            q3m_ij = bv((q3m.intValue() >> ((i + j) * WBW)) & ((1 << WBW) - 1), WBW)
+            uv = bv(q3m_ij.intValue() + prod_bv.intValue() + c.intValue(), 2*WBW)
+
+            # set q3m[(i+j)*WBW : (i+j+1)*WBW] = uv[0:WBW]
+            q3m_val = q3m.intValue() & (~(((1 << WBW) - 1) << ((i + j) * WBW)))
+            q3m_val |= (uv.intValue() & ((1 << WBW) - 1)) << ((i + j) * WBW)
+            q3m = bv(q3m_val, q3m_bits)
+
+            # Carry for next limb
+            c = bv(uv.intValue() >> WBW, WBW)
+        # set q3m[(i + n + 1)*WBW : (i + n + 2)*WBW] = c[0:WBW]
+        q3m_val = q3m.intValue() & (~(((1 << WBW) - 1) << ((i + (BITWIDTH + WBW - 1) // WBW + 1) * WBW)))
+        q3m_val |= (c.intValue() & ((1 << WBW) - 1)) << ((i + (BITWIDTH + WBW - 1) // WBW + 1) * WBW)
+        q3m = bv(q3m_val, q3m_bits)
+        print(f"q3m (after column {i}) = {hex(q3m.intValue())}") if debug else None
+
     r2 = mask_bv(q3m, (LIMBGROUPS + 1) * WBW)
     if debug:
         print(f"q3m = {hex(q3m.intValue())}")
@@ -150,8 +175,6 @@ def main():
     print(f"Expected: {expected}")
     print("Fail" if result.intValue() != expected else "Pass")
 
-    dbg = True
-
     # Additional test: x = m-1, y = m-1
     x2 = bv(m.intValue() - 1, BITWIDTH)
     y2 = bv(m.intValue() - 1, BITWIDTH)
@@ -160,6 +183,8 @@ def main():
     expected2 = (x2.intValue() * y2.intValue()) % m.intValue()
     print(f"Expected: {expected2}")
     print("Fail" if result2.intValue() != expected2 else "Pass")
+
+    dbg = True
 
     m3_val = 94638212182620952513693670343372186519186500347741441943556257891053441384207
     mu3_val = B_REAL ** (2 * LIMBGROUPS) // m3_val
@@ -174,13 +199,13 @@ def main():
     print("Fail" if result3.intValue() != expected3 else "Pass")
 
     # Additional sample with x and y
-    # x4 = bv(10576938527347621454938657332657860667041742158949561047950663058429844127864, BITWIDTH)
-    # y4 = bv(10576938527347621454938657332657860667041742158949561047950663058429844127864, BITWIDTH)
-    # result4 = modmul_barrett_core(x4, y4, m3, mu3, dbg)
-    # print(f"modmul_barrett_core({x4.intValue()}, {y4.intValue()}, {m3.intValue()}, {mu3.intValue()}) = {result4.intValue()}")
-    # expected4 = (x4.intValue() * y4.intValue()) % m3.intValue()
-    # print(f"Expected: {expected4}")
-    # print("Fail" if result4.intValue() != expected4 else "Pass")
+    x4 = bv(10576938527347621454938657332657860667041742158949561047950663058429844127864, BITWIDTH)
+    y4 = bv(10576938527347621454938657332657860667041742158949561047950663058429844127864, BITWIDTH)
+    result4 = modmul_barrett_core(x4, y4, m3, mu3, dbg)
+    print(f"modmul_barrett_core({x4.intValue()}, {y4.intValue()}, {m3.intValue()}, {mu3.intValue()}) = {result4.intValue()}")
+    expected4 = (x4.intValue() * y4.intValue()) % m3.intValue()
+    print(f"Expected: {expected4}")
+    print("Fail" if result4.intValue() != expected4 else "Pass")
 
 if __name__ == "__main__":
     main()
