@@ -27,11 +27,6 @@ def mask_bv(val, bits):
 def modmul_barrett_core(x, y, m, mu, debug=False):
     # All inputs are BitVector
 
-    # to support bit shift, when b != 2
-    # B_EXP = int(math.log2(WBW))
-    # if BITWIDTH % B_EXP != 0:
-    #     raise ValueError(f"BITWIDTH ({BITWIDTH}) must be divisible by B_EXP ({B_EXP})")
-
     t = mul_f(x, y, BITWIDTH)  # t = 2 x BITWIDTH
     mu = bv(mu.intValue(), 2 * LIMBS * B_EXP - BITWIDTH + 1)  # mu = bv(mu.intValue(), LIMBS*B_EXP+1)
     if debug:
