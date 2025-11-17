@@ -118,7 +118,7 @@ wide_t modmul_barrett_core(const wide_t x, const wide_t y, const wide_t m, const
 
     // 3. If r < 0 then r = r + b^{k+1}
     if (r < 0){
-        r += ac_int<(LIMBGROUPS+1)*WBW+1, true>(1) << ((LIMBGROUPS+1)*WBW));
+        r += ac_int<(LIMBGROUPS+1)*WBW+1, true>(1) << ((LIMBGROUPS+1)*WBW);
         std::cout << "r (after correction): " << r.to_string(AC_HEX) << std::endl;
     }
 
