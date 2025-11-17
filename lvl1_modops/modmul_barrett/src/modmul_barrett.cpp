@@ -113,6 +113,7 @@ wide_t modmul_barrett_core(const wide_t x, const wide_t y, const wide_t m_in, co
             c = uv.slc<WBW>(WBW);
         }
         q2.set_slc((i + ((BITWIDTH + WBW - 1) / WBW)) * WBW, c);
+        std::cout << "q2 (after column " << i << "): " << q2.to_string(AC_HEX) << std::endl;
     }
 
     std::cout << "mu: " << mu.to_string(AC_HEX) << std::endl;
