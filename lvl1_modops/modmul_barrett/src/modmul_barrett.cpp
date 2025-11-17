@@ -68,9 +68,13 @@ wide_t modsq_barrett_core(const wide_t x, const wide_t q, const wide_2x_t mu) {
 //     return 0;
 // }
 wide_t modmul_barrett_core(const wide_t x, const wide_t y, const wide_t m, const wide_2x_t mu) {
-    // m is the modulus
+    // m is the modulus.
+    // https://fractalyze.gitbook.io/intro/primitives/modular-arithmetic/modular-reduction/barrett-reduction
     // https://cacr.uwaterloo.ca/hac/about/chap14.pdf
     // 14.42 Algorithm Barrett modular reduction
+    //
+    // Note: the MSB of m must be 1. (m cannot be very small)
+    // WBW 
 
     // Assume: LIMBS = k, WBW = b, wide_t = k*WBW bits, wide_2x_t = 2*k*WBW bits
     wide_2x_t t = mul_f(x, y);
