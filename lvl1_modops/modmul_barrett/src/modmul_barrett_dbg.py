@@ -16,10 +16,46 @@ def mul_f(x, y, bits):
     prod = (x.intValue() * y.intValue()) & ((1 << (2*bits)) - 1)
     return bv(prod, 2*bits)
 
+# def mul_f_gen(a, b, bitwidth_a, bitwidth_b):
+#     # Fixed-width multiplication, result is bitwidth_a + bitwidth_b bits
+#     prod = (a.intValue() * b.intValue()) & ((1 << (bitwidth_a + bitwidth_b)) - 1)
+#     return bv(prod, bitwidth_a + bitwidth_b)
+
 def mul_f_gen(a, b, bitwidth_a, bitwidth_b):
-    # Fixed-width multiplication, result is bitwidth_a + bitwidth_b bits
-    prod = (a.intValue() * b.intValue()) & ((1 << (bitwidth_a + bitwidth_b)) - 1)
-    return bv(prod, bitwidth_a + bitwidth_b)
+    # Emulate multi-precision multiplication using only WBW-bit multiplications
+    # a, b: BitVector
+    # bitwidth_a, bitwidth_b: total bitwidths of a and b
+    # Returns BitVector of bitwidth_a + bitwidth_b
+
+    num_limbs_a = (bitwidth_a + WBW - 1) // WBW
+    num_limbs_b = (bitwidth_b + WBW - 1) // WBW
+    result_bits = bitwidth_a + bitwidth_b
+    result = 0
+
+    # Extract limbs
+    a_val = a.intValue()
+    b_val = b.intValue()
+    a_limbs = [(a_val >> (i * WBW)) & ((1 << WBW) - 1) for i in range(num_limbs_a)]
+    b_limbs = [(b_val >> (i * WBW)) & ((1 << WBW) - 1) for i in range(num_limbs_b)]
+
+    # Schoolbook multiplication
+    partials = [0] * (num_limbs_a + num_limbs_b)
+    for i in range(num_limbs_a):
+        carry = 0
+        for j in range(num_limbs_b):
+            idx = i + j
+            prod = (a_limbs[i] * b_limbs[j]) + partials[idx] + carry
+            partials[idx] = prod & ((1 << WBW) - 1)
+            carry = prod >> WBW
+        partials[i + num_limbs_b] = carry
+
+    # Combine limbs into result
+    for i in range(len(partials)):
+        result |= (partials[i] << (i * WBW))
+
+    # Mask to result_bits
+    result &= (1 << result_bits) - 1
+    return bv(result, result_bits)
 
 def mask_bv(val, bits):
     return bv(val.intValue() & ((1 << bits) - 1), bits)

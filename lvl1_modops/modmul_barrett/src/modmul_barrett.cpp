@@ -68,13 +68,13 @@ wide_t modsq_barrett_core(const wide_t x, const wide_t q, const wide_2x_t mu) {
 // constexpr int B_EXP = __builtin_ctz(WBW);  // int(math.log2(WBW))
 // constexpr int LIMBGROUPS = (BITWIDTH + B_EXP - 1) / B_EXP; // Equivalent to ceil(BITWIDTH / B_EXP)
 
-#define LIMBGROUPS (BITWIDTH + WBW - 1) / WBW
+#define LIMBGROUPS ((BITWIDTH + WBW - 1) / WBW)  // ceil(BITWIDTH / WBW)
 
 // wide_t modmul_barrett_core(const wide_t x, const wide_t y, const wide_t q, const wide_2x_t mu) {
 //     return 0;
 // }
-wide_t modmul_barrett_core(const wide_t x, const wide_t y, const wide_t m, const wide_2x_t mu_in) {
-    // m is the modulus.
+wide_t modmul_barrett_core(const wide_t x, const wide_t y, const wide_t m_in, const wide_2x_t mu_in) {
+    // m_in is the modulus.
     // https://fractalyze.gitbook.io/intro/primitives/modular-arithmetic/modular-reduction/barrett-reduction
     // https://cacr.uwaterloo.ca/hac/about/chap14.pdf
     // 14.42 Algorithm Barrett modular reduction
@@ -87,6 +87,8 @@ wide_t modmul_barrett_core(const wide_t x, const wide_t y, const wide_t m, const
     std::cout << "t: " << t.to_string(AC_HEX) << std::endl;
     std::cout << "mu: " << mu.to_string(AC_HEX) << std::endl;
 
+    ac_int<LIMBGROUPS * WBW, false> m = m_in;
+
     // 1. q1 = floor(x / b^{k-1})
     ac_int<2*LIMBGROUPS*WBW, false> x_full = t;
     ac_int<(LIMBGROUPS + 1)*WBW, false> q1 = x_full >> (WBW * (LIMBGROUPS - 1));
@@ -94,7 +96,25 @@ wide_t modmul_barrett_core(const wide_t x, const wide_t y, const wide_t m, const
     std::cout << "q1: " << q1.to_string(AC_HEX) << std::endl;
 
     // 1. q2 = q1 * mu
-    ac_int<(3*LIMBGROUPS+1)*WBW-BITWIDTH+1, false> q2 = (ac_int<(3*LIMBGROUPS+1)*WBW-BITWIDTH+1, false>)mul_f_gen<(LIMBGROUPS+1)*WBW, 2*LIMBGROUPS*WBW-BITWIDTH+1>(q1, mu);
+    // ac_int<(3*LIMBGROUPS+1)*WBW-BITWIDTH+1, false> q2 = (ac_int<(3*LIMBGROUPS+1)*WBW-BITWIDTH+1, false>)mul_f_gen<(LIMBGROUPS+1)*WBW, 2*LIMBGROUPS*WBW-BITWIDTH+1>(q1, mu);
+    // 1. q2 = q1 * mu (schoolbook, WBW-bit multiplier only)
+    ac_int<(3 * LIMBGROUPS + 1) * WBW - BITWIDTH + 1, false> q2 = 0;
+    for (int i = 0; i < (BITWIDTH + WBW - 1) / WBW; i++) {
+        ac_int<WBW, false> c = 0;
+        for (int j = 0; j < (BITWIDTH + WBW - 1) / WBW; j++) {
+            ac_int<WBW, false> q1_limb = q1.slc<WBW>(i * WBW);
+            ac_int<WBW, false> mu_limb = mu.slc<WBW>(j * WBW);
+            ac_int<2 * WBW, false> prod = mul_f_gen<WBW>(q1_limb, mu_limb);  // q1_i * mu_j
+
+            ac_int<WBW, false> q2_ij = q2.slc<WBW>((i + j) * WBW);
+            ac_int<2 * WBW, false> uv = q2_ij + prod + c;
+
+            q2.set_slc((i + j) * WBW, uv.slc<WBW>(0));
+            c = uv.slc<WBW>(WBW);
+        }
+        q2.set_slc((i + ((BITWIDTH + WBW - 1) / WBW)) * WBW, c);
+    }
+
     std::cout << "mu: " << mu.to_string(AC_HEX) << std::endl;
     std::cout << "q2: " << q2.to_string(AC_HEX) << std::endl;
 
@@ -107,7 +127,26 @@ wide_t modmul_barrett_core(const wide_t x, const wide_t y, const wide_t m, const
     std::cout << "r1: " << r1.to_string(AC_HEX) << std::endl;
 
     // 2. r2 = (q3 * m) mod b^{k+1}
-    ac_int<2*LIMBGROUPS*WBW+1, false> q3m = (ac_int<2*LIMBGROUPS*WBW+1, false>)mul_f_gen<2*LIMBGROUPS*WBW-BITWIDTH+1, BITWIDTH>(q3, m);
+    // ac_int<2*LIMBGROUPS*WBW+1, false> q3m = (ac_int<2*LIMBGROUPS*WBW+1, false>)mul_f_gen<2*LIMBGROUPS*WBW-BITWIDTH+1, BITWIDTH>(q3, m);
+    // 2. r2 = (q3 * m) mod b^{k+1}
+    // Compute q3m = q3 * m using only WBW-bit multiplications
+    ac_int<2*LIMBGROUPS*WBW+1, false> q3m = 0;
+    for (int i = 0; i < LIMBGROUPS - 1; i++) {
+        ac_int<WBW, false> c = 0;
+        for (int j = 0; j < (BITWIDTH + WBW - 1) / WBW; j++) {
+            ac_int<WBW, false> q3_limb = q3.slc<WBW>(i * WBW);
+            ac_int<WBW, false> m_limb = m.slc<WBW>(j * WBW);
+            ac_int<2 * WBW, false> prod = mul_f_gen<WBW>(q3_limb, m_limb);
+
+            ac_int<WBW, false> q3m_ij = q3m.slc<WBW>((i + j) * WBW);
+            ac_int<2 * WBW, false> uv = q3m_ij + prod + c;
+
+            q3m.set_slc((i + j) * WBW, uv.slc<WBW>(0));
+            c = uv.slc<WBW>(WBW);
+        }
+        q3m.set_slc((i + ((BITWIDTH + WBW - 1) / WBW)) * WBW, c);
+    }
+
     ac_int<(LIMBGROUPS+1)*WBW, false> r2 = q3m.slc<(LIMBGROUPS+1)*WBW>(0);
     std::cout << "q3m: " << q3m.to_string(AC_HEX) << std::endl;
     std::cout << "r2: " << r2.to_string(AC_HEX) << std::endl;
