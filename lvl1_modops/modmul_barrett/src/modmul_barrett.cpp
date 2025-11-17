@@ -73,7 +73,7 @@ wide_t modsq_barrett_core(const wide_t x, const wide_t q, const wide_2x_t mu) {
 // wide_t modmul_barrett_core(const wide_t x, const wide_t y, const wide_t q, const wide_2x_t mu) {
 //     return 0;
 // }
-wide_t modmul_barrett_core(const wide_t x, const wide_t y, const wide_t m, const wide_2x_t mu) {
+wide_t modmul_barrett_core(const wide_t x, const wide_t y, const wide_t m, const wide_2x_t mu_in) {
     // m is the modulus.
     // https://fractalyze.gitbook.io/intro/primitives/modular-arithmetic/modular-reduction/barrett-reduction
     // https://cacr.uwaterloo.ca/hac/about/chap14.pdf
@@ -83,7 +83,7 @@ wide_t modmul_barrett_core(const wide_t x, const wide_t y, const wide_t m, const
 
     // Assume: LIMBGROUPS = k, 2^WBW = b, wide_t <= k*WBW bits, wide_2x_t <= 2*k*WBW bits
     wide_2x_t t = mul_f(x, y);
-    ac_int<2 * LIMBGROUPS * WBW - BITWIDTH + 1, false> mu = mu;
+    ac_int<2 * LIMBGROUPS * WBW - BITWIDTH + 1, false> mu = mu_in;
     std::cout << "t: " << t.to_string(AC_HEX) << std::endl;
     std::cout << "mu: " << mu.to_string(AC_HEX) << std::endl;
 
