@@ -2,10 +2,13 @@ from BitVector import BitVector
 import math
 
 BITWIDTH = 256  # 2 limbs of 8 bits
-WBW = 16  # b
-LIMBS = BITWIDTH // (int(math.log2(WBW)))  # k
+WBW = 8  # b
+B_EXP = int(math.log2(WBW))
+LIMBS = math.ceil(BITWIDTH / B_EXP)  # k
 
 def bv(val, bits):
+    # Store negative values in two's complement representation
+    val = val % (1 << bits)
     return BitVector(intVal=val, size=bits)
 
 def mul_f(x, y, bits):
@@ -25,18 +28,18 @@ def modmul_barrett_core(x, y, m, mu, debug=False):
     # All inputs are BitVector
 
     # to support bit shift, when b != 2
-    B_EXP = int(math.log2(WBW))
+    # B_EXP = int(math.log2(WBW))
     # if BITWIDTH % B_EXP != 0:
     #     raise ValueError(f"BITWIDTH ({BITWIDTH}) must be divisible by B_EXP ({B_EXP})")
 
     t = mul_f(x, y, BITWIDTH)  # t = 2 x BITWIDTH
-    mu = bv(mu.intValue(), BITWIDTH + 1)  # mu = bv(mu.intValue(), LIMBS*B_EXP+1)
+    mu = bv(mu.intValue(), 2 * LIMBS * B_EXP - BITWIDTH + 1)  # mu = bv(mu.intValue(), LIMBS*B_EXP+1)
     if debug:
         print(f"t = {hex(t.intValue())}")
         print(f"mu = {hex(mu.intValue())}")
 
     # 1. q1 = floor(x / b^{k-1})
-    x_full = bv(t.intValue(), 2*BITWIDTH)  # x_full = bv(t.intValue(), 2*LIMBS*B_EXP)
+    x_full = bv(t.intValue(), 2 * LIMBS * B_EXP)  # x_full = bv(t.intValue(), 2*BITWIDTH)  # x_full = bv(t.intValue(), 2*LIMBS*B_EXP)
     q1 = bv(x_full.intValue() >> (B_EXP * (LIMBS - 1)), (LIMBS + 1)*B_EXP)
     if debug:
         print(f"x_full = {hex(x_full.intValue())}")
@@ -44,13 +47,13 @@ def modmul_barrett_core(x, y, m, mu, debug=False):
 
     # 1. q2 = q1 * mu
     q2 = mul_f_gen(q1, mu, q1.size, mu.size)  # q1.size=(LIMBS+1)*B_EXP, mu.size=LIMBS*B_EXP
-    q2_full = bv(q2.intValue(), (2 * LIMBS + 1) * B_EXP + 1)
+    q2_full = bv(q2.intValue(), (3 * LIMBS + 1) * B_EXP - BITWIDTH + 1)  # q2_full = bv(q2.intValue(), (2 * LIMBS + 1) * B_EXP + 1)
     if debug:
         print(f"q2 = {hex(q2.intValue())}")
         print(f"q2_full = {hex(q2_full.intValue())}")
 
     # 1. q3 = floor(q2 / b^{k+1})
-    q3 = bv(q2_full.intValue() >> (B_EXP * (LIMBS + 1)), LIMBS*B_EXP+1)
+    q3 = bv(q2_full.intValue() >> (B_EXP * (LIMBS + 1)), 2*LIMBS*B_EXP-BITWIDTH+1)  # q3 = bv(q2_full.intValue() >> (B_EXP * (LIMBS + 1)), 2LIMBS*B_EXP+1)
     if debug:
         print(f"q3 = {hex(q3.intValue())}")
 
@@ -80,7 +83,7 @@ def modmul_barrett_core(x, y, m, mu, debug=False):
             print(f"r (after correction) = {hex(r.intValue())}")
 
     # 4. While r >= m_full.intValue() do: r = r - m_full
-    m_full = bv(m.intValue(), BITWIDTH)  # m_full = bv(m.intValue(), (LIMBS) * B_EXP)
+    m_full = bv(m.intValue(), (LIMBS) * B_EXP)  # m_full = bv(m.intValue(), BITWIDTH)
     if debug:
         print(f"m_full = {hex(m_full.intValue())}")
     while r.intValue() >= m_full.intValue():
@@ -103,7 +106,7 @@ def main():
     
     m = bv(94638212182620952513693670343372186519186500347741441943556257891053441384207, BITWIDTH)
     mu_val = (WBW ** (2 * LIMBS)) // m.intValue()
-    mu = bv(mu_val, BITWIDTH + 1)
+    mu = bv(mu_val, 2 * LIMBS * B_EXP - BITWIDTH + 1)  # mu = bv(mu_val, BITWIDTH + 1)
 
     x = bv(200, BITWIDTH)
     y = bv(150, BITWIDTH)
@@ -129,7 +132,7 @@ def main():
     m3_val = 94638212182620952513693670343372186519186500347741441943556257891053441384207
     mu3_val = WBW ** (2 * LIMBS) // m3_val
     m3 = bv(m3_val, BITWIDTH)
-    mu3 = bv(mu3_val, 2*BITWIDTH)
+    mu3 = bv(mu3_val, 2 * LIMBS * B_EXP - BITWIDTH + 1)  # mu3 = bv(mu3_val, 2*BITWIDTH)
     x3 = bv(10576938527347621454938657332657860667041742158949561047950663058429844127864, BITWIDTH)
     y3 = bv(10576938527347621454938657332657860667041742158949561047950663058429844127864, BITWIDTH)
     result3 = modmul_barrett_core(x3, y3, m3, mu3, dbg)
