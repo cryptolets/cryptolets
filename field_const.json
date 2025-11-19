@@ -1,7 +1,7 @@
 {
   "TEST64": {
     "form": "Weierstrass",
-    "desc": "test",
+    "desc": "for testing and debugging",
     "a": "0",
     "b": "3",
     "q": "faaf4542e6aefc7b",

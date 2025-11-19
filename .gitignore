@@ -14,19 +14,20 @@ Catapult_*
 work/
 table_*
 
-# python files
+# results and logs
+results/
+run_logs/
+logs/
+*.log
+
+# misc python files
 __pycache__
 .venv
 
 # misc
-*.log
+OLD_*
 lib/
 *.lib
-logs/
-
-OLD_*
-results/
-run_logs/
-
+.vscode/
 vivado*
 tmp*
