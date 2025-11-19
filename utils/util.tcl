@@ -78,6 +78,7 @@ proc set_tech_lib {tech_type} {
     } elseif {$tech_type eq "fpgahbm"} {
         # Top of the line Versal HBM
         solution library add mgc_Xilinx-VERSAL-hbm-3HP_beh \
+            -file "$ROOT_DIR/../mgc_Xilinx-VERSAL-hbm-3HP_beh.lib" \
             -- -rtlsyntool Vivado -manufacturer Xilinx \
             -family VERSAL-hbm -speed -3HP \
             -part xcvh1782-lsva4737-3HP-e-S

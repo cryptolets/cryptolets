@@ -1,17 +1,17 @@
 # Sweep parameters for Twisted Edwards Point Addition
-BITWIDTH: [255, 377, 448]
+BITWIDTH: [255]
 # 64, 96, 128, 192, 254, 255, 256, 377, 381, 383, 384, 448, 511, 512, 521, 753, 768
 
 WBW: [16, 32, 64, 128]
 TECH_TYPE: [gf12]  # gf12 45nm saed32 fpga fpgahbm fpgahbmvhk158
 TARGET_II: [1]
 TARGET_PERIOD: [1]  # in ns
-MUL_TYPE: [MUL_SCHOOLBOOK] # MUL_NORMAL, MUL_SCHOOLBOOK, MUL_KARATSUBA
+MUL_TYPE: [MUL_NORMAL] # MUL_NORMAL, MUL_SCHOOLBOOK, MUL_KARATSUBA
 CMUL_TYPE: [CMUL_NORMAL] # CMUL_NORMAL, CMUL_NAF, CMUL_SA
-Q_TYPE: [FIXED_Q] # VAR_Q, FIXED_Q
-REDC_TYPE: [FIXED_RC] # VAR_RC, FIXED_RC
-CURVE_PARAMS_TYPE: [FIXED_CURVE_PARAMS] # FIXED_CURVE_PARAMS, VAR_CURVE_PARAMS
-MODMUL_TYPE: [MODMUL_TYPE_MONT, MODMUL_TYPE_BARRETT] # MODMUL_TYPE_MONT, MODMUL_TYPE_BARRETT
+Q_TYPE: [VAR_q] # VAR_Q, FIXED_Q
+REDC_TYPE: [VAR_RC] # VAR_RC, FIXED_RC
+CURVE_PARAMS_TYPE: [VAR_CURVE_PARAMS] # FIXED_CURVE_PARAMS, VAR_CURVE_PARAMS
+MODMUL_TYPE: [MODMUL_TYPE_BARRETT] # MODMUL_TYPE_MONT, MODMUL_TYPE_BARRETT
 
 # curve types: 
 # RAND_CURVE
@@ -19,14 +19,14 @@ MODMUL_TYPE: [MODMUL_TYPE_MONT, MODMUL_TYPE_BARRETT] # MODMUL_TYPE_MONT, MODMUL_
 #        ED_256_MONT, ED_255_MERS, ED_384_MONT, ED_383_MERS, 
 #        ED_511_MERS, ED_512_MONT
 # variable a = ED448, BN254_ED
-CURVE_TYPE: [ED25519, ED448, BLS12_377_ON_TE]
+CURVE_TYPE: [RAND_CURVE]
 
-PREC_TYPE: [SINGLE_PREC]  # SINGLE_PREC, MULTI_PREC
+PREC_TYPE: [MULTI_PREC]  # SINGLE_PREC, MULTI_PREC
 CCORE_PERIOD_RATIO: [1]
 
 # for RAND_CURVE can select what "a" to pick which will specify what formula will be used
 # for other CURVE_TYPE's this value will be overrided
-FIELD_A: [ANEG1, AVAR] # ANEG1: a=-1, AVAR: variable a
+FIELD_A: [AVAR] # ANEG1: a=-1, AVAR: variable a
 
 BASE_MUL_WIDTH:
   8: [8]
@@ -95,11 +95,11 @@ TEST_ONLY: false    # only test C++ code with osci
 NUM_TEST_SAMPLES: 1000
 CCORE_MUL_F: false  # make mul_f ccore, false = more compile time, better design latency
 CCORE_MODADDSUB: false # make modadd,modsub,moddouble ccore, false = more compile time, better design latency
-CCORE_MODMUL: true   # false is needed for multi-prec
+CCORE_MODMUL: false   # false is needed for multi-prec
 CCORE_CMUL: false
-CCORE_TOP: true
+CCORE_TOP: false
 PROCESS_LVL_HANDSHAKE: false
-USE_CLUSTERS: true # use use carry save adder for adder trees
+USE_CLUSTERS: false # use use carry save adder for adder trees
 
 # Defines order of params before project split
 SWEEP_ORDER: [

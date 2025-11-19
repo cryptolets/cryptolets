@@ -476,7 +476,7 @@ if __name__ == "__main__":
 
             # Parse point double cycles from cycle_set.tcl
             for metric in derived_metrics:
-                if kernel == "point_add":
+                if not mp and not tech_type == "fpga" and kernel == "point_add":
                     if metric['sol'].startswith(kernel):
                         cycle_set_fp = catapult_proj_dir_fp + f"/test_only_{kernel}.v2/cycle_set.tcl"
                         c_steps = [0, 0, 0]
@@ -515,7 +515,8 @@ if __name__ == "__main__":
         # filter out test only and verify solutions, keep only top level
         all_metrics = [
             row for row in all_metrics \
-                if not str(row.get('sol')).startswith("verify") and \
+                if \
+                   not str(row.get('sol')).startswith("verify") and \
                    not str(row.get('sol')).startswith("test_o") and \
                    not str(row.get('sol')).startswith("comb_check")
             ]

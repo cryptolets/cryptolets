@@ -64,6 +64,7 @@ wide_t modsq_barrett_core(const wide_t x, const wide_t q, const wide_2x_t mu) {
 
 #elif PREC_TYPE == MULTI_PREC
 
+// TODO: clean up and be consistent with other logic
 // Calculate B_EXP as the number of trailing zeros in WBW (since WBW is a power of 2)
 // constexpr int B_EXP = __builtin_ctz(WBW);  // int(math.log2(WBW))
 // constexpr int LIMBGROUPS = (BITWIDTH + B_EXP - 1) / B_EXP; // Equivalent to ceil(BITWIDTH / B_EXP)
@@ -84,19 +85,12 @@ wide_t modmul_barrett_core(const wide_t x, const wide_t y, const wide_t m_in, co
     // Assume: LIMBGROUPS = k, 2^WBW = b, wide_t <= k*WBW bits, wide_2x_t <= 2*k*WBW bits
     wide_2x_t t = mul_f(x, y);
     ac_int<2 * LIMBGROUPS * WBW - BITWIDTH + 1, false> mu = mu_in;
-    std::cout << "t: " << t.to_string(AC_HEX) << std::endl;
-    std::cout << "mu: " << mu.to_string(AC_HEX) << std::endl;
-
     ac_int<LIMBGROUPS * WBW, false> m = m_in;
 
     // 1. q1 = floor(x / b^{k-1})
     ac_int<2*LIMBGROUPS*WBW, false> x_full = t;
     ac_int<(LIMBGROUPS + 1)*WBW, false> q1 = x_full >> (WBW * (LIMBGROUPS - 1));
-    std::cout << "x_full: " << x_full.to_string(AC_HEX) << std::endl;
-    std::cout << "q1: " << q1.to_string(AC_HEX) << std::endl;
 
-    // 1. q2 = q1 * mu
-    // ac_int<(3*LIMBGROUPS+1)*WBW-BITWIDTH+1, false> q2 = (ac_int<(3*LIMBGROUPS+1)*WBW-BITWIDTH+1, false>)mul_f_gen<(LIMBGROUPS+1)*WBW, 2*LIMBGROUPS*WBW-BITWIDTH+1>(q1, mu);
     // 1. q2 = q1 * mu (schoolbook, WBW-bit multiplier only)
     ac_int<((((3*LIMBGROUPS+1)*WBW-BITWIDTH+1) + WBW - 1) / WBW) * WBW, false> q2_big = 0;
     for (int i = 0; i < (BITWIDTH + WBW - 1) / WBW + 1; i++) {
@@ -113,23 +107,16 @@ wide_t modmul_barrett_core(const wide_t x, const wide_t y, const wide_t m_in, co
             c = uv.slc<WBW>(WBW);
         }
         q2_big.set_slc((i + (BITWIDTH + WBW - 1) / WBW + 1) * WBW, c);
-        std::cout << "q2_big (after column " << i << "): " << q2_big.to_string(AC_HEX) << std::endl;
     }
     ac_int<(3 * LIMBGROUPS + 1) * WBW - BITWIDTH + 1, false> q2 = q2_big.slc<(3 * LIMBGROUPS + 1) * WBW - BITWIDTH + 1>(0);
 
-    std::cout << "mu: " << mu.to_string(AC_HEX) << std::endl;
-    std::cout << "q2: " << q2.to_string(AC_HEX) << std::endl;
 
     // 1. q3 = floor(q2 / b^{k+1})
     ac_int<2*LIMBGROUPS*WBW-BITWIDTH+1, false> q3 = q2 >> (WBW * (LIMBGROUPS + 1));
-    std::cout << "q3: " << q3.to_string(AC_HEX) << std::endl;
 
     // 2. r1 = x mod b^{k+1}
     ac_int<(LIMBGROUPS+1)*WBW, false> r1 = x_full.slc<(LIMBGROUPS+1)*WBW>(0);
-    std::cout << "r1: " << r1.to_string(AC_HEX) << std::endl;
 
-    // 2. r2 = (q3 * m) mod b^{k+1}
-    // ac_int<2*LIMBGROUPS*WBW+1, false> q3m = (ac_int<2*LIMBGROUPS*WBW+1, false>)mul_f_gen<2*LIMBGROUPS*WBW-BITWIDTH+1, BITWIDTH>(q3, m);
     // 2. r2 = (q3 * m) mod b^{k+1}
     // Compute q3m = q3 * m using only WBW-bit multiplications
     ac_int<(((3*LIMBGROUPS*WBW-BITWIDTH+1) + WBW - 1) / WBW) * WBW, false> q3m_big = 0;
@@ -151,29 +138,21 @@ wide_t modmul_barrett_core(const wide_t x, const wide_t y, const wide_t m_in, co
     ac_int<3*LIMBGROUPS*WBW-BITWIDTH+1, false> q3m = q3m_big.slc<3*LIMBGROUPS*WBW-BITWIDTH+1>(0);
 
     ac_int<(LIMBGROUPS+1)*WBW, false> r2 = q3m.slc<(LIMBGROUPS+1)*WBW>(0);
-    std::cout << "q3m: " << q3m.to_string(AC_HEX) << std::endl;
-    std::cout << "r2: " << r2.to_string(AC_HEX) << std::endl;
-
     // 2. r = r1 - r2
     ac_int<(LIMBGROUPS+1)*WBW+1, true> r = r1 - r2;
-    std::cout << "r (before correction): " << r.to_string(AC_HEX) << std::endl;
 
     // 3. If r < 0 then r = r + b^{k+1}
     if (r < 0){
         r += ac_int<(LIMBGROUPS+1)*WBW+1, true>(1) << ((LIMBGROUPS+1)*WBW);
-        std::cout << "r (after correction): " << r.to_string(AC_HEX) << std::endl;
     }
 
     // 4. While r >= m do: r = r - m
     ac_int<LIMBGROUPS*WBW, false> m_full = m;
-    std::cout << "m_full: " << m_full.to_string(AC_HEX) << std::endl;
 
     while (r >= m_full){
         r -= m_full;
-        std::cout << "r (in loop): " << r.to_string(AC_HEX) << std::endl;
     }
 
-    std::cout << "r (final): " << r.to_string(AC_HEX) << std::endl;
     // 5. Return r as wide_t
     return (wide_t)r;
 }
