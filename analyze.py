@@ -199,6 +199,7 @@ def derive_all_attr(parsed_raw_attrs, all_info):
             else:
                 latency = round(period-slack, 2)        
 
+        # TODO: Not accurate, doesn't get total across ccore's
         ctime_raw = to_float_prec(a.get("ctime")) # total compile time
         bitwidth = all_info.get('bitwidth')
         mb = all_info.get('mb', 0)
@@ -226,7 +227,6 @@ def derive_all_attr(parsed_raw_attrs, all_info):
             "kar": all_info.get('kar'),
             "wbw": all_info.get('wbw'),
             "ctime_raw": ctime_raw if ctime_raw else 0,
-            "ctime": f"{int(ctime_raw) // 60}m {int(ctime_raw) % 60}s" if ctime_raw else -1,
             "minclkprd": round(minclkprd, 2) if minclkprd else None,
             "cpr": float(all_info.get('cpr', 1)),
             "fmax": round(1000/minclkprd, 2) if (minclkprd and minclkprd != 0) else None,
@@ -250,7 +250,7 @@ def derive_all_attr(parsed_raw_attrs, all_info):
 
         has_metrics = False
         for attr_k in ATTR_TO_COL_NAME:
-            if (attr_k in row and attr_k != "ctime" and row[attr_k] is not None):
+            if (attr_k in row and row[attr_k] is not None):
                 has_metrics = True
                 break
 
@@ -282,20 +282,6 @@ def drop_column(data, col):
         return data
     return [{k: v for k, v in row.items() if k != col} for row in data]
 
-def get_tot(data, col="ctime_raw"):
-    """Remove a specific column from all rows."""
-    if not data:
-        return data
-
-    tot = 0
-
-    for row in data:
-        for k, v in row.items():
-            if k == col:
-                tot += v
-    
-    return tot
-
 def filter_mp(data, mp=False):
     if mp:
         # keep only MP rows (wbw is not None)
@@ -304,39 +290,41 @@ def filter_mp(data, mp=False):
         # keep only non-MP rows (wbw is None)
         return [row for row in data if row.get("wbw") is None]
 
-def find_max_area_min_latency_by_q(data):
+
+# TEST this works
+def find_pareto_optimal(data, curve_type):
     """
-    Returns designs with min area and min latency for each q_type (fixedq and varq).
-    Returns dict with keys 'fixedq' and 'varq', each containing 'min_area' and 'min_latency' designs.
+    Given a curve_type, find the Pareto optimal points using area and (cycles * target_period) as latency.
+    Returns a list of rows (dicts) that are on the Pareto frontier.
     """
-    results = {}
-    
-    for q_type in ["fixedq", "varq"]:
-        filtered = [row for row in data if row.get("q_type") == q_type]
-        
-        min_area_row = None
-        min_latency_row = None
-        min_area = float('inf')
-        min_latency = float('inf')
-        
-        for row in filtered:
-            area = row.get('area')
-            latency = row.get('latency')
-            
-            if area is not None and area < min_area:
-                min_area = area
-                min_area_row = row
-                
-            if latency is not None and latency < min_latency:
-                min_latency = latency
-                min_latency_row = row
-        
-        results[q_type] = {
-            'min_area': min_area_row,
-            'min_latency': min_latency_row
-        }
-    
-    return results
+    # Prepare rows with valid area and latency
+    candidates = []
+    for row in data:
+        if (
+            row.get("curve_type") == curve_type and
+            row.get("area") is not None and isinstance(row.get("area"), (float, int)) and
+            row.get("cycles") is not None and isinstance(row.get("cycles"), (float, int)) and
+            row.get("target_period") is not None and isinstance(row.get("target_period"), (float, int))
+        ):
+            # Calculate effective latency
+            latency = row["cycles"] * row["target_period"]
+            # Shallow copy to add a new 'latency' key if desired (optional; can omit modifying the row if needed)
+            row = dict(row)
+            row["best_latency"] = latency
+            candidates.append(row)
+    if not candidates:
+        return []
+
+    # Sort by area ascending, then by latency ascending
+    candidates = sorted(candidates, key=lambda x: (x["area"], x["best_latency"]))
+    pareto = []
+    min_latency = float("inf")
+    for row in candidates:
+        latency = row["best_latency"]
+        if latency < min_latency:
+            pareto.append(row)
+            min_latency = latency
+    return pareto
 
 def make_table_string(data):
     if not data:
@@ -466,6 +454,7 @@ if __name__ == "__main__":
             parsed_raw_attrs = parse_table_csv(fp, args.no_syn)
 
             # override catapult data with dc reports
+            # Turnes out Catapult parses designs compiler numbers to table anyway so we don't need to do this
             if not args.no_syn:
                 for sol in syn_raw_attrs:
                     for attr in syn_raw_attrs[sol]:
@@ -473,44 +462,12 @@ if __name__ == "__main__":
                             parsed_raw_attrs[sol][attr] = syn_raw_attrs[sol][attr]
             
             derived_metrics = derive_all_attr(parsed_raw_attrs, table_info)
-
-            # Parse point double cycles from cycle_set.tcl
-            for metric in derived_metrics:
-                if not mp and not tech_type == "fpga" and kernel == "point_add":
-                    if metric['sol'].startswith(kernel):
-                        cycle_set_fp = catapult_proj_dir_fp + f"/test_only_{kernel}.v2/cycle_set.tcl"
-                        c_steps = [0, 0, 0]
-                        if os.path.isfile(cycle_set_fp):
-                            with open(cycle_set_fp, "r") as f:
-                                for line in f:
-                                    if "point_add_core:mux" in line:
-                                        cycles = int(line.split("CSTEPS_FROM {{.. ==")[-1].replace("}}", ""))
-                                        num = 1 if "#1" in line else 2 if "#2" in line else 0
-                                        c_steps[num] = cycles
-                        
-                        point_add_cycles = c_steps[1]
-                        point_double_cycles = c_steps[2]
-
-                        if point_add_cycles == metric['cycles'] + 1:
-                            point_add_cycles -= 1
-                            point_double_cycles -= 1
-
-                        # sanity check
-                        assert point_add_cycles == metric['cycles'], "point add cycles mismatch"
-                        metric['pdbl_cycles'] = point_double_cycles
-                
-                # For Twisted Edwards Point Double latency is same as point add
-                elif kernel in ["point_add_te", "point_add_cyclonemsm"]:
-                    metric['pdbl_cycles'] = metric['cycles']
-
             all_metrics += derived_metrics
 
         # filter and clean
         all_metrics = filter_mp(all_metrics, mp)
         all_metrics = sorted(all_metrics, key=sort_key)
         all_metrics = drop_none_columns(all_metrics)
-        tot_ctime = get_tot(all_metrics, "ctime_raw")
-        all_metrics = drop_column(all_metrics, "ctime_raw")
 
         # filter out test only and verify solutions, keep only top level
         all_metrics = [
@@ -546,7 +503,6 @@ if __name__ == "__main__":
         if not args.tech_type:
             all_metrics = drop_column(all_metrics, "tech_type")
 
-        all_metrics = drop_column(all_metrics, "ctime") # not accurate
 
         only_top = [row for row in all_metrics if row["sol"].startswith(kernel)]
         num_runs = len(only_top)
@@ -558,26 +514,12 @@ if __name__ == "__main__":
         table_str = make_table_string(all_metrics)
         print(table_str)
 
-        # # Find and print designs with min area and min latency by q_type
-        # area_latency_results = find_max_area_min_latency_by_q(all_metrics)
-        # for q_type in ["fixedq", "varq"]:
-        #     print(f"\nDesign with minimum area ({q_type}):")
-        #     if area_latency_results[q_type]['min_area']:
-        #         print(make_table_string([area_latency_results[q_type]['min_area']]))
-        #     else:
-        #         print("None found.")
-            
-        #     print(f"\nDesign with minimum latency ({q_type}):")
-        #     if area_latency_results[q_type]['min_latency']:
-        #         print(make_table_string([area_latency_results[q_type]['min_latency']]))
-        #     else:
-        #         print("None found.")
+        # TODO: Find Pareto optimal designs and min area and min latency designs by curve_type
+        # if args.find_optimal:
+        #     pass
 
         if num_runs > 0:
-            ctime_fmt = lambda t: f"{int(t)//3600}h {(int(t)%3600)//60}m {int(t)%60}s"
             print("")
-            # print(f"Total compile time = {ctime_fmt(tot_ctime)}")
-            # print(f"Avg compile time = {ctime_fmt(tot_ctime / num_runs)}")
             print(f"Num of runs = {num_runs}")
 
         out_fn = f"{kernel}_{tech_type}" if not mp else f"{kernel}_{tech_type}_mp"

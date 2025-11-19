@@ -86,7 +86,7 @@ def main():
             raise KeyError(f"Kernel '{k}' missing from SWEEP_GROUP_MAP or CORE_GROUP_MAP.")
         pgrp = sweep_map[k]
         cgrp = core_map[k]
-        sweep_file  = f"sweeps_configs/{pgrp}_sweep.yaml"
+        sweep_file  = f"default_sweeps_configs/{pgrp}_sweep.yaml"
         core_script = f"tcl_cores/catapult_{cgrp}_core.tcl"
 
     out_file = f"tmp_configs/{k}_configs.json"

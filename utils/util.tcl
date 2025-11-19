@@ -35,11 +35,8 @@ proc override_default_options {} {
 }
 
 proc is_fpga {tech_type} {
-    return [expr {
-        $tech_type eq "fpgahbmvhk158" ||
-        $tech_type eq "fpgahbm" ||
-        $tech_type eq "fpga"
-    }]
+    # all fpga tech types start with "fpga"
+    return [string match "fpga*" $tech_type]
 }
 
 proc set_tech_lib {tech_type} {
@@ -75,23 +72,42 @@ proc set_tech_lib {tech_type} {
 
         solution library add saed32lvt_tt0p78v125c_beh \
             -- -rtlsyntool DesignCompiler -vendor SAED32 -technology {lvt tt0p78v125c}        
-    } elseif {$tech_type eq "fpgahbm"} {
+    } elseif {$tech_type eq "fpga_hbmvh1782"} {
         # Top of the line Versal HBM
         solution library add mgc_Xilinx-VERSAL-hbm-3HP_beh \
-            -file "$ROOT_DIR/../mgc_Xilinx-VERSAL-hbm-3HP_beh.lib" \
             -- -rtlsyntool Vivado -manufacturer Xilinx \
             -family VERSAL-hbm -speed -3HP \
             -part xcvh1782-lsva4737-3HP-e-S
-    } elseif {$tech_type eq "fpgahbmvhk158"} {
+    } elseif {$tech_type eq "fpga_hbmvh1582"} {
         solution library add mgc_Xilinx-VERSAL-hbm-2MP_beh \
-            -file "$ROOT_DIR/../mgc_Xilinx-VERSAL-hbm-2MP_beh.lib" \
             -- -rtlsyntool Vivado -manufacturer Xilinx \
             -family VERSAL-hbm -speed -2MP \
             -part xcvh1582-vsva3697-2MP-e-S
-    } elseif {$tech_type eq "fpga"} {
+    } elseif {$tech_type eq "fpga_vu9p"} {
         # Virtex Ultra+ used by other papers
         solution library add mgc_Xilinx-VIRTEX-uplus-2_beh \
-            -file "$ROOT_DIR/../mgc_Xilinx-VIRTEX-uplus-2_beh.lib" \
+            -- -rtlsyntool Vivado -manufacturer Xilinx \
+            -family VIRTEX-uplus -speed -2 \
+            -part xcvu9p-flga2104-2-i
+    } elseif {$tech_type eq "fpga_hbmvh1782_custom"} {
+        # "*_custom" denotes a custom library file
+        # Top of the line Versal HBM
+        solution library add mgc_Xilinx-VERSAL-hbm-3HP_beh \
+            -file "$ROOT_DIR/../custom_fpga_catapult_libs/mgc_Xilinx-VERSAL-hbm-3HP_beh.lib" \
+            -- -rtlsyntool Vivado -manufacturer Xilinx \
+            -family VERSAL-hbm -speed -3HP \
+            -part xcvh1782-lsva4737-3HP-e-S
+    } elseif {$tech_type eq "fpga_hbmvh1582_custom"} {
+        # Versal HBM used in evaluation kit
+        solution library add mgc_Xilinx-VERSAL-hbm-2MP_beh \
+            -file "$ROOT_DIR/../custom_fpga_catapult_libs/mgc_Xilinx-VERSAL-hbm-2MP_beh.lib" \
+            -- -rtlsyntool Vivado -manufacturer Xilinx \
+            -family VERSAL-hbm -speed -2MP \
+            -part xcvh1582-vsva3697-2MP-e-S
+    } elseif {$tech_type eq "fpga_vu9p_custom"} {
+        # Virtex UltraScale+ used by other papers
+        solution library add mgc_Xilinx-VIRTEX-uplus-2_beh \
+            -file "$ROOT_DIR/../custom_fpga_catapult_libs/mgc_Xilinx-VIRTEX-uplus-2_beh.lib" \
             -- -rtlsyntool Vivado -manufacturer Xilinx \
             -family VIRTEX-uplus -speed -2 \
             -part xcvu9p-flga2104-2-i
@@ -128,16 +144,6 @@ proc del_existing_table {table_name} {
         file delete -force $table_file
     }
 }
-
-# # Solution handling
-# proc open_or_create_solution {sol_name} {
-#     if {[catch {solution new -state new $sol_name} err]} {
-#         puts "Creating new solution: $sol_name"
-#         solution new $sol_name
-#     } else {
-#         puts "Opened existing solution: $sol_name"
-#     }
-# }
 
 # Clock constraints
 proc set_clock {period {clock_uncertainty_ratio 0}} {
@@ -455,7 +461,7 @@ proc get_field_const {curve_type const root_dir} {
 proc remove_broken_mul_libs { tech_type } {
     # Make sure mgc_mul's with blank MinClkPrd are not used
 
-    if {$tech_type eq "gf12" || $tech_type eq "45nm" || $tech_type eq "saed32" || $tech_type eq "saed14"} {
+    if {[is_fpga $tech_type]} {
         # Don't use mgc_mul or mgc_sqr > 64b, up till 2999b
         for {set i 7} {$i <= 9} {incr i 1} {
             for {set j 0} {$j <= 9} {incr j 1} {

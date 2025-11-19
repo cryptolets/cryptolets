@@ -1,3 +1,4 @@
+# Emmulation and debugging of modmul_barrett multi-precision logic
 from BitVector import BitVector
 import math
 

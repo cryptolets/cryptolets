@@ -1,31 +1,17 @@
-# Sweep parameters for Twisted Edwards Point Addition
-BITWIDTH: [64, 96, 128, 192, 254, 256, 377, 381, 384, 512, 753, 768]
-# 64, 96, 128, 192, 254, 255, 256, 377, 381, 384, 448, 511, 512, 521, 753, 768
-
-
+# Sweep parameters
+BITWIDTH: [254]
 WBW: [16, 32, 64, 128]
 TECH_TYPE: [gf12]  # gf12 45nm saed32 fpga fpgahbm fpgahbmvhk158
 TARGET_II: [1]
 TARGET_PERIOD: [1]  # in ns
 MUL_TYPE: [MUL_NORMAL] # MUL_NORMAL, MUL_SCHOOLBOOK, MUL_KARATSUBA
 CMUL_TYPE: [CMUL_NORMAL] # CMUL_NORMAL, CMUL_NAF, CMUL_SA
-Q_TYPE: [VAR_Q] # VAR_Q, FIXED_Q
-REDC_TYPE: [VAR_RC] # VAR_RC, FIXED_RC
-CURVE_PARAMS_TYPE: [VAR_CURVE_PARAMS] # FIXED_CURVE_PARAMS, VAR_CURVE_PARAMS
-MODMUL_TYPE: [MODMUL_TYPE_MONT, MODMUL_TYPE_BARRETT] # MODMUL_TYPE_MONT, MODMUL_TYPE_BARRETT
-
-# curve types: 
-# RAND_CURVE
-# a=-1 : ED25519, ED_384_MONT, ED_511_MERS, ED_512_MONT, MNT4753_ED (BLS12_377_ED doesn't work - wrong params)
-# variable 1 = ED448
-CURVE_TYPE: [RAND_CURVE]
-
-PREC_TYPE: [MULTI_PREC]  # SINGLE_PREC, MULTI_PREC
+Q_TYPE: [FIXED_Q, VAR_Q] # VAR_Q, FIXED_Q
+REDC_TYPE: [FIXED_RC, VAR_RC] # VAR_RC, FIXED_RC
+CURVE_TYPE: [BN254, RAND_CURVE]
+PREC_TYPE: [SINGLE_PREC]  # SINGLE_PREC, MULTI_PREC
 CCORE_PERIOD_RATIO: [1]
-
-# for RAND_CURVE can select what "a" to pick which will specify what formula will be used
-# for other CURVE_TYPE's this value will be overrided
-FIELD_A: [AVAR] # ANEG1: a=-1, AVAR: variable a
+MUL_SQ: [0, 1] # 0: use mul_f, 1: sq_f
 
 BASE_MUL_WIDTH:
   8: [8]
@@ -90,19 +76,15 @@ SIM: true           # verify RTL
 SYN: false
 TEST: true          # test C++ code
 TEST_ONLY: false    # only test C++ code with osci
-NUM_TEST_SAMPLES: 1000
+NUM_TEST_SAMPLES: 10000
+CCORE_TOP: true
 CCORE_MUL_F: false  # make mul_f ccore, false = more compile time, better design latency
-CCORE_MODADDSUB: false # make modadd,modsub,moddouble ccore, false = more compile time, better design latency
-CCORE_MODMUL: false   # false is good for multi-prec
-CCORE_CMUL: false
-CCORE_TOP: false
-PROCESS_LVL_HANDSHAKE: false
-USE_CLUSTERS: false # use use carry save adder for adder trees
-
+CCORE_CMUL: true  # this needs to be true, other wise some adder trees get turned into sequential adds, massively hurting latency
+USE_CLUSTERS: true # use use carry save adder for adder trees
 
 # Defines order of params before project split
 SWEEP_ORDER: [
-  TECH_TYPE, MODMUL_TYPE, CURVE_TYPE, FIELD_A, CURVE_PARAMS_TYPE, REDC_TYPE, Q_TYPE, PREC_TYPE,
+  TECH_TYPE, MUL_SQ, CURVE_TYPE, REDC_TYPE, Q_TYPE, PREC_TYPE,
   TARGET_PERIOD, TARGET_II, MUL_TYPE, CMUL_TYPE, CCORE_PERIOD_RATIO,
   BITWIDTH, WBW, BASE_MUL_WIDTH, KAR_BASE_MUL_WIDTH
   ]
