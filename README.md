@@ -41,5 +41,5 @@ python3 analyze.py <KERNEL_PATH> [--mp] [-a] [-o] [-c] [-t]
 ## Tips for running FPGA Sweeps
 - Set `CCORE_PERIOD_RATIO = 0.90`, allows for ccore's to meet parent module's timing in FGPA.
 - Use custom modified library (remove `mgc_add3`) to bypass it bottlenecking high clock speeds.
-- `USE_CLUSTERS`
 - For certain FPGAs (e.g. VU9P) depending on type of DSP using lower _Base Multiplier Width_ and Lowering _Karatsuba Multiplier Width_ can achieve lower DSP usage, the opposite is true for other FPGAs (e.g VH1782, VH1582, etc.)
+- Not Supported on FPGA: `USE_CLUSTERS`, `FIXED_Q` and `FIXED_CURVE_PARAMS`
