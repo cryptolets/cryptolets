@@ -45,6 +45,6 @@ python3 analyze.py <KERNEL_PATH> [--mp] [-a] [-o] [-c] [-t]
 - Not Supported on FPGA: `USE_CLUSTERS`, `FIXED_Q` and `FIXED_CURVE_PARAMS`
 
 ## Running Sweeps in Parallel 
-1. **License limits**: Ensure you have enough Catapult licenses for 10 parallel runs
+1. **License limits**: Ensure you have enough Catapult licenses for as number of parallel runs.
 2. **Memory usage**: Monitor system memory with many parallel processes
 3. **Disk I/O**: Each process creates substantial temporary files
