@@ -1,7 +1,7 @@
 # Sweep parameters for CycloneMSM (Twisted Edwards Point Addition)
 BITWIDTH: [377]
 WBW: [16, 32, 64, 128]
-TECH_TYPE: [fpgahbm]  # gf12 45nm saed32 fpga_vu9p fpga_hbmvh1782 fpga_hbmvh1582
+TECH_TYPE: [fpga_hbmvh1782]  # gf12 45nm saed32 fpga_vu9p fpga_hbmvh1782 fpga_hbmvh1582
 TARGET_II: [1]
 TARGET_PERIOD: [4]  # in ns
 MUL_TYPE: [MUL_SCHOOLBOOK, MUL_KARATSUBA] # MUL_NORMAL, MUL_SCHOOLBOOK, MUL_KARATSUBA
