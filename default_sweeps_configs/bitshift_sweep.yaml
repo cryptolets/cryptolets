@@ -1,6 +1,6 @@
 # Sweep parameters
 BITWIDTH: [64, 128]
-TECH_TYPE: [gf12]  # gf12 45nm saed32 fpga fpgahbm fpgahbmvhk158
+TECH_TYPE: [gf12]  # gf12 45nm saed32 fpga_vu9p fpga_hbmvh1782 fpga_hbmvh1582
 TARGET_II: [1]
 TARGET_PERIOD: [1, 2]  # in ns
 BITSHIFT_DIRECTION: [BITSHIFT_LEFT, BITSHIFT_RIGHT] # BITSHIFT_LEFT, BITSHIFT_RIGHT

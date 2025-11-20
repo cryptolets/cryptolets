@@ -3,25 +3,23 @@ BITWIDTH: [255]
 # 64, 96, 128, 192, 254, 255, 256, 377, 381, 383, 384, 448, 511, 512, 521, 753, 768
 
 WBW: [16, 32, 64, 128]
-TECH_TYPE: [gf12]  # gf12 45nm saed32 fpga fpgahbm fpgahbmvhk158
+TECH_TYPE: [gf12]  # gf12 45nm saed32 fpga_vu9p fpga_hbmvh1782 fpga_hbmvh1582
 TARGET_II: [1]
 TARGET_PERIOD: [1]  # in ns
 MUL_TYPE: [MUL_NORMAL] # MUL_NORMAL, MUL_SCHOOLBOOK, MUL_KARATSUBA
 CMUL_TYPE: [CMUL_NORMAL] # CMUL_NORMAL, CMUL_NAF, CMUL_SA
-Q_TYPE: [VAR_q] # VAR_Q, FIXED_Q
-REDC_TYPE: [VAR_RC] # VAR_RC, FIXED_RC
+Q_TYPE: [FIXED_Q, VAR_Q] # VAR_Q, FIXED_Q
+REDC_TYPE: [FIXED_RC, VAR_RC] # VAR_RC, FIXED_RC
 CURVE_PARAMS_TYPE: [VAR_CURVE_PARAMS] # FIXED_CURVE_PARAMS, VAR_CURVE_PARAMS
 MODMUL_TYPE: [MODMUL_TYPE_BARRETT] # MODMUL_TYPE_MONT, MODMUL_TYPE_BARRETT
 
 # curve types: 
 # RAND_CURVE
-# a=-1 : ED25519, BLS12_377_ED, BLS12_381_ED, MNT4753_ED
-#        ED_256_MONT, ED_255_MERS, ED_384_MONT, ED_383_MERS, 
-#        ED_511_MERS, ED_512_MONT
-# variable a = ED448, BN254_ED
-CURVE_TYPE: [RAND_CURVE]
+# a=-1 : ED25519, BLS12_377_ON_TE
+# var a = ED448
+CURVE_TYPE: [ED25519, RAND_CURVE]
 
-PREC_TYPE: [MULTI_PREC]  # SINGLE_PREC, MULTI_PREC
+PREC_TYPE: [SINGLE_PREC]  # SINGLE_PREC, MULTI_PREC
 CCORE_PERIOD_RATIO: [1]
 
 # for RAND_CURVE can select what "a" to pick which will specify what formula will be used
@@ -95,11 +93,11 @@ TEST_ONLY: false    # only test C++ code with osci
 NUM_TEST_SAMPLES: 1000
 CCORE_MUL_F: false  # make mul_f ccore, false = more compile time, better design latency
 CCORE_MODADDSUB: false # make modadd,modsub,moddouble ccore, false = more compile time, better design latency
-CCORE_MODMUL: false   # false is needed for multi-prec
-CCORE_CMUL: false
-CCORE_TOP: false
+CCORE_MODMUL: true
+CCORE_CMUL: true
+CCORE_TOP: true
 PROCESS_LVL_HANDSHAKE: false
-USE_CLUSTERS: false # use use carry save adder for adder trees
+USE_CLUSTERS: true # use use carry save adder for adder trees
 
 # Defines order of params before project split
 SWEEP_ORDER: [

@@ -3,7 +3,7 @@ BITWIDTH: [254,256, 377, 381]
 # 64, 96, 128, 192, 254, 255, 256, 377, 381, 384, 448, 511, 512, 521, 753, 768
 
 WBW: [16, 32, 64, 128]
-TECH_TYPE: [gf12]  # gf12 45nm saed32 fpga fpgahbm fpgahbmvhk158
+TECH_TYPE: [gf12]  # gf12 45nm saed32 fpga_vu9p fpga_hbmvh1782 fpga_hbmvh1582
 TARGET_II: [1]
 TARGET_PERIOD: [1]  # in ns
 MUL_TYPE: [MUL_SCHOOLBOOK, MUL_KARATSUBA] # MUL_NORMAL, MUL_SCHOOLBOOK, MUL_KARATSUBA

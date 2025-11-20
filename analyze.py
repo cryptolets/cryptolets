@@ -226,12 +226,11 @@ def derive_all_attr(parsed_raw_attrs, all_info):
             "bm": all_info.get('bm'),
             "kar": all_info.get('kar'),
             "wbw": all_info.get('wbw'),
-            "ctime_raw": ctime_raw if ctime_raw else 0,
+            # "ctime_raw": ctime_raw if ctime_raw else 0,
             "minclkprd": round(minclkprd, 2) if minclkprd else None,
             "cpr": float(all_info.get('cpr', 1)),
             "fmax": round(1000/minclkprd, 2) if (minclkprd and minclkprd != 0) else None,
             "cycles": cycles,
-            "pdbl_cycles": None,
             "latency": latency,
             "ii": ii,
             "area": area,
@@ -239,7 +238,7 @@ def derive_all_attr(parsed_raw_attrs, all_info):
         }
 
         if all_info.get('tech_type') in ASIC_TECH_TYPES:
-            row["area (mm^2)"] = round(area/1e6, 2) if area else area
+            row["area (mm^2)"] = area/1e6 if area else area
             row["reg"] = to_float(a.get("reg"))
             row["memory"] = to_float(a.get("memory"))
         elif all_info['tech_type'] in FPGA_TECH_TYPES:
@@ -270,17 +269,18 @@ def drop_none_columns(data):
         if any(row[k] is not None for row in data):
             keep_keys.append(k)
 
-    keep_keys.append("pdbl_cycles")
-
     # rebuild rows with only kept keys
     new_data = [{k: row[k] for k in keep_keys} for row in data]
     return new_data
 
 def drop_column(data, col):
     """Remove a specific column from all rows."""
+    if not isinstance(col, list):
+        col = [col]
+
     if not data:
         return data
-    return [{k: v for k, v in row.items() if k != col} for row in data]
+    return [{k: v for k, v in row.items() if k not in col} for row in data]
 
 def filter_mp(data, mp=False):
     if mp:
@@ -290,41 +290,43 @@ def filter_mp(data, mp=False):
         # keep only non-MP rows (wbw is None)
         return [row for row in data if row.get("wbw") is None]
 
+def calculate_best_latency(all_metrics):
+    for row in all_metrics:
+        if row.get("target_period") is not None and row.get("cycles") is not None:
+            row["latency"] = row["target_period"] * row["cycles"]
+        else:
+            row["latency"] = None
+    return all_metrics
 
-# TEST this works
-def find_pareto_optimal(data, curve_type):
+def find_pareto_optimal(data, curve_type, kernel):
     """
     Given a curve_type, find the Pareto optimal points using area and (cycles * target_period) as latency.
     Returns a list of rows (dicts) that are on the Pareto frontier.
     """
     # Prepare rows with valid area and latency
     candidates = []
+    data = calculate_best_latency(data)
     for row in data:
-        if (
-            row.get("curve_type") == curve_type and
-            row.get("area") is not None and isinstance(row.get("area"), (float, int)) and
-            row.get("cycles") is not None and isinstance(row.get("cycles"), (float, int)) and
-            row.get("target_period") is not None and isinstance(row.get("target_period"), (float, int))
-        ):
-            # Calculate effective latency
-            latency = row["cycles"] * row["target_period"]
-            # Shallow copy to add a new 'latency' key if desired (optional; can omit modifying the row if needed)
+        if row.get("sol").startswith(kernel) and row.get("curve_type") == curve_type:
             row = dict(row)
-            row["best_latency"] = latency
             candidates.append(row)
-    if not candidates:
-        return []
 
     # Sort by area ascending, then by latency ascending
-    candidates = sorted(candidates, key=lambda x: (x["area"], x["best_latency"]))
+    candidates = sorted(candidates, key=lambda x: (x["area"], x["latency"]))
     pareto = []
     min_latency = float("inf")
     for row in candidates:
-        latency = row["best_latency"]
+        latency = row["latency"]
         if latency < min_latency:
             pareto.append(row)
             min_latency = latency
     return pareto
+
+def find_fastest_design(data):
+    return sorted(data, key=lambda x: x["latency"])[:1]
+
+def find_smallest_design(data):
+    return sorted(data, key=lambda x: x["area"])[:1]
 
 def make_table_string(data):
     if not data:
@@ -338,7 +340,10 @@ def make_table_string(data):
         max_width = len(str(k))
         for row in data:
             v = row[k]
-            s = f"{v:.2f}" if isinstance(v, float) else str(v)
+            if isinstance(v, float):
+                s = f"{v:.2f}" if k != "area (mm^2)" else f"{v:.3f}"
+            else:
+                s = str(v)
             max_width = max(max_width, len(s))
         col_widths[k] = max_width
 
@@ -353,7 +358,7 @@ def make_table_string(data):
         for k in keys:
             v = row[k]
             if isinstance(v, float):
-                s = f"{v:.2f}"
+                s = f"{v:.2f}" if k != "area (mm^2)" else f"{v:.3f}"
                 formatted.append(f"{s:>{col_widths[k]}}")  # right-align
             elif isinstance(v, (int, complex)):
                 formatted.append(f"{v:>{col_widths[k]}}")  # right-align
@@ -422,6 +427,8 @@ if __name__ == "__main__":
     parser.add_argument("--curve", type=str, help="Filter results by curve type")
     parser.add_argument("--bitwidth", type=int, help="Filter results by bitwidth")
     parser.add_argument("--no-syn", action="store_true", help="Do not include synthesis results")
+    parser.add_argument("--find-optimal", type=str, help="Find Pareto optimal, smallest, and fastest designs given curve type")
+    parser.add_argument("--unclean", action="store_true", help="Return clean results")
     args = parser.parse_args()
 
     kernel = os.path.basename(os.path.normpath(args.kernel))
@@ -431,6 +438,7 @@ if __name__ == "__main__":
 
     catapult_dir = f"{kernel_path}/{args.proj_dir}/"
     all_metrics = []
+    unclean_metrics = ["cpr", "cmt", "cpr", "area", "reg", "memory", "bram"]
 
     if os.path.isdir(catapult_dir):
         for fn in os.listdir(catapult_dir):
@@ -472,8 +480,7 @@ if __name__ == "__main__":
         # filter out test only and verify solutions, keep only top level
         all_metrics = [
             row for row in all_metrics \
-                if \
-                   not str(row.get('sol')).startswith("verify") and \
+                if not str(row.get('sol')).startswith("verify") and \
                    not str(row.get('sol')).startswith("test_o") and \
                    not str(row.get('sol')).startswith("comb_check")
             ]
@@ -494,11 +501,9 @@ if __name__ == "__main__":
             all_metrics = [row for row in all_metrics if int(row.get('bitwidth')) == args.bitwidth]
 
         if args.freq:
-            all_metrics = drop_column(all_metrics, "target_period")
-            all_metrics = drop_column(all_metrics, "minclkprd")
+            all_metrics = drop_column(all_metrics, ["target_period", "minclkprd"])
         else:
-            all_metrics = drop_column(all_metrics, "target_freq")
-            all_metrics = drop_column(all_metrics, "fmax")
+            all_metrics = drop_column(all_metrics, ["target_freq", "fmax"])
 
         if not args.tech_type:
             all_metrics = drop_column(all_metrics, "tech_type")
@@ -510,17 +515,34 @@ if __name__ == "__main__":
         if not args.ccore:
             all_metrics = only_top
 
+        if args.find_optimal:
+            pareto_optimal_designs = find_pareto_optimal(all_metrics, args.find_optimal, kernel)
+            smallest_design = find_smallest_design(pareto_optimal_designs)
+            fastest_design = find_fastest_design(pareto_optimal_designs)
+
+        if not args.unclean:
+            all_metrics = calculate_best_latency(all_metrics)
+            all_metrics = drop_column(all_metrics, unclean_metrics)
+
         # pretty print
         table_str = make_table_string(all_metrics)
         print(table_str)
 
-        # TODO: Find Pareto optimal designs and min area and min latency designs by curve_type
-        # if args.find_optimal:
-        #     pass
+        if args.find_optimal:
+            if not args.unclean:
+                pareto_optimal_designs = drop_column(pareto_optimal_designs, unclean_metrics)
+                fastest_design = drop_column(fastest_design, unclean_metrics)
+                smallest_design = drop_column(smallest_design, unclean_metrics)
+
+            print("\nPareto optimal designs:")
+            print(make_table_string(pareto_optimal_designs))
+            print("\nFastest design:")
+            print(make_table_string(fastest_design))
+            print("\nSmallest design:")
+            print(make_table_string(smallest_design))
 
         if num_runs > 0:
-            print("")
-            print(f"Num of runs = {num_runs}")
+            print(f"\nNum of runs = {num_runs}")
 
         out_fn = f"{kernel}_{tech_type}" if not mp else f"{kernel}_{tech_type}_mp"
         # output dirs
