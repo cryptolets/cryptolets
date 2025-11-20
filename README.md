@@ -26,8 +26,6 @@ python3 run.py modmul_mont --threads 8 --tp 2
 python3 run.py modmul_barrett --threads 8 --tp 2
 ```
 
-TODO:
-
 ## Monitor and Analyze Design Sweeps
 Script to monitor sweep progress and get performance metrics.
 
