@@ -1,5 +1,4 @@
 # Cryptolets
-
 Framework for Cryptographic Hardware Modules
 
 ## Setup
@@ -7,16 +6,24 @@ Framework for Cryptographic Hardware Modules
 ./setup.sh
 ```
 
-## Usage
+## General Usage
+```
+# TODO: modadd
+```
+```
+# TODO: modmul
+```
 
-TODO
+...
 
-### Analyze
+### Monitor and Analyze Design Sweeps
 Script to monitor sweep progress and get performance metrics.
 
 ```bash
 python3 analyze.py <kernel_path> [--mp] [-a] [-o] [-c] [-t] [--freq] [--ccore]
 ```
+
+## Tips for running FPGA Sweeps
 
 ### Other
 TODO
