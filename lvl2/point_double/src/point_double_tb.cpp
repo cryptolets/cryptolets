@@ -107,8 +107,6 @@ int ReadCSV_Samples(string filename, samplesVector_t &samples)
     cerr << CsvParser_getErrorMessage(csvparser) << endl;
     return -1;
   }
-  // CSV file is expected to have 4 columns: X1,Y1,Z1,X2,Y2,Z2,q_sample,q_prime_sample
-  assert(CsvParser_getNumFields(header)== 9);
 
   const char **headerFields = CsvParser_getFields(header);
   while ((row = CsvParser_getRow(csvparser)) ) {
@@ -118,15 +116,15 @@ int ReadCSV_Samples(string filename, samplesVector_t &samples)
     stimulus_element.P0.Y = parse_ac_int<wide_t::width>(rowFields[1]);
     stimulus_element.P0.Z = parse_ac_int<wide_t::width>(rowFields[2]);
     
-    stimulus_element.q_sample = parse_ac_int<wide_t::width>(rowFields[6]);
+    stimulus_element.q_sample = parse_ac_int<wide_t::width>(rowFields[3]);
 
   #if MODMUL_TYPE == MODMUL_TYPE_BARRETT
-    stimulus_element.mu_sample = parse_ac_int<wide_2x_t::width>(rowFields[7]);
+    stimulus_element.mu_sample = parse_ac_int<wide_2x_t::width>(rowFields[4]);
   #else
-    stimulus_element.q_prime_sample = parse_ac_int<wide_t::width>(rowFields[7]);
+    stimulus_element.q_prime_sample = parse_ac_int<wide_t::width>(rowFields[4]);
   #endif
 
-    stimulus_element.field_a_sample = parse_ac_int<wide_t::width>(rowFields[8]);
+    stimulus_element.field_a_sample = parse_ac_int<wide_t::width>(rowFields[5]);
 
     samples.push_back(stimulus_element);
     CsvParser_destroy_row(row);

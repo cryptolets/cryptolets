@@ -69,6 +69,7 @@ wide_t modsq_barrett_core(const wide_t x, const wide_t q, const wide_2x_t mu) {
 // constexpr int B_EXP = __builtin_ctz(WBW);  // int(math.log2(WBW))
 // constexpr int LIMBGROUPS = (BITWIDTH + B_EXP - 1) / B_EXP; // Equivalent to ceil(BITWIDTH / B_EXP)
 
+// I think I do this outside this outside by masking, so we don't need to do it here
 #define LIMBGROUPS ((BITWIDTH + WBW - 1) / WBW)  // ceil(BITWIDTH / WBW)
 
 // wide_t modmul_barrett_core(const wide_t x, const wide_t y, const wide_t q, const wide_2x_t mu) {

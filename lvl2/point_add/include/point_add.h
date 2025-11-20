@@ -5,10 +5,6 @@
 #include "modops.h"
 #include "point_double.h"
 
-EC_point_J point_double_a_0(EC_point_J P0, const ModOps& be);
-EC_point_J point_double_a_3(EC_point_J P0, const wide_t Z1Z1, const ModOps& be);
-EC_point_J point_double_a_var(EC_point_J P0, const ModOps& be, const wide_t field_a);
-
 EC_point_J point_add(
     EC_point_J P0, EC_point_J P1
 

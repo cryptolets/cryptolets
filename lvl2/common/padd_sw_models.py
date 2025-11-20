@@ -159,16 +159,13 @@ def point_add_only_sw_ref(P0, q, a):
 def point_double_sw_ref(P0, q, a):
     result = EC_point_J()
 
-    if P0.Z == 0:
-        result = P1
+    if a == 0:
+        result = point_double_sw_a_0_ref(P0, q)
+    elif a == (-3 % q):
+        Z1Z1     = modsq(P0.Z, q)         # Z1Z1 = Z1^2
+        result = point_double_sw_a_3_ref(P0, Z1Z1, q)
     else:
-        if a == 0:
-            result = point_double_sw_a_0_ref(P0, q)
-        elif a == (-3 % q):
-            Z1Z1     = modsq(P0.Z, q)         # Z1Z1 = Z1^2
-            result = point_double_sw_a_3_ref(P0, Z1Z1, q)
-        else:
-            result = point_double_sw_a_var_ref(P0, q, a)
+        result = point_double_sw_a_var_ref(P0, q, a)
 
     return result
 

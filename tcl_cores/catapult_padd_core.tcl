@@ -104,6 +104,9 @@ set include_dirs {
 
 lappend include_dirs [file join $LVL_DIR $KERNEL_NAME include]
 lappend include_dirs [file join $tmp_params_h_dir]
+if {$KERNEL_NAME eq "point_add"} {
+    lappend include_dirs [file join $ROOT_DIR lvl2/point_double/include]
+}
 set include_flags [build_include_flags $include_dirs]
 options set /Input/CompilerFlags "$include_flags"
 
@@ -118,6 +121,10 @@ solution file add [file join $ROOT_DIR lvl1_modops/modadd/src/modadd.cpp]
 solution file add [file join $ROOT_DIR lvl1_modops/modsub/src/modsub.cpp]
 solution file add [file join $ROOT_DIR lvl1_modops/modmul_mont/src/modmul_mont.cpp]
 solution file add [file join $ROOT_DIR lvl1_modops/modmul_barrett/src/modmul_barrett.cpp]
+
+if {$KERNEL_NAME eq "point_add"} {
+    solution file add [file join $ROOT_DIR lvl2/point_double/src/point_double.cpp]
+}
 
 go analyze
 solution design set $KERNEL_NAME -top
