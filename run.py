@@ -110,6 +110,9 @@ def main():
         ]
         run_cmd(cmd)
         if args.gen_only:
+            print(f"[INFO] TOTAL THREADS: {total_threads}")
+            print(f"[INFO] THREADS PER PROCESS: {threads_per}")
+            print(f"[INFO] MAX PARALLEL PROCESSES: {int(total_threads / threads_per)}")
             print(f"[INFO] Generated {out_file}, skipping parallel execution (--gen-only).")
             return  # Exit after sweep generation
 
