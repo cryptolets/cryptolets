@@ -43,3 +43,8 @@ python3 analyze.py <KERNEL_PATH> [--mp] [-a] [-o] [-c] [-t]
 - Use custom modified library (remove `mgc_add3`) to bypass it bottlenecking high clock speeds.
 - For certain FPGAs (e.g. VU9P) depending on type of DSP using lower _Base Multiplier Width_ and Lowering _Karatsuba Multiplier Width_ can achieve lower DSP usage, the opposite is true for other FPGAs (e.g VH1782, VH1582, etc.)
 - Not Supported on FPGA: `USE_CLUSTERS`, `FIXED_Q` and `FIXED_CURVE_PARAMS`
+
+## Running Sweeps in Parallel 
+1. **License limits**: Ensure you have enough Catapult licenses for 10 parallel runs
+2. **Memory usage**: Monitor system memory with many parallel processes
+3. **Disk I/O**: Each process creates substantial temporary files
