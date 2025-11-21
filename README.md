@@ -35,7 +35,7 @@ python3 analyze.py <KERNEL_PATH> [--mp] [-a] [-o] [-c] [-t]
 
 `--mp` - show only multi-precision designs, by default _anaylze_ shows single-precision design. \
 `-a` - Show ASIC designs, by default _anaylze_ shows FPGA designs. \
-`-c` and `-o` - Output metrics table to CSV and TXT files, respectively.
+`-c` and `-o` - Output metrics table to CSV and TXT files, respectively. \
 `-t` - Show technology node.
 
 ## Tips for running FPGA Sweeps
