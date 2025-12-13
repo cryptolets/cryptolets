@@ -1,6 +1,8 @@
 # Cryptolets
 Framework for Cryptographic Hardware Modules
 
+[Click for Docs and Tutorial](https://docs.google.com/presentation/d/1ThGcEfQ-Ab83TFm7nNJdkfdwXHvWUls-Yth4JiNCh0w/edit?usp=sharing)
+
 ## Setup
 ```
 ./setup.sh
