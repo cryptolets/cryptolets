@@ -136,7 +136,7 @@ proc cmul_op_run { cmul_op cmul_period} {
 }
 
 if {$CCORE_CMUL} {
-    set cmul_period [expr $TARGET_PERIOD * $CCORE_PERIOD_RATIO]
+    set cmul_period [expr $TARGET_PERIOD * $CCORE_PERIOD_RATIO * 0.75]
 
     if {$HAS_CMUL_Q} {
         set cmul_q_sol [cmul_op_run cmul_q $cmul_period]
