@@ -31,3 +31,4 @@ lib/
 .vscode/
 vivado*
 tmp*
+docs/
