@@ -1,0 +1,7 @@
+# Default Configurations
+total_threads: 8
+threads_per_process: 1
+run_only: false
+dry_run: false
+rtl_file: "rtl" # "rtl" or "rtl_concat"
+gui_mode: false

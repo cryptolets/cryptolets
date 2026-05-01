@@ -1,34 +1,5 @@
-# C++ files
-*.o
-
-# test sample files
-goldens/
-outputs/
-samples/
-
-# Catapult files
-Catapult/
-Catapult_*
-*.ccs
-*.pinfo
-work/
-table_*
-
-# results and logs
-results/
-run_logs/
-logs/
-*.log
-
-# misc python files
-__pycache__
-.venv
-
-# misc
-OLD_*
-lib/
-*.lib
-.vscode/
-vivado*
-tmp*
-docs/
+build/
+__pycache__/
+*.pyc
+*.egg-info/
+.venv/
