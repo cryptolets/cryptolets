@@ -1,8 +1,12 @@
 from pathlib import Path
-from itertools import product
 import yaml
 import json
 import importlib
+import subprocess
+import os
+
+from cryptolets.codegen import gen_catapult_yaml, gen_params_h
+from cryptolets.helper import flatten_sweep, unflatten_sweep, get_design_dir_name
 
 BUILD_DIR = Path('build')
 
@@ -12,13 +16,6 @@ def find_kernel(target_kernel):
             if kernel.name == target_kernel:
                 return kernel
     raise Exception(f"Kernel '{target_kernel}' not found")
-
-
-def flatten_sweep(sweep):
-    # TODO: We need to way to filter/override the sweep
-    keys = list(sweep.keys())
-    values = list(sweep.values())
-    return [dict(zip(keys, combo)) for combo in product(*values)]
 
 
 def call_gen_samples(design, kernel_path, design_build_dir):
@@ -31,17 +28,25 @@ def call_gen_samples(design, kernel_path, design_build_dir):
     mod.generate(design, design_build_dir)
 
 
-def get_design_dir_name(design):
-    for k, v in design.items():
-        if isinstance(v, bool):
-            design[k] = int(v)
+def run_catapult(kernel_build_dir, threads):
+    env = {
+        **os.environ,
+        "THREADS": str(threads),
+        "SWEEP_YAML": Path(kernel_build_dir, 'sweep.yaml'),
+    }
 
-    return "__".join([f"{k}_{v}" for k, v in design.items()])
+    subprocess.run(
+        ["catapult", "-shell", "-file", "tcl/main.tcl"],
+        env=env,
+        check=True,
+        cwd=kernel_build_dir,
+    )
 
 
 def run(kernel, threads, threads_per_process, sweep, run_only, dry_run, rtl, gui):
     kernel_build_dir = Path(BUILD_DIR, kernel)
     flattened_path = kernel_build_dir / 'flattened_sweep_config.json'
+    root_dir = Path(__file__).parent.parent
 
     # For run only assume flattened_sweep_config.json is already generated
     # so --sweep is not needed when --run-only is used
@@ -67,7 +72,7 @@ def run(kernel, threads, threads_per_process, sweep, run_only, dry_run, rtl, gui
         ))
     else:
         sweep_conf = json.loads(Path(flattened_path).read_text())
-        flattened_sweep = sweep_conf['sweep']
+        flattened_sweep = sweep_conf['flattened_sweep']
         sweep_flags = sweep_conf['flags']
 
     # For dry run we only generate the sweep configuration and exit
@@ -81,10 +86,15 @@ def run(kernel, threads, threads_per_process, sweep, run_only, dry_run, rtl, gui
     for design in flattened_sweep:
         design_build_dir = Path(kernel_build_dir, get_design_dir_name(design))
         call_gen_samples(design, kernel_path, design_build_dir)
+        gen_params_h(design, design_build_dir)
 
-    # TODO: Construct Catapult Yaml
+    # We unflatten again to ensure manual changes to
+    # flattened_sweep_config.json are reflected during catapult sweep
+    sweep_conf['sweep'] = unflatten_sweep(flattened_sweep)
+    gen_catapult_yaml(sweep_conf, kernel, kernel_path, kernel_build_dir, root_dir)
 
-    # TODO: Run Catapult
+    # Run Catapult with main.tcl script
+    # run_catapult(kernel_build_dir, threads)
 
     # TODO: Select Designs (All, Pareto, Smallest, Fastest)
 

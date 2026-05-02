@@ -1,7 +1,7 @@
 #ifndef _ADD_F_H_
 #define _ADD_F_H_
 
-#include "primitives.h"
+#include "params.h"
 
 ac_int<N+1, false> bigint_add_inst(
     const ac_int<N, false> x, 

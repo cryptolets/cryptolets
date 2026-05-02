@@ -2,7 +2,7 @@ from cryptolets.gen_samples_helper import get_rng, write_csvs
 from reference import bigint
 
 def generate(design, design_build_dir):
-    bitwidth = design["bitwidth"]
+    bitwidth = design["n"]
     num_samples = design.get("num_test_samples", 1000)
     rng = get_rng()
         

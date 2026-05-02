@@ -1,5 +1,5 @@
 sweep:
-  bitwidth: [128, 192, 254, 381]
+  n: [128, 192, 254, 381]
   multi_word: [false]
   tech_type: [gf12]
   period: [1]
