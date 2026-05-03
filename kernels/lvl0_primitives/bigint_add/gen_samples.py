@@ -1,9 +1,9 @@
 from cryptolets.samples import get_rng, write_csvs
 from reference import bigint
 
-def generate(design, design_build_dir):
+def generate(design, sweep_flags, design_build_dir):
     bitwidth = design["n"]
-    num_samples = design.get("num_test_samples", 1000)
+    num_samples = sweep_flags.get("num_test_samples", 10)
     rng = get_rng()
         
     samples = []

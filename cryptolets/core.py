@@ -2,7 +2,6 @@ from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor
 import yaml
 import json
-import importlib
 import subprocess
 import os
 import uuid
@@ -12,6 +11,7 @@ import time
 from cryptolets.codegen import gen_catapult_design_tcl, gen_catapult_kernel_tcl, gen_params_h
 from cryptolets.helper import flatten_sweep, get_design_dir_name
 from cryptolets.helper import get_catapult_license_info
+from cryptolets.samples import call_gen_samples
 
 BUILD_DIR = Path('build')
 
@@ -21,28 +21,20 @@ def find_kernel(target_kernel):
             if kernel.name == target_kernel:
                 return kernel
     raise Exception(f"Kernel '{target_kernel}' not found")
-
-
-def call_gen_samples(design, kernel_path, design_build_dir):
-    "Calls the gen_samples module for the given kernel"
-    parts = kernel_path.parts
-    idx = parts.index("kernels")
-    module_name = ".".join(parts[idx:]) + ".gen_samples"
     
-    mod = importlib.import_module(module_name)
-    mod.generate(design, design_build_dir)
-
 
 def run_catapult(kernel_build_dir, design_build_dir):
     log_path = design_build_dir / "catapult.framework.log"
     with log_path.open("w") as log:
-        subprocess.run(
+        result = subprocess.run(
             ["catapult", "-shell", "-file", str(Path(kernel_build_dir, 'kernel.tcl').resolve())],
-            check=True,
             cwd=design_build_dir,
             stdout=log,
             stderr=subprocess.STDOUT,
         )
+
+        return result.returncode
+    return -1
 
 
 def run(kernel, threads, threads_per_process, sweep, run_only, dry_run, rtl, gui):
@@ -98,7 +90,7 @@ def run(kernel, threads, threads_per_process, sweep, run_only, dry_run, rtl, gui
             design_build_dir.mkdir(parents=True, exist_ok=True)
 
         if sweep_flags['test_cpp']:
-            call_gen_samples(design, kernel_path, design_build_dir)
+            call_gen_samples(design, sweep_flags, kernel_path, design_build_dir)
 
         gen_params_h(design, design_build_dir)
         gen_catapult_design_tcl(design, design_name, design_build_dir)
@@ -125,10 +117,14 @@ def run(kernel, threads, threads_per_process, sweep, run_only, dry_run, rtl, gui
         logging.info(f"Running Catapult for {design_name}")
         design_build_dir = Path(kernel_build_dir, design_name)
         start_time = time.time()
-        run_catapult(kernel_build_dir, design_build_dir)
+        return_code = run_catapult(kernel_build_dir, design_build_dir)
         time_elapsed = time.time() - start_time
         hrs, mins, secs = int(time_elapsed // 3600), int((time_elapsed % 3600) // 60), time_elapsed % 60
-        logging.info(f"Catapult completed for {design_name} in {hrs:d} hrs {mins:d} mins {secs:05.2f} secs")
+
+        if return_code == 0:
+            logging.info(f"Catapult COMPLETED for {design_name} in {hrs:d} hrs {mins:d} mins {secs:05.2f} secs")
+        else:
+            logging.error(f"Catapult FAILED for {design_name} in {hrs:d} hrs {mins:d} mins {secs:05.2f} secs")
     
     logging.info(f"Running Catapult")
     with ThreadPoolExecutor(max_workers=num_catapult_workers) as pool:

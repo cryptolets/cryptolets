@@ -91,7 +91,7 @@ def gen_catapult_kernel_tcl(sweep_conf, kernel_name, kernel_path, kernel_build_d
         stage_lines[stage].extend(kernel_yaml['stages'][stage].splitlines())
 
     stage_lines['libraries'].extend([
-        # f"run_osci_test $test_cpp $design_build_dir", # Run C++ tests
+        f"run_osci_test $test_cpp $test_cpp_only $design_build_dir", # Run C++ tests
         f"set_tech_lib $tech_type $root_dir",
         f"set_clock $period"
     ])

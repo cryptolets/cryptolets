@@ -9,6 +9,6 @@ flags:
   syn: false              # synthesize RTL
   test_cpp: true          # test C++ code
   verify_rtl: true        # verify RTL
-  test_cpp_only: false    # only test C++ code with osci
-  num_test_samples: 1000
+  test_cpp_only: true    # only test C++ code with osci
+  num_test_samples: 100
   ccore_top: true

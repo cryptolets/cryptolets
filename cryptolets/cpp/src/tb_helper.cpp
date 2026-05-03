@@ -12,13 +12,17 @@ vector<string> run_per_row(vector<string>& samples_row) {
 */
 
 // A generic testbench runner 
-void run_tb(vector<string> (*run_per_row)(vector<string>& samples_row)) {
+void run_tb(
+  vector<string> (*run_per_row)(vector<string>& samples_row),
+  string samples_file,
+  string output_file
+) {
   // define data structure for holding input and output samples:
   csv_t samples;
   csv_t samples_out;
 
   // read in samples from CSV file
-  if (ReadCSV_Samples(SAMPLES_FILE, samples) < 0) {
+  if (ReadCSV_Samples(samples_file, samples) < 0) {
     cerr << __FILE__ << ":" << __LINE__ << " - Failed to read input samples" << endl;
     return;
   }
@@ -28,7 +32,7 @@ void run_tb(vector<string> (*run_per_row)(vector<string>& samples_row)) {
     samples_out.push_back(run_per_row(samples_row));
   }
 
-  WriteCSV_Samples(OUTPUT_FILE, samples_out);
+  WriteCSV_Samples(output_file, samples_out);
 
   cout << __FILE__ << ":" << __LINE__ << " - End of testbench." << endl;
 }
