@@ -1,4 +1,4 @@
-from cryptolets.gen_samples_helper import get_rng, write_csvs
+from cryptolets.samples import get_rng, write_csvs
 from reference import bigint
 
 def generate(design, design_build_dir):

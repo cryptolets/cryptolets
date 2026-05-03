@@ -1,12 +1,17 @@
 from pathlib import Path
+from concurrent.futures import ThreadPoolExecutor
 import yaml
 import json
 import importlib
 import subprocess
 import os
+import uuid
+import logging
+import time
 
-from cryptolets.codegen import gen_catapult_yaml, gen_params_h
-from cryptolets.helper import flatten_sweep, unflatten_sweep, get_design_dir_name
+from cryptolets.codegen import gen_catapult_design_tcl, gen_catapult_kernel_tcl, gen_params_h
+from cryptolets.helper import flatten_sweep, get_design_dir_name
+from cryptolets.helper import get_catapult_license_info
 
 BUILD_DIR = Path('build')
 
@@ -28,20 +33,16 @@ def call_gen_samples(design, kernel_path, design_build_dir):
     mod.generate(design, design_build_dir)
 
 
-def run_catapult(kernel_build_dir, root_dir, threads):
-    env = {
-        **os.environ,
-        "THREADS": str(threads),
-        "SWEEP_YAML": str(Path(kernel_build_dir, 'sweep.yaml').resolve()),
-        "ROOT_DIR": str(root_dir),
-    }
-
-    subprocess.run(
-        ["catapult", "-shell", "-file", str(Path(root_dir, 'cryptolets', 'tcl', 'main.tcl'))],
-        env=env,
-        check=True,
-        cwd=kernel_build_dir,
-    )
+def run_catapult(kernel_build_dir, design_build_dir):
+    log_path = design_build_dir / "catapult.framework.log"
+    with log_path.open("w") as log:
+        subprocess.run(
+            ["catapult", "-shell", "-file", str(Path(kernel_build_dir, 'kernel.tcl').resolve())],
+            check=True,
+            cwd=design_build_dir,
+            stdout=log,
+            stderr=subprocess.STDOUT,
+        )
 
 
 def run(kernel, threads, threads_per_process, sweep, run_only, dry_run, rtl, gui):
@@ -76,27 +77,62 @@ def run(kernel, threads, threads_per_process, sweep, run_only, dry_run, rtl, gui
         flattened_sweep = sweep_conf['flattened_sweep']
         sweep_flags = sweep_conf['flags']
 
-    # For dry run we only generate the sweep configuration and exit
-    if dry_run:
-        print("Dry run. Build aborted.")
-        return
+    logging.info(f"Running {len(flattened_sweep)} designs for {kernel}")
 
     # TODO: Dependency resolution
 
-    # TODO: Parallelize
-    for design in flattened_sweep:
-        design_build_dir = Path(kernel_build_dir, get_design_dir_name(design))
-        call_gen_samples(design, kernel_path, design_build_dir)
+    logging.info(f"Generating kernel files")
+    def _gen_kernel_files(design):
+        design_name = get_design_dir_name(design)
+        design_build_dir = Path(kernel_build_dir, design_name)
+
+        # If a prior Catapult project exists, move it to a prior_catapult directory
+        # and give it a unique name
+        if design_build_dir.exists():
+            prior_catapult_proj_dir = design_build_dir / "Catapult"
+            if prior_catapult_proj_dir.exists():
+                prior_dir = design_build_dir / "prior_catapult"
+                prior_dir.mkdir(parents=True, exist_ok=True)
+                prior_catapult_proj_dir.rename(prior_dir / f"Catapult_{uuid.uuid4().hex[:8]}")
+        else:
+            design_build_dir.mkdir(parents=True, exist_ok=True)
+
+        if sweep_flags['test_cpp']:
+            call_gen_samples(design, kernel_path, design_build_dir)
+
         gen_params_h(design, design_build_dir)
+        gen_catapult_design_tcl(design, design_name, design_build_dir)
+    
+    with ThreadPoolExecutor(max_workers=threads) as pool:
+        list(pool.map(_gen_kernel_files, flattened_sweep))
 
-    # We unflatten again to ensure manual changes to
-    # flattened_sweep_config.json are reflected during catapult sweep
-    sweep_conf['sweep'] = unflatten_sweep(flattened_sweep)
-    gen_catapult_yaml(sweep_conf, kernel, kernel_path, kernel_build_dir, root_dir)
+    gen_catapult_kernel_tcl(sweep_conf, kernel, kernel_path, kernel_build_dir, root_dir)
 
-    # Run Catapult with main.tcl script
-    run_catapult(kernel_build_dir, root_dir, threads)
+    # For dry run we only stop before running Catapult
+    if dry_run:
+        logging.warning("Dry run. Catapult run aborted.")
+        return
 
+    # Run Catapult per design parallelly
+    num_catapult_lics_available = get_catapult_license_info()['available']
+    logging.info(f"{num_catapult_lics_available} Catapult Ultra licenses available")
+    num_catapult_workers = min(threads // threads_per_process, num_catapult_lics_available)
+    if num_catapult_lics_available < num_catapult_workers:
+        logging.warning(f"Not enough Catapult licenses available, using {num_catapult_workers} workers")
+
+    def _run_catapult_worker(design):
+        design_name = get_design_dir_name(design)
+        logging.info(f"Running Catapult for {design_name}")
+        design_build_dir = Path(kernel_build_dir, design_name)
+        start_time = time.time()
+        run_catapult(kernel_build_dir, design_build_dir)
+        time_elapsed = time.time() - start_time
+        hrs, mins, secs = int(time_elapsed // 3600), int((time_elapsed % 3600) // 60), time_elapsed % 60
+        logging.info(f"Catapult completed for {design_name} in {hrs:d} hrs {mins:d} mins {secs:05.2f} secs")
+    
+    logging.info(f"Running Catapult")
+    with ThreadPoolExecutor(max_workers=num_catapult_workers) as pool:
+        list(pool.map(_run_catapult_worker, flattened_sweep))
+        
     # TODO: Select Designs (All, Pareto, Smallest, Fastest)
-
     # TODO: Externel flows (DC, Vivado)

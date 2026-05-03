@@ -1,12 +1,20 @@
-import click
 from pathlib import Path
+import click
 import yaml
+import logging
 
 from cryptolets import core
 
 # Use defaults from config.yaml
 RUN_CONFIG_FILE = 'config.yaml'
 run_conf = yaml.safe_load(Path(RUN_CONFIG_FILE).read_text())
+
+# Set up logging
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(message)s",
+    datefmt="%H:%M:%S"
+)
 
 @click.group()
 def app():

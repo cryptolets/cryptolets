@@ -101,20 +101,13 @@ proc run_osci_test {test kernel_build_dir} {
     # run c++ tests with osci
     if {$test} {
         puts "Running C++ tests with osci"
-        set outputs_dir [file join $kernel_build_dir outputs]
-        if {![file isdirectory $outputs_dir]} {
-            file mkdir $outputs_dir
-        }
-
+        set proj_dir [project get /PROJECT_DIR]
         set sample_fp [file join $kernel_build_dir samples.csv]
-        set output_fp [file join $kernel_build_dir output.csv]
+        set output_fp [file join $proj_dir output.csv]
         set golden_fp [file join $kernel_build_dir golden.csv]
 
-        puts "Setting up SCVerify"
         flow package require /SCVerify
         flow package option set /SCVerify/INVOKE_ARGS "$sample_fp $output_fp"
-        
-        puts "Running SCVerify"
         flow run /SCVerify/launch_make ./scverify/Verify_orig_cxx_osci.mk {} SIMTOOL=osci sim
 
         # check if golden and output match

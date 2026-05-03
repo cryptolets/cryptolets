@@ -1,3 +1,5 @@
+import subprocess
+import re
 from itertools import product
 
 def get_design_dir_name(design):
@@ -23,3 +25,30 @@ def unflatten_sweep(flattened_sweep):
             if v not in sweep_config[k]:
                 sweep_config[k].append(v)
     return sweep_config
+
+
+def tcl_type(value):
+    if isinstance(value, bool):
+        return int(value)
+    if isinstance(value, str):
+        return f'"{value}"'
+    return value
+
+
+def get_catapult_license_info(product="CatapultUltra_c"):
+    "returns num of licenses available and in use."
+    result = subprocess.run(
+        f"lmstat -a | grep -i {product}",
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        universal_newlines=True,
+        shell=True,
+        check=True,
+    )
+
+    out = result.stdout
+    m = re.search(r"Total of (\d+).*issued.*Total of (\d+).*in use", out)
+    if not m: return None
+    issued = int(m.group(1))
+    in_use = int(m.group(2))
+    return {"issued": issued, "in_use": in_use, "available": issued - in_use}

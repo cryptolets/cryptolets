@@ -7,5 +7,5 @@ stages:
     directive set -CCORE_TYPE sequential
     directive set -OUTPUT_REGISTERS false
     directive set -OPT_CONST_MULTS full
-    set_ii $var(multi_word) $var(ii)
-    adder_tree_opt $var(tech_type)
+    set_ii $multi_word $ii
+    adder_tree_opt $tech_type
