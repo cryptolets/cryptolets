@@ -28,15 +28,16 @@ def call_gen_samples(design, kernel_path, design_build_dir):
     mod.generate(design, design_build_dir)
 
 
-def run_catapult(kernel_build_dir, threads):
+def run_catapult(kernel_build_dir, root_dir, threads):
     env = {
         **os.environ,
         "THREADS": str(threads),
-        "SWEEP_YAML": Path(kernel_build_dir, 'sweep.yaml'),
+        "SWEEP_YAML": str(Path(kernel_build_dir, 'sweep.yaml').resolve()),
+        "ROOT_DIR": str(root_dir),
     }
 
     subprocess.run(
-        ["catapult", "-shell", "-file", "tcl/main.tcl"],
+        ["catapult", "-shell", "-file", str(Path(root_dir, 'cryptolets', 'tcl', 'main.tcl'))],
         env=env,
         check=True,
         cwd=kernel_build_dir,
@@ -94,7 +95,7 @@ def run(kernel, threads, threads_per_process, sweep, run_only, dry_run, rtl, gui
     gen_catapult_yaml(sweep_conf, kernel, kernel_path, kernel_build_dir, root_dir)
 
     # Run Catapult with main.tcl script
-    # run_catapult(kernel_build_dir, threads)
+    run_catapult(kernel_build_dir, root_dir, threads)
 
     # TODO: Select Designs (All, Pareto, Smallest, Fastest)
 

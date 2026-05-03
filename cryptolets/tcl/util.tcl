@@ -100,6 +100,7 @@ proc set_tech_lib {tech_type root_dir} {
 proc run_osci_test {test kernel_build_dir} {
     # run c++ tests with osci
     if {$test} {
+        puts "Running C++ tests with osci"
         set outputs_dir [file join $kernel_build_dir outputs]
         if {![file isdirectory $outputs_dir]} {
             file mkdir $outputs_dir
@@ -109,8 +110,11 @@ proc run_osci_test {test kernel_build_dir} {
         set output_fp [file join $kernel_build_dir output.csv]
         set golden_fp [file join $kernel_build_dir golden.csv]
 
+        puts "Setting up SCVerify"
         flow package require /SCVerify
         flow package option set /SCVerify/INVOKE_ARGS "$sample_fp $output_fp"
+        
+        puts "Running SCVerify"
         flow run /SCVerify/launch_make ./scverify/Verify_orig_cxx_osci.mk {} SIMTOOL=osci sim
 
         # check if golden and output match
@@ -140,6 +144,10 @@ proc set_ii { multi_word ii} {
     if {!$multi_word} {
         directive set -PIPELINE_INIT_INTERVAL $ii
     }
+}
+
+proc save_table { table_fp } {
+    solution table export -file $table_fp
 }
 
 proc remove_broken_mul_libs { tech_type } {
