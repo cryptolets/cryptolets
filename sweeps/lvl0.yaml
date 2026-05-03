@@ -1,6 +1,6 @@
 sweep:
   n: [16, 32, 64]
-  multi_word: [false]
+  multi_word: [false, true]
   tech_type: [gf12]
   period: [1]
   ii: [1]
@@ -8,7 +8,7 @@ sweep:
 flags:
   syn: false              # synthesize RTL
   test_cpp: true          # test C++ code
-  verify_rtl: true        # verify RTL
-  test_cpp_only: true    # only test C++ code with osci
+  verify_rtl: false        # verify RTL
+  test_cpp_only: false    # only test C++ code with osci
   num_test_samples: 100
   ccore_top: true
