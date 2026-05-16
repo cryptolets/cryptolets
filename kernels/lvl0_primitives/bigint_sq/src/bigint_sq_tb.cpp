@@ -1,10 +1,10 @@
-#include "bigint_sub.h"
+#include "bigint_sq.h"
 #include "tb_helper.h"
 
 vector<string> run_per_row(vector<string>& samples_row) {
-  ac_int<N, false> x = parse_ac_int<N>(samples_row[0]);
-  ac_int<N, false> y = parse_ac_int<N>(samples_row[1]);
-  ac_int<N+1, true> result = CCS_DESIGN(bigint_sub<N>)(x, y);
+  // TODO: parse kernel inputs from samples_row
+  // ac_int<N, false> x = parse_ac_int<N>(samples_row[0]);
+  {OUTPUT_TYPE} result = CCS_DESIGN(bigint_sq<{TEMPLATE_PARAMS}>)({KERNEL_INPUTS});
   return {result.to_string(AC_DEC)};
 }
 

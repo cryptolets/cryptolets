@@ -1,17 +1,18 @@
 from tessera.samples import get_rng, write_csvs
-from reference import bigint
+from reference.bigint import mul
 
 def generate(design, sweep_flags, design_build_dir):
-    bitwidth = design["n"]
     num_samples = sweep_flags.get("num_test_samples", 10)
+    bitwidth = design["n"]
     rng = get_rng()
-        
+
     samples = []
     goldens = []
 
     max_val = (1 << bitwidth) - 1
     mid_val = max_val // 2
-
+    
+    # Edge cases
     samples = [
         (0, 0),
         (max_val, max_val),
@@ -30,8 +31,8 @@ def generate(design, sweep_flags, design_build_dir):
             x = rng.randint(0, sub_max)
             y = rng.randint(0, sub_max)
             samples.append((x, y))
-    
+
     for x, y in samples:
-        goldens.append((bigint.add(x, y),))
-    
+        goldens.append((mul(x, y),))
+
     write_csvs(samples, goldens, design_build_dir)

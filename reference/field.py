@@ -1,6 +1,4 @@
 "Reference implementation of modular field operations"
-from reference.coordinates import PointBase
-
 def modadd(a, b, q):
     return (a + b) % q
 
@@ -22,6 +20,7 @@ def get_R(q):
 # Montgomery Domain
 def to_mont(x, q):
     "Convert scalar or tuple to Montgomery domain."
+    from reference.coordinates import PointBase
     R = get_R(q)
     if isinstance(x, PointBase):
         return type(x)(*[(xi * R) % q for xi in x.as_tuple()])
@@ -29,6 +28,7 @@ def to_mont(x, q):
 
 def from_mont(x, q):
     "Convert scalar or tuple back from Montgomery domain."
+    from reference.coordinates import PointBase
     R = get_R(q)
     R_inv = modinv(R, q)
     if isinstance(x, PointBase):

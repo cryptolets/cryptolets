@@ -3,7 +3,8 @@ import click
 import yaml
 import logging
 
-from cryptolets import core
+from tessera import core
+from tessera import scaffold
 
 # Use defaults from config.yaml
 RUN_CONFIG_FILE = 'config.yaml'
@@ -45,6 +46,13 @@ def run(kernel, threads, threads_per_process, sweep, run_only, dry_run, rtl, gui
 @click.argument('kernel')
 def analyze(kernel):
     pass
+
+@app.command()
+@click.argument('kernel')
+@click.argument('level')
+@click.option('--force', '-f', is_flag=True, help='Overwrite existing kernel.')
+def new(kernel, level, force):
+    scaffold.new(kernel, level, force)
 
 def main():
     app()

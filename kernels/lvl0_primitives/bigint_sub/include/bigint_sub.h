@@ -4,11 +4,6 @@
 #include <ac_int.h>
 #include "params.h"
 
-ac_int<N+1, true> bigint_sub_inst(
-    const ac_int<N, false> x, 
-    const ac_int<N, false> y
-);
-
 template<int _N, bool _MULTI_WORD = false, int _BASE = 32>
 ac_int<_N+1, true> bigint_sub(
     const ac_int<_N, false> x,

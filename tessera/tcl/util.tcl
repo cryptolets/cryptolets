@@ -103,7 +103,7 @@ proc run_osci_test {test test_cpp_only design_build_dir} {
         puts "Running C++ tests with osci"
         set proj_dir [project get /PROJECT_DIR]
         set sample_fp [file join $design_build_dir samples.csv]
-        set output_fp [file join $proj_dir output.csv]
+        set output_fp [file join $proj_dir outputs.csv]
         set golden_fp [file join $design_build_dir goldens.csv]
 
         flow package require /SCVerify

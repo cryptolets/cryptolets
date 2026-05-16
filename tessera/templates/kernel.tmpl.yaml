@@ -4,5 +4,4 @@ deps: []
 # Kernel specific stage scripts
 stages:
   compile: |
-    set_ii $multi_word $ii
-    adder_tree_opt $tech_type
+    # TODO: Add Kernel specific stage directives

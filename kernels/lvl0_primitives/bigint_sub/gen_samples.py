@@ -1,4 +1,4 @@
-from cryptolets.samples import get_rng, write_csvs
+from tessera.samples import get_rng, write_csvs
 from reference import bigint
 
 def generate(design, sweep_flags, design_build_dir):

@@ -8,10 +8,10 @@ import uuid
 import logging
 import time
 
-from cryptolets.codegen import gen_catapult_design_tcl, gen_catapult_kernel_tcl, gen_params_h
-from cryptolets.helper import flatten_sweep, get_design_dir_name
-from cryptolets.helper import get_catapult_license_info
-from cryptolets.samples import call_gen_samples
+from tessera.codegen import gen_catapult_design_tcl, gen_catapult_kernel_tcl, gen_params_h
+from tessera.helper import flatten_sweep, get_design_dir_name
+from tessera.helper import get_catapult_license_info
+from tessera.samples import call_gen_samples
 
 BUILD_DIR = Path('build')
 
@@ -70,6 +70,7 @@ def run(kernel, threads, threads_per_process, sweep, run_only, dry_run, rtl, gui
         sweep_flags = sweep_conf['flags']
 
     logging.info(f"Running {len(flattened_sweep)} designs for {kernel}")
+    enums = yaml.safe_load(Path(root_dir, 'tessera', 'enums.yaml').read_text())
 
     # TODO: Dependency resolution
 
@@ -82,17 +83,20 @@ def run(kernel, threads, threads_per_process, sweep, run_only, dry_run, rtl, gui
         # and give it a unique name
         if design_build_dir.exists():
             prior_catapult_proj_dir = design_build_dir / "Catapult"
+            prior_catapult_proj_ccs = design_build_dir / "Catapult.ccs"
             if prior_catapult_proj_dir.exists():
-                prior_dir = design_build_dir / "prior_catapult"
+                prior_dir = design_build_dir / "prior_catapult" / f"Catapult_{uuid.uuid4().hex[:8]}"
                 prior_dir.mkdir(parents=True, exist_ok=True)
-                prior_catapult_proj_dir.rename(prior_dir / f"Catapult_{uuid.uuid4().hex[:8]}")
+                prior_catapult_proj_dir.rename(prior_dir / f"Catapult")
+                if prior_catapult_proj_ccs.exists():
+                    prior_catapult_proj_ccs.rename(prior_dir / f"Catapult.ccs")
         else:
             design_build_dir.mkdir(parents=True, exist_ok=True)
 
         if sweep_flags['test_cpp']:
             call_gen_samples(design, sweep_flags, kernel_path, design_build_dir)
 
-        gen_params_h(design, design_build_dir)
+        gen_params_h(design, enums, design_build_dir)
         gen_catapult_design_tcl(design, design_name, design_build_dir)
     
     with ThreadPoolExecutor(max_workers=threads) as pool:

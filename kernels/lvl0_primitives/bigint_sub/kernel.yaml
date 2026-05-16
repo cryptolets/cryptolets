@@ -1,11 +1,8 @@
+# Direct dependencies
 deps: []
 
 # Kernel specific stage scripts
 stages:
   compile: |
-    directive set -DESIGN_GOAL latency
-    directive set -CCORE_TYPE sequential
-    directive set -OUTPUT_REGISTERS false
-    directive set -OPT_CONST_MULTS full
     set_ii $multi_word $ii
     adder_tree_opt $tech_type

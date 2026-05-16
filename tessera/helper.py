@@ -10,10 +10,27 @@ def get_design_dir_name(design):
     return "__".join([f"{k}_{v}" for k, v in design.items()])
 
 def flatten_sweep(sweep):
-    # TODO: We need to way to filter/override the sweep
     keys = list(sweep.keys())
-    values = list(sweep.values())
-    return [dict(zip(keys, combo)) for combo in product(*values)]
+    designs = []
+
+    # Plain params (lists), excluding the n-dependent maps
+    plain_keys = [k for k in keys if k not in ('base_mul_width', 'kar_base_mul_width')]
+    plain_values = [sweep[k] for k in plain_keys]
+
+    for combo in product(*plain_values):
+        design = dict(zip(plain_keys, combo))
+        n = design['n']
+
+        bmw_list = sweep.get('base_mul_width', {}).get(n, [None])
+        kbmw_list = sweep.get('kar_base_mul_width', {}).get(n, [None])
+
+        for bmw, kbmw in product(bmw_list, kbmw_list):
+            d = dict(design)
+            if bmw is not None: d['base_mul_width'] = bmw
+            if kbmw is not None: d['kar_base_mul_width'] = kbmw
+            designs.append(d)
+
+    return designs
 
 
 def unflatten_sweep(flattened_sweep):

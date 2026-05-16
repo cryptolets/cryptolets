@@ -2,7 +2,7 @@
 from pathlib import Path
 import yaml
 
-from cryptolets.helper import tcl_type
+from tessera.helper import tcl_type
 
 catapult_stages = [
     "new",
@@ -17,16 +17,35 @@ catapult_stages = [
     "extract",
 ]
 
-params_h_boilerplate = "#ifndef PARAMS_H\n#define PARAMS_H\n{params}\n#endif // PARAMS_H\n"
+params_h_boilerplate = """#ifndef PARAMS_H
+#define PARAMS_H
 
-def gen_params_h(design, design_build_dir):
+// Enums
+{enums}
+
+// Parameters
+{params}
+#endif // PARAMS_H\n"""
+
+EXCLUDE_PARAMS = ['tech_type']
+
+def gen_params_h(design, enums, design_build_dir):
+    enum_str = ""
+    for enum, values in enums.items():
+        if enum in EXCLUDE_PARAMS: continue
+        for i, value in enumerate(values):
+            enum_str += f"#define {value.upper()} {i}\n"
+    
     params_str = ""
     for param, value in design.items():
+        if param in EXCLUDE_PARAMS: continue
         if isinstance(value, bool):
             value = int(value)
+        if isinstance(value, str):
+            value = value.upper()
         params_str += f"#define {param.upper()} {value}\n"
     
-    params_h_content = params_h_boilerplate.format(params=params_str)
+    params_h_content = params_h_boilerplate.format(enums=enum_str, params=params_str)
 
     kernel_include_dir = Path(design_build_dir, 'include')
     kernel_include_dir.mkdir(parents=True, exist_ok=True)
@@ -53,7 +72,7 @@ def gen_catapult_kernel_tcl(sweep_conf, kernel_name, kernel_path, kernel_build_d
     initial_lines.extend([
         f"set root_dir {root_dir}",
         f"set kernel_name {kernel_name}",
-        f"source {Path(root_dir, 'cryptolets', 'tcl', 'util.tcl').resolve()}",
+        f"source {Path(root_dir, 'tessera', 'tcl', 'util.tcl').resolve()}",
         f"source design.tcl", # we the design directory is the working directory
     ])
 
@@ -64,12 +83,16 @@ def gen_catapult_kernel_tcl(sweep_conf, kernel_name, kernel_path, kernel_build_d
     initial_lines.extend([
         f"\ninit_options",
         f"project new",
-        f"solution rename $design_name",
+        f"solution rename {kernel_name}__$design_name",
     ])
 
     include_paths = [
-        Path(root_dir, 'cryptolets', 'cpp', 'include'),
+        Path(root_dir, 'tessera', 'cpp', 'include'),
         Path(kernel_path, 'include'),
+        
+        # # TODO: temporary
+        # Path('/home/gk2657/tessera/kernels/lvl0_primitives/bigint_add/include'),
+        # Path('/home/gk2657/tessera/kernels/lvl0_primitives/bigint_sub/include'),
     ]
     include_paths_str = "\n".join(f"  {path.resolve()}" for path in include_paths)
 
@@ -79,14 +102,23 @@ def gen_catapult_kernel_tcl(sweep_conf, kernel_name, kernel_path, kernel_build_d
         f"options set Input/SearchPath [file join $design_build_dir include] -append",
         f"solution file add [file join {Path(kernel_path, 'src', f'{kernel_name}.cpp').resolve()}]",
         f"solution file add [file join {Path(kernel_path, 'src', f'{kernel_name}_tb.cpp').resolve()}] -exclude true",
-        f"solution file add [file join {Path(root_dir, 'cryptolets', 'cpp', 'src', 'csvparser.cpp')}] -exclude true",
-        f"solution file add [file join {Path(root_dir, 'cryptolets', 'cpp', 'src', 'tb_helper.cpp')}] -exclude true",
-        f"solution design set {kernel_name}_inst -top",
+        f"solution file add [file join {Path(root_dir, 'tessera', 'cpp', 'src', 'csvparser.cpp')}] -exclude true",
+        f"solution file add [file join {Path(root_dir, 'tessera', 'cpp', 'src', 'tb_helper.cpp')}] -exclude true",
+        # "solution file add [file join /home/gk2657/tessera/kernels/lvl0_primitives/bigint_add/src/bigint_add.cpp]",
+        # "solution file add [file join /home/gk2657/tessera/kernels/lvl0_primitives/bigint_sub/src/bigint_sub.cpp]",
+        # "project save",
+        # "exit 0"
     ])
 
-    stage_lines['compile'].append(
-        "\n# Add kernel specific stage directives",
-    )    
+    stage_lines['compile'].extend([
+        f"set top_name [solution get /SOURCEHIER/FUNC_HBS/{kernel_name}<*> -match glob -return leaf]",
+        f"solution design set $top_name -top",
+        "\n# Kernel agnostic stage directives",
+        "directive set -DESIGN_GOAL latency",
+        "directive set -OUTPUT_REGISTERS false",
+        "directive set -OPT_CONST_MULTS full",
+        "\n# Kernel specific stage directives",
+    ])    
     for stage in kernel_yaml['stages']:
         stage_lines[stage].extend(kernel_yaml['stages'][stage].splitlines())
 
@@ -102,6 +134,9 @@ def gen_catapult_kernel_tcl(sweep_conf, kernel_name, kernel_path, kernel_build_d
     # Code to run after a stage
     for stage in ["schedule", "dpfsm", "extract"]:
         stage_lines[stage].append(f"save_table [file join $design_build_dir metrics.csv]")
+
+    for stage in catapult_stages:
+        stage_lines[stage].append(f"project save")
 
     lines = initial_lines
     for stage in catapult_stages:
