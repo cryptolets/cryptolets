@@ -1,6 +1,6 @@
 #include "mul_f.h"
 
-#if PRECISION_MODE == PREC_SINGLE
+#if PREC_TYPE == SINGLE_PREC
 
 wide_2x_t mul_f(
     const wide_t x,
@@ -9,7 +9,7 @@ wide_2x_t mul_f(
     return mul_f_gen<BITWIDTH>(x, y);
 }
 
-#else // PREC_MULTI
+#elif PREC_TYPE == MULTI_PREC
 
 wide_2x_t mul_f(
     const wide_t x,

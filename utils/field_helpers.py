@@ -1,4 +1,4 @@
-from sympy import randprime, sqrt_mod, mod_inverse
+from sympy import randprime, sqrt_mod, mod_inverse, Integer
 from pathlib import Path
 import random
 import sys
@@ -59,6 +59,14 @@ def from_mont(x, q):
     if isinstance(x, tuple):
         return tuple((xi * R_inv) % q for xi in x)
     return (x * R_inv) % q
+
+def get_q_prime(q, bitwidth):
+    R = Integer(1) << bitwidth
+    return (-mod_inverse(q, R)) % R
+
+def get_mu(q, bitwidth):
+    R = Integer(1) << bitwidth
+    return (Integer(1) << (2 * bitwidth)) // q 
 
 # mod ops
 def modadd(a, b, q):
@@ -165,6 +173,7 @@ class TwistedEdwards:
         self.q = q
         self.a = a % q
         self.d = d % q
+        self.k = (2 * d) % q
 
     def is_on_curve(self, P: EC_point_A):
         """Check affine point lies on TE curve: ax² + y² = 1 + dx²y²."""
@@ -231,4 +240,32 @@ class TwistedEdwards:
         y = (P.Y * Z_inv) % self.q
         # optional: sanity check
         assert (P.T * Z_inv) % self.q == (x * y) % self.q
+        return EC_point_A(x, y)
+
+    def aff_to_ea(self, P: EC_point_A):
+        """Convert affine to extended affine coordinates.
+        Extended affine: (x, y, u) where u = x*y*k
+        """
+        if P is None:
+            return EC_point_EA(0, 1, 0)  # Identity point
+        
+        x, y = P.x % self.q, P.y % self.q
+        u = (x * y * self.k) % self.q
+        
+        return EC_point_EA(x, y, u)
+    
+    def ea_to_aff(self, P: EC_point_EA):
+        """Convert extended affine to affine coordinates.
+        Verify that u = x*y*k and return (x, y).
+        """
+        if P.x == 0 and P.y == 1:
+            return None  # Identity point
+        
+        x = P.x % self.q
+        y = P.y % self.q
+        
+        # Optional: sanity check that u = x*y*k
+        expected_u = (x * y * self.k) % self.q
+        assert P.u % self.q == expected_u, f"Invalid extended affine point: u={P.u}, expected {expected_u}"
+        
         return EC_point_A(x, y)

@@ -17,6 +17,7 @@ struct STIMULUS_TYPE {
   EC_point_J P1;
   wide_t q_sample;
   wide_t q_prime_sample;
+  wide_2x_t mu_sample;
   wide_t field_a_sample;
   EC_point_J o_sample;
 };
@@ -68,31 +69,25 @@ CCS_MAIN(int argc, char **argv)    // required for sc verify flow in Catapult
   for (vector<STIMULUS_TYPE>::iterator it = samples.begin(); it != samples.end(); ++it) {
     STIMULUS_TYPE stimulus_element = *it;
 
-#if Q_TYPE == FIXED_Q
     stimulus_element.o_sample = CCS_DESIGN(point_add)(
-      stimulus_element.P0,
-      stimulus_element.P1
+      stimulus_element.P0, stimulus_element.P1
+
+#if Q_TYPE == VAR_Q
+    , stimulus_element.q_sample
+#endif
+
+#if REDC_TYPE == VAR_RC
+    #if MODMUL_TYPE == MODMUL_TYPE_MONT
+        , stimulus_element.q_prime_sample
+    #elif MODMUL_TYPE == MODMUL_TYPE_BARRETT
+        , stimulus_element.mu_sample
+    #endif
+#endif
+
+#if (CURVE_PARAMS_TYPE == VAR_CURVE_PARAMS) && (FIELD_A == AVAR)
+    , stimulus_element.field_a_sample
+#endif
     );
-
-#else // variable q
-#if FIELD_A == AVAR // variable a
-    stimulus_element.o_sample = CCS_DESIGN(point_add)(
-          stimulus_element.P0,
-          stimulus_element.P1,
-          stimulus_element.q_sample,
-          stimulus_element.q_prime_sample,
-          stimulus_element.field_a_sample
-        );
-
-#else // variable q only
-    stimulus_element.o_sample = CCS_DESIGN(point_add)(
-          stimulus_element.P0,
-          stimulus_element.P1,
-          stimulus_element.q_sample,
-          stimulus_element.q_prime_sample
-        );
-#endif
-#endif
 
     samples_out.push_back(stimulus_element);
   }
@@ -129,7 +124,13 @@ int ReadCSV_Samples(string filename, samplesVector_t &samples)
     stimulus_element.P1.Z = parse_ac_int<wide_t::width>(rowFields[5]);
 
     stimulus_element.q_sample = parse_ac_int<wide_t::width>(rowFields[6]);
+
+  #if MODMUL_TYPE == MODMUL_TYPE_BARRETT
+    stimulus_element.mu_sample = parse_ac_int<wide_2x_t::width>(rowFields[7]);
+  #else
     stimulus_element.q_prime_sample = parse_ac_int<wide_t::width>(rowFields[7]);
+  #endif
+
     stimulus_element.field_a_sample = parse_ac_int<wide_t::width>(rowFields[8]);
 
     samples.push_back(stimulus_element);

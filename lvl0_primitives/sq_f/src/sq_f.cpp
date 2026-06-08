@@ -1,6 +1,6 @@
 #include "sq_f.h"
 
-#if PRECISION_MODE == PREC_SINGLE
+#if PREC_TYPE == SINGLE_PREC
 
 wide_2x_t sq_f(
     const wide_t a
@@ -8,7 +8,7 @@ wide_2x_t sq_f(
     return sq_f_gen<BITWIDTH>(a);
 }
 
-#else // PREC_MULTI
+#elif PREC_TYPE == MULTI_PREC
 
 // TODO:
 wide_2x_t sq_f(

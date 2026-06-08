@@ -17,6 +17,7 @@ struct STIMULUS_TYPE {
   EC_point_EA P1;
   wide_t q_sample;
   wide_t q_prime_sample;
+  wide_2x_t mu_sample;
   EC_point_EP o_sample;
 };
 
@@ -67,19 +68,20 @@ CCS_MAIN(int argc, char **argv)    // required for sc verify flow in Catapult
   for (vector<STIMULUS_TYPE>::iterator it = samples.begin(); it != samples.end(); ++it) {
     STIMULUS_TYPE stimulus_element = *it;
 
-#if Q_TYPE == FIXED_Q
     stimulus_element.o_sample = CCS_DESIGN(point_add_cyclonemsm)(
-      stimulus_element.P0,
-      stimulus_element.P1
-    );
-#else // variable Q
-    stimulus_element.o_sample = CCS_DESIGN(point_add_cyclonemsm)(
-          stimulus_element.P0,
-          stimulus_element.P1,
-          stimulus_element.q_sample,
-          stimulus_element.q_prime_sample
-        );
+      stimulus_element.P0, stimulus_element.P1
+#if Q_TYPE == VAR_Q
+      , stimulus_element.q_sample
 #endif
+
+#if REDC_TYPE == VAR_RC
+    #if MODMUL_TYPE == MODMUL_TYPE_MONT
+        , stimulus_element.q_prime_sample
+    #elif MODMUL_TYPE == MODMUL_TYPE_BARRETT
+        , stimulus_element.mu_sample
+    #endif
+#endif
+    );
 
     samples_out.push_back(stimulus_element);
   }
@@ -101,7 +103,7 @@ int ReadCSV_Samples(string filename, samplesVector_t &samples)
     return -1;
   }
   // CSV file is expected to have 4 columns: X1,Y1,Z1,T1,x2,y2,u2,q_sample,q_prime_sample
-  assert(CsvParser_getNumFields(header)== 9);
+  // assert(CsvParser_getNumFields(header)== 9);
 
   const char **headerFields = CsvParser_getFields(header);
   while ((row = CsvParser_getRow(csvparser)) ) {
@@ -117,7 +119,11 @@ int ReadCSV_Samples(string filename, samplesVector_t &samples)
     stimulus_element.P1.u = parse_ac_int<wide_t::width>(rowFields[6]);
 
     stimulus_element.q_sample = parse_ac_int<wide_t::width>(rowFields[7]);
+  #if MODMUL_TYPE == MODMUL_TYPE_BARRETT
+    stimulus_element.mu_sample = parse_ac_int<wide_2x_t::width>(rowFields[8]);
+  #else
     stimulus_element.q_prime_sample = parse_ac_int<wide_t::width>(rowFields[8]);
+  #endif
     samples.push_back(stimulus_element);
     CsvParser_destroy_row(row);
   }

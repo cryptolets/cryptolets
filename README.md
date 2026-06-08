@@ -1,45 +1,52 @@
 # Cryptolets
+Framework for Cryptographic Hardware Modules
+
+[Click for Docs and Tutorial](https://docs.google.com/presentation/d/1ThGcEfQ-Ab83TFm7nNJdkfdwXHvWUls-Yth4JiNCh0w/edit?usp=sharing)
 
 ## Setup
-We need sympy for point generation, so we have a python env now.
 ```
-python3 -m venv .venv
-source .venv/bin/activate.csh
-pip install sympy
+./setup.sh
 ```
+_Note: Might need to setup paths to Catapult lib and Design Compiler db files._
 
-## Usage
-
-You can set sweep parameters and other configs in `catapult_*_params.tcl` files.
-
+## General Usage
 ```
-bash catapult_run.sh [--dry-run] <kernel_name|all>
+python3 run.py <KERNEL_NAME> [--threads <TOTAL_THREADS>] [--tp <THREADS_PER_PROCESS>] [--gen-only]
 ```
+`--gen-only` - will only generate the sweep list without running Catapult.
+
 ### Examples
+The first will generate a sweep from the `default_sweeps_configs/lvl1_sweep.yaml` file (good to check what will run), then we can perform the actual sweep:
 ```
-bash catapult_run.sh --dry-run mul_f
-bash catapult_run.sh mul_f
-bash catapult_run.sh modadd
-bash catapult_run.sh point_add
+python3 run.py modadd --threads 16 --tp 4 --gen-only
+python3 run.py modadd --threads 16 --tp 4
 ```
 
-### Analyze
+For running Modmul Montgomery and Barrett: 
+```
+python3 run.py modmul_mont --threads 8 --tp 2
+python3 run.py modmul_barrett --threads 8 --tp 2
+```
 
-`analyze.py` script to track sweep progress and analyze results.
+## Monitor and Analyze Design Sweeps
+Script to monitor sweep progress and get performance metrics.
 
 ```bash
-python3 analyze.py <kernel_path> [--mp] [-a] [-o] [-c] [-t] [--freq] [--ccore]
+python3 analyze.py <KERNEL_PATH> [--mp] [-a] [-o] [-c] [-t]
 ```
 
-### Other
-Have to change user specific utils/util.tcl config, such as paths to Catapult and/or Design Compiler libs and db filepaths. 
+`--mp` - show only multi-precision designs, by default _anaylze_ shows single-precision design. \
+`-a` - Show ASIC designs, by default _anaylze_ shows FPGA designs. \
+`-c` and `-o` - Output metrics table to CSV and TXT files, respectively. \
+`-t` - Show technology node.
 
-## Methodology & Recommendations
+## Tips for running FPGA Sweeps
+- Set `CCORE_PERIOD_RATIO = 0.90`, allows for ccore's to meet parent module's timing in FGPA.
+- Use custom modified library (remove `mgc_add3`) to bypass it bottlenecking high clock speeds.
+- For certain FPGAs (e.g. VU9P) depending on type of DSP using lower _Base Multiplier Width_ and Lowering _Karatsuba Multiplier Width_ can achieve lower DSP usage, the opposite is true for other FPGAs (e.g VH1782, VH1582, etc.)
+- Not Supported on FPGA: `USE_CLUSTERS`, `FIXED_Q` and `FIXED_CURVE_PARAMS`
 
-I setup the sweep params in `catapult_*_params.tcl` file.  
-
-Then, I like to have 2 terminals split:  
-- one to run `catapult_run.sh`  
-- the other to run `watch -n 2 "python3 analyze.py ..."` for live view of sweep progress  
-
-If errors occur we can explore more in `logs/` and `<lvl_dir>/<kernel>/Catapult/` project files. 
+## Running Sweeps in Parallel 
+1. **License limits**: Ensure you have enough Catapult licenses for as number of parallel runs.
+2. **Memory usage**: Monitor system memory with many parallel processes
+3. **Disk I/O**: Each process creates substantial temporary files

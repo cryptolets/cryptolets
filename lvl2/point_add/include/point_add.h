@@ -3,25 +3,27 @@
 
 #include "primitives.h"
 #include "modops.h"
+#include "point_double.h"
 
-#if Q_TYPE == FIXED_Q
-    EC_point_J point_add(
-        EC_point_J P0, EC_point_J P1
-    );
-#else // Q_TYPE == VAR_Q
-    #if FIELD_A == AVAR
-        EC_point_J point_add(
-            EC_point_J P0, EC_point_J P1, 
-            const wide_t q, const wide_t q_prime,
-            const wide_t field_a
-        );
-    #else
-        EC_point_J point_add(
-            EC_point_J P0, EC_point_J P1, 
-            const wide_t q, const wide_t q_prime
-        );
+EC_point_J point_add(
+    EC_point_J P0, EC_point_J P1
+
+#if Q_TYPE == VAR_Q
+    , const wide_t q
+#endif
+
+#if REDC_TYPE == VAR_RC
+    #if MODMUL_TYPE == MODMUL_TYPE_MONT
+        , const wide_t q_prime
+    #elif MODMUL_TYPE == MODMUL_TYPE_BARRETT
+        , const wide_2x_t mu
     #endif
 #endif
 
+#if (CURVE_PARAMS_TYPE == VAR_CURVE_PARAMS) && (FIELD_A == AVAR)
+    , const wide_t field_a
+#endif
+
+);
 
 #endif /* _POINT_ADD_H_ */

@@ -1,6 +1,6 @@
 #include "sub_f.h"
 
-#if PRECISION_MODE == PREC_SINGLE
+#if PREC_TYPE == SINGLE_PREC
 
 wide_signed_t sub_f(
     const wide_t a,
@@ -9,7 +9,7 @@ wide_signed_t sub_f(
     return a - b;
 }
 
-#else // PREC_MULTI
+#elif PREC_TYPE == MULTI_PREC
 
 wide_signed_t sub_f(
     const wide_t x,
@@ -20,11 +20,11 @@ wide_signed_t sub_f(
     // Note: LIMBS = n+1, WBW = b
 
     wide_signed_t w;
-    ac_int<1, true> c = 0; // c <- 0
+    ac_int<1, false> c = 0; // c <- 0
 
     for (int i = 0; i < LIMBS; i++) {
         // 2.1 w_i <- (x_i + y_i - c) mod b
-        word_signed_t w_i_ext = x.slc<WBW>(i * WBW) - y.slc<WBW>(i * WBW) + c;
+        word_signed_t w_i_ext = x.slc<WBW>(i * WBW) - y.slc<WBW>(i * WBW) - c;
         w.set_slc(i*WBW, w_i_ext.slc<WBW>(0));
 
         // Note: same logic more hardware friendly
