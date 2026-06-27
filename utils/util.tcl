@@ -293,7 +293,7 @@ proc run_osci_test {{CURVE_TYPE ""} {MODMUL_TYPE ""} {BITSHIFT_DIRECTION ""}} {
                 }
             } elseif {[info exists NTT_IMPL] && $NTT_IMPL eq "NTT_IMPL_STOCKHAM" && [info exists NTT_STOCKHAM_VARIANT]} {
                 if {$NTT_STOCKHAM_VARIANT eq "NTT_STOCKHAM_DIF"} {
-                    lappend cmd --algorithm stockham
+                    lappend cmd --algorithm stockham_dif
                 } elseif {$NTT_STOCKHAM_VARIANT eq "NTT_STOCKHAM_DIT"} {
                     lappend cmd --algorithm stockham_dit
                 }

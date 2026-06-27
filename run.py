@@ -40,6 +40,8 @@ def main():
                         help="Explicit sweep YAML. Must be used with --core-script.")
     parser.add_argument("--core-script", type=str,
                         help="Explicit Catapult core TCL. Must be used with --sweep-file.")
+    parser.add_argument("--out-file", type=str,
+                        help="Sweep JSON output path. Defaults to tmp_configs/<kernel>_configs.json.")
 
 
     args = parser.parse_args()
@@ -89,7 +91,7 @@ def main():
         sweep_file  = f"default_sweeps_configs/{pgrp}_sweep.yaml"
         core_script = f"tcl_cores/catapult_{cgrp}_core.tcl"
 
-    out_file = f"tmp_configs/{k}_configs.json"
+    out_file = args.out_file or f"tmp_configs/{k}_configs.json"
     Path(out_file).parent.mkdir(parents=True, exist_ok=True)
 
     # --- handle run modes ---

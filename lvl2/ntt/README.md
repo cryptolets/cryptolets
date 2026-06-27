@@ -44,6 +44,13 @@ Korn-Lambiotte DIF sweep:
 ./demo/run_ntt_kl_dif_sweep.sh
 ```
 
+This also writes:
+
+```text
+lvl2/ntt/Catapult/ntt_kl_dif_area_breakdown.csv
+lvl2/ntt/Catapult/ntt_kl_dif_area_breakdown.png
+```
+
 Stockham DIT GUI demo:
 
 ```bash
@@ -55,6 +62,41 @@ Stockham DIT sweep:
 ```bash
 ./demo/run_ntt_stockham_dit_sweep.sh
 ```
+
+This also writes:
+
+```text
+lvl2/ntt/Catapult/ntt_stockham_dit_area_breakdown.csv
+lvl2/ntt/Catapult/ntt_stockham_dit_area_breakdown.png
+```
+
+Area breakdown plot for the most recent sweep:
+
+```bash
+./demo/summarize_ntt_kl_dif_sweep.sh
+./demo/plot_ntt_kl_dif_area_breakdown.sh
+./demo/summarize_ntt_stockham_dit_sweep.sh
+./demo/plot_ntt_stockham_dit_area_breakdown.sh
+```
+
+The plotter groups Catapult RTL area into `Control Logic`, `Datapath`, `Reg`, and `Memory`.
+`Memory` is omitted when it is zero for every design in the selected sweep.
+The sweep scripts write the area chart as PNG; pass `--out-svg` to `utils/plot_ntt_area_breakdown.py` only if a retained SVG is needed.
+
+KL-DIF versus Stockham DIT normalized area comparison:
+
+```bash
+./demo/plot_ntt_kl_vs_stockham_dit_area_compare.sh
+```
+
+This writes:
+
+```text
+lvl2/ntt/Catapult/ntt_kl_vs_stockham_dit_area_compare.csv
+lvl2/ntt/Catapult/ntt_kl_vs_stockham_dit_area_compare.png
+```
+
+The comparison plotter uses Matplotlib. The wrapper uses `.venv/bin/python` when that environment exists.
 
 Add `--dry-run` to any of these scripts to print the generated Catapult command without running synthesis.
 
@@ -95,6 +137,7 @@ tcl_cores/catapult_ntt_core.tcl
 naming_config.yaml
 run_config.yaml
 run_catapult_parallel.sh
+requirements.txt
 ```
 
 Korn-Lambiotte DIF demo and sweep:
@@ -105,7 +148,16 @@ custom_sweeps_configs/ntt_dif_korn_lambiotte_sweep.yaml
 demo/demo_env.sh
 demo/run_ntt_kl_dif_demo.sh
 demo/run_ntt_kl_dif_sweep.sh
+demo/plot_ntt_area_breakdown.sh
+demo/summarize_ntt_kl_dif_sweep.sh
+demo/plot_ntt_kl_dif_area_breakdown.sh
+demo/summarize_ntt_stockham_dit_sweep.sh
+demo/plot_ntt_stockham_dit_area_breakdown.sh
+demo/plot_ntt_kl_vs_stockham_dit_area_compare.sh
 utils/summarize_ntt_tables.py
+utils/plot_ntt_area_breakdown.py
+utils/plot_ntt_area_compare.py
+utils/plot_ntt_area_compare_svg_legacy.py
 ```
 
 Stockham DIT demo and sweep:

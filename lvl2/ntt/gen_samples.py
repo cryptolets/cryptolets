@@ -107,7 +107,7 @@ def run_ntt_reference(a, q, omegas, algorithm):
         return a.copy(), ntt_dif_korn_lambiotte(a, q, omegas)
     if algorithm == "korn_lambiotte_dit":
         return a.copy(), ntt_dit_korn_lambiotte(a, q, omegas)
-    if algorithm == "stockham":
+    if algorithm == "stockham_dif":
         return a.copy(), ntt_stockham_dif(a, q, omegas)
     if algorithm == "stockham_dit":
         return a.copy(), ntt_stockham_dit(a, q, omegas)
@@ -132,7 +132,7 @@ def run_intt_reference(intt_input, q, inverse_omegas, algorithm):
         return normalize_intt(ntt_dif_korn_lambiotte(intt_input, q, inverse_omegas), q)
     if algorithm == "korn_lambiotte_dit":
         return normalize_intt(ntt_dit_korn_lambiotte(intt_input, q, inverse_omegas), q)
-    if algorithm == "stockham":
+    if algorithm == "stockham_dif":
         return normalize_intt(ntt_stockham_dif(intt_input, q, inverse_omegas), q)
     if algorithm == "stockham_dit":
         return normalize_intt(ntt_stockham_dit(intt_input, q, inverse_omegas), q)
@@ -255,7 +255,7 @@ if __name__ == "__main__":
                             "pease_dit",
                             "korn_lambiotte_dif",
                             "korn_lambiotte_dit",
-                            "stockham",
+                            "stockham_dif",
                             "stockham_dit",
                         ],
                         help="Reference/input-output ordering variant.")
