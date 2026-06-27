@@ -184,7 +184,7 @@ proc gen_field_consts {{FIELD_A "A0"}} {
     set gen_field_const_py [file join $ROOT_DIR utils gen_field_const.py]
     set cmd [list $py_exec $gen_field_const_py --bitwidth $BITWIDTH --json-file $json_file --field-a $FIELD_A]
 
-    exec tcsh -c "$cmd"
+    exec {*}$cmd
     return $json_file
 }
 
@@ -221,12 +221,13 @@ proc gen_tmp_params_h {config_params {json_file ""} {CURVE_TYPE ""}} {
     # Add runtime params
     lappend cmd --params {*}$param_args
 
-    exec tcsh -c "$cmd"
+    exec {*}$cmd
     return $tmp_params_dir
 }
 
 proc run_osci_test {{CURVE_TYPE ""} {MODMUL_TYPE ""} {BITSHIFT_DIRECTION ""}} {
-    global TEST BITWIDTH KERNEL_DIR ROOT_DIR NUM_TEST_SAMPLES MUL_SQ
+    global TEST BITWIDTH KERNEL_DIR ROOT_DIR NUM_TEST_SAMPLES MUL_SQ KERNEL_NAME NTT_LEN \
+           NTT_IMPL NTT_STANDARD_VARIANT NTT_CONSTANT_GEOMETRY_VARIANT NTT_STOCKHAM_VARIANT
     # generate samples csv file and run initial C++ tests
     if {$TEST} {
         set proj_dir [project get /PROJECT_DIR]
@@ -264,13 +265,47 @@ proc run_osci_test {{CURVE_TYPE ""} {MODMUL_TYPE ""} {BITSHIFT_DIRECTION ""}} {
         if {$BITSHIFT_DIRECTION ne ""} {
             lappend cmd --bitshift-direction $BITSHIFT_DIRECTION
         }
+
+        if {[info exists KERNEL_NAME] && $KERNEL_NAME eq "ntt"} {
+            if {[info exists NTT_LEN]} {
+                lappend cmd --ntt-size $NTT_LEN
+            }
+
+            if {[info exists NTT_IMPL] && $NTT_IMPL eq "NTT_IMPL_STANDARD" && [info exists NTT_STANDARD_VARIANT]} {
+                if {$NTT_STANDARD_VARIANT eq "NTT_STANDARD_DIF_NR"} {
+                    lappend cmd --algorithm dif_nr
+                } elseif {$NTT_STANDARD_VARIANT eq "NTT_STANDARD_DIF_RN"} {
+                    lappend cmd --algorithm dif_rn
+                } elseif {$NTT_STANDARD_VARIANT eq "NTT_STANDARD_DIT_NR"} {
+                    lappend cmd --algorithm dit_nr
+                } elseif {$NTT_STANDARD_VARIANT eq "NTT_STANDARD_DIT_RN"} {
+                    lappend cmd --algorithm dit_rn
+                }
+            } elseif {[info exists NTT_IMPL] && $NTT_IMPL eq "NTT_IMPL_CONSTANT_GEOMETRY" && [info exists NTT_CONSTANT_GEOMETRY_VARIANT]} {
+                if {$NTT_CONSTANT_GEOMETRY_VARIANT eq "NTT_PEASE_DIF"} {
+                    lappend cmd --algorithm pease_dif
+                } elseif {$NTT_CONSTANT_GEOMETRY_VARIANT eq "NTT_PEASE_DIT"} {
+                    lappend cmd --algorithm pease_dit
+                } elseif {$NTT_CONSTANT_GEOMETRY_VARIANT eq "NTT_KORN_LAMBIOTTE_DIF"} {
+                    lappend cmd --algorithm korn_lambiotte_dif
+                } elseif {$NTT_CONSTANT_GEOMETRY_VARIANT eq "NTT_KORN_LAMBIOTTE_DIT"} {
+                    lappend cmd --algorithm korn_lambiotte_dit
+                }
+            } elseif {[info exists NTT_IMPL] && $NTT_IMPL eq "NTT_IMPL_STOCKHAM" && [info exists NTT_STOCKHAM_VARIANT]} {
+                if {$NTT_STOCKHAM_VARIANT eq "NTT_STOCKHAM_DIF"} {
+                    lappend cmd --algorithm stockham
+                } elseif {$NTT_STOCKHAM_VARIANT eq "NTT_STOCKHAM_DIT"} {
+                    lappend cmd --algorithm stockham_dit
+                }
+            }
+        }
         
         if {[info exists MUL_SQ] && $MUL_SQ == 1} {
             lappend cmd --mul-sq
         }
 
         puts "running cmd: $cmd"
-        exec tcsh -c "$cmd"
+        exec {*}$cmd
 
         flow package require /SCVerify
         flow package option set /SCVerify/INVOKE_ARGS "$sample_fp $output_fp"
@@ -577,4 +612,3 @@ proc replace_compile_with_ultra {file_path} {
     puts "Successfully replaced compile commands with compile_ultra in $file_path"
     return 1
 }
-
