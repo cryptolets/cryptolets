@@ -14,13 +14,3 @@ python3 run.py ntt \
 python3 utils/summarize_ntt_tables.py \
   --configs "${CONFIG_JSON}" \
   --catapult-dir lvl2/ntt/Catapult
-
-if python3 utils/plot_ntt_area_breakdown.py \
-  --configs "${CONFIG_JSON}" \
-  --catapult-dir lvl2/ntt/Catapult \
-  --out-csv "${AREA_CSV}" \
-  --out-png "${AREA_PNG}"; then
-  :
-else
-  echo "[INFO] Skipping area breakdown plot; rtl.rpt files are not available for this sweep yet."
-fi
