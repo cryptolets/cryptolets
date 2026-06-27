@@ -22,5 +22,5 @@ export PYTHONPATH="${SYSTEM_SITE_PACKAGES}:${PYTHONPATH:-}"
   --catapult-dir lvl2/ntt/Catapult \
   --baseline-label KL-DIF \
   --compare-label ST-DIT \
-  --out-csv lvl2/ntt/Catapult/ntt_kl_vs_stockham_dit_area_compare.csv \
-  --out-png lvl2/ntt/Catapult/ntt_kl_vs_stockham_dit_area_compare.png
+  --out-csv lvl2/ntt/plots/ntt_kl_vs_stockham_dit_area_compare.csv \
+  --out-png lvl2/ntt/plots/ntt_kl_vs_stockham_dit_area_compare.png

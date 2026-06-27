@@ -92,8 +92,8 @@ KL-DIF versus Stockham DIT normalized area comparison:
 This writes:
 
 ```text
-lvl2/ntt/Catapult/ntt_kl_vs_stockham_dit_area_compare.csv
-lvl2/ntt/Catapult/ntt_kl_vs_stockham_dit_area_compare.png
+lvl2/ntt/plots/ntt_kl_vs_stockham_dit_area_compare.csv
+lvl2/ntt/plots/ntt_kl_vs_stockham_dit_area_compare.png
 ```
 
 The comparison plotter uses Matplotlib. The wrapper uses `.venv/bin/python` when that environment exists.

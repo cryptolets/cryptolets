@@ -285,8 +285,8 @@ def write_plot(path, rows, baseline_label, compare_label):
     rows = grouped_rows(rows)
 
     bar_width = 0.32
-    category_gap = 0.9
-    unroll_gap = 1.35
+    category_gap = 0.2
+    unroll_gap = 0.65
     x_positions = []
     x = 0.0
     prev_unroll = None
@@ -310,7 +310,7 @@ def write_plot(path, rows, baseline_label, compare_label):
         unroll_ranges.append((prev_ntt_len, prev_unroll, unroll_start, x - category_gap))
 
     max_norm = max(max(row["baseline_norm"], row["compare_norm"]) for row in rows)
-    y_max = max(1.4, max_norm * 1.22)
+    y_max = max(1.5, max_norm * 1.22)
     fig_width = max(18.0, 1.0 * len(rows) + 5.0)
     fig, ax = plt.subplots(figsize=(fig_width, 6.8))
 
@@ -347,11 +347,14 @@ def write_plot(path, rows, baseline_label, compare_label):
                 rotation=90,
             )
 
-    category_labels = [row["category"].replace("Control Logic", "Control\nLogic") for row in rows]
+    category_labels = [
+        row["category"].replace("Datapath", "Data\npath").replace("Control Logic", "Control\nLogic")
+        for row in rows
+    ]
     ax.set_xticks(x_positions)
     ax.set_xticklabels(category_labels, fontsize=FONT["tick"])
     ax.set_ylabel("Normalized area (KL-DIF = 1)", fontsize=FONT["axis"], fontweight="bold")
-    ax.set_title("NTT Area Comparison Normalized To KL-DIF", fontsize=FONT["title"], fontweight="bold", pad=18)
+    ax.set_title("NTT Compute Area Normalized To KL-DIF", fontsize=FONT["title"], fontweight="bold", pad=18)
     ax.tick_params(axis="y", labelsize=FONT["tick"])
     ax.grid(axis="y", color="#e6e6e6", linewidth=1)
     ax.set_axisbelow(True)
@@ -376,6 +379,7 @@ def write_plot(path, rows, baseline_label, compare_label):
         title_fontsize=FONT["legend"],
         ncol=2,
         loc="upper right",
+        bbox_to_anchor=(1.0, 1.02),
         frameon=False,
     )
     legend._legend_box.align = "left"
