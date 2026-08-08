@@ -1,8 +1,0 @@
-# This file defines all enums for sweep parameters across all kernels
-# These are then converted into C++ uppercase globals
-
-tech_type: [gf12, 45nm, saed32, fpga_vu9p, fpga_hbmvh1782, fpga_hbmvh1582]
-mul_type: [mul_karatsuba, mul_schoolbook, mul_baseline]
-q_type: [fixed_q, var_q]
-redc_type: [fixed_rc, var_rc]
-modmul_type: [modmul_type_mont, modmul_type_barrett]

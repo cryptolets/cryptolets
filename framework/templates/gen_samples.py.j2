@@ -1,0 +1,25 @@
+from framework.samples import get_rng, write_csvs
+# TODO: import the reference function, e.g. `from reference import int`
+
+
+def generate(design, sweep_flags, design_build_dir):
+    bitwidth = design["n"]
+    num_samples = sweep_flags.get("num_test_samples", 10)
+    rng = get_rng()
+
+    max_val = (1 << bitwidth) - 1
+    mid_val = max_val // 2
+
+    samples = [
+{% for case in edge_cases %}        ({{ case }}),
+{% endfor %}    ]
+
+    # Random fill, spread across sub-bitwidth ranges so small operands are covered
+    for i in range(max(num_samples - len(samples), 0)):
+        sub_max = (1 << (i % bitwidth + 1)) - 1
+        samples.append(({% for arg in inputs %}rng.randint(0, sub_max){{ ", " if not loop.last }}{% endfor %}))
+
+    # TODO: replace None with the reference function result
+    goldens = [(None,) for _ in samples]
+
+    write_csvs(samples, goldens, design_build_dir)

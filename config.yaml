@@ -3,5 +3,24 @@ total_threads: 8
 threads_per_process: 1
 run_only: false
 dry_run: false
-rtl_file: "rtl" # "rtl" or "rtl_concat"
 gui_mode: false
+
+tools:
+  catapult: "/eda/siemens/Catapult/Mgc_home//bin/catapult"
+  dc_shell: "/eda/synopsys/syn/Y-2026.03/bin/dc_shell"
+  vcs: "/eda/synopsys/vcs/Y-2026.03/bin/vcs"
+
+# Keys must match tech_type in framework/enums.yaml
+tech:
+  gf12_highperf:
+    lib_path: "/ip/arm/gf12/sc7p5mcpp84_base_slvt_c14/r1p0/db"
+    lib_name: "sc7p5mcpp84_12lp_base_slvt_c14_tt_nominal_max_0p90v_25c_dc"
+    catapult_lib_file: "~/gf12_libs/gf12_highperf.lib"
+    vendor: "GlobalFoundries"
+    technology: "012nm"
+
+  45nm:
+    lib_path: "45nm_db"
+    lib_name: "nangate-45nm_beh"
+    vendor: "Nangate"
+    technology: "045nm"

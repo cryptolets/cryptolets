@@ -1,7 +1,0 @@
-# Direct dependencies
-deps: []
-
-# Kernel specific stage scripts
-stages:
-  compile: |
-    # TODO: Add Kernel specific stage directives

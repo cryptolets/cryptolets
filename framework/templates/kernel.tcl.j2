@@ -1,0 +1,24 @@
+set root_dir {{ root_dir }}
+set kernel_name {{ kernel_name }}
+source {{ catapult_util_tcl }}
+source {{ catapult_init_tcl }}
+source {{ catapult_verify_tcl }}
+source design.tcl
+
+# Sweep flags
+{% for flag, value in flags.items() -%}
+set {{ flag }} {{ value | tcl }}
+{% endfor %}
+init_options
+project new
+solution rename $kernel_name
+{% for stage in stages %}
+# --- {{ stage.name }} ---
+{% if stage.body %}{{ stage.body }}
+{% endif %}
+go {{ stage.name }}
+{% if stage.save_table %}save_table [file join $design_build_dir metrics.csv]
+{% endif %}
+project save
+{% endfor %}
+run_verify_rtl $verify_rtl $design_build_dir

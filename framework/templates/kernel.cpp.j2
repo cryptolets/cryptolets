@@ -1,0 +1,3 @@
+#include "{{ kernel }}.h"
+
+template {{ output_type }} {{ kernel }}<{{ template_args }}>({{ inputs | map(attribute='type') | join(', ') }});
