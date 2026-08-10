@@ -10,8 +10,23 @@ CONFIG_FILE=$3
 TOTAL_THREADS=$4
 THREADS_PER_PROCESS=$5
 RTL_FILE=$6
-DRY_RUN_FLAG=${7:-}
-GUI_FLAG=${8:-}
+shift 6
+DRY_RUN_FLAG=""
+GUI_FLAG=""
+
+for flag in "$@"; do
+  case "$flag" in
+    --dry-run) DRY_RUN_FLAG="--dry-run" ;;
+    --gui) GUI_FLAG="--gui" ;;
+    *) echo "Unknown flag: $flag"; exit 1 ;;
+  esac
+done
+
+if [ "$GUI_FLAG" = "--gui" ]; then
+  export GUI_MODE=true
+else
+  export GUI_MODE=false
+fi
 
 MAX_PARALLEL=$((TOTAL_THREADS / THREADS_PER_PROCESS))
 
@@ -138,6 +153,10 @@ launch_config() {
 
 	# Use Python encoder() to generate short form name
 	sweep_key=$(python3 -c "import json; from utils.naming_short import encoder; print(encoder(json.loads('''$json_str''')))")
+	if [ -n "${PROJECT_NAME_SUFFIX:-}" ]; then
+		sweep_key="${sweep_key}__${PROJECT_NAME_SUFFIX}"
+	fi
+	log_file="$LOGS_DIR/catapult_${sweep_key}.log"
 
 	# Wait for an available slot
 	wait_for_slot
@@ -152,6 +171,7 @@ launch_config() {
 
 		current_time=$(date "+%H:%M:%S")
 		echo "[$current_time][PID: $new_pid] Launched config: $config_num/$TOTAL_CONFIGS, Currently running: ${#active_pids[@]}/$MAX_PARALLEL processes"
+		echo "  Sweep Key: $sweep_key"
 		echo "  Config Params: $config_params_print"
 		if [ "$DRY_RUN_FLAG" = "--dry-run" ]; then
 			if [ "$GUI_FLAG" = "--gui" ]; then

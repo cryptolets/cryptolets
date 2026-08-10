@@ -49,4 +49,24 @@
 #define BITSHIFT_LEFT 0
 #define BITSHIFT_RIGHT 1
 
+// -------------------------------------------------------------------
+// NTT Config
+// -------------------------------------------------------------------
+#define NTT_IMPL_STANDARD          0
+#define NTT_IMPL_CONSTANT_GEOMETRY 1
+#define NTT_IMPL_STOCKHAM          2
+
+#define NTT_STANDARD_DIF_NR 0
+#define NTT_STANDARD_DIF_RN 1
+#define NTT_STANDARD_DIT_NR 2
+#define NTT_STANDARD_DIT_RN 3
+
+#define NTT_PEASE_DIF            0
+#define NTT_PEASE_DIT            1
+#define NTT_KORN_LAMBIOTTE_DIF   2
+#define NTT_KORN_LAMBIOTTE_DIT   3
+
+#define NTT_STOCKHAM_DIF 0
+#define NTT_STOCKHAM_DIT 1
+
 #endif // _PARAMS_H_

@@ -14,6 +14,7 @@ KERNELS: [
   "mul_f", "sq_f",
   "modadd", "modsub", "modmul_mont", "modmul_barrett",
   "point_add", "point_double", "point_add_te", "point_add_cyclonemsm",
+  "ntt", "butterfly",
   ]
 
 # --- Parameter sweep grouping ---
@@ -25,6 +26,8 @@ SWEEP_GROUP_MAP:
   padd_sw: ["point_add", "point_double"]
   padd_te: ["point_add_te"]
   padd_cyclonemsm: ["point_add_cyclonemsm"]
+  ntt: ["ntt"]
+  butterfly: ["butterfly"]
   bitshift: ["bitshift"]
 
 # --- Core tcl grouping ---
@@ -34,4 +37,6 @@ CORE_GROUP_MAP:
   lvl1: ["modadd", "modsub"]
   modmul: ["modmul_mont", "modmul_barrett"]
   padd: ["point_add", "point_double", "point_add_te", "point_add_cyclonemsm"]
+  ntt: ["ntt"]
+  butterfly: ["butterfly"]
   bitshift: ["bitshift"]
