@@ -1,0 +1,11 @@
+#ifndef _{{ kernel | upper }}_TOP_H_
+#define _{{ kernel | upper }}_TOP_H_
+
+#include <ac_int.h>
+#include "{{ kernel }}.h"
+
+{{ returns }} {{ kernel }}(
+{% for p in ports %}    {{ p.type }} {{ p.name }}{{ "," if not loop.last }}
+{% endfor %});
+
+#endif /* _{{ kernel | upper }}_TOP_H_ */

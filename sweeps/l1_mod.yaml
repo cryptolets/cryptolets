@@ -1,0 +1,17 @@
+sweep:
+  bitwidth: [8, 16]
+  tech_type: [gf12]
+  period: [1]
+  ii: [1]
+
+  # Field modulus. Omit both to get a random prime of width bitwidth.
+  curve: [bn254, bls12_377]   # name from reference/curves.yaml
+  field: [base, scalar]       # which modulus of that curve to use
+
+flags:
+  syn: false           # Run Design Compiler or Vivado synthesis
+  syn_sel: pareto      # all, pareto, small_fast (smallest and fastest)
+  test_cpp: true          # test C++ code
+  verify_rtl: true        # verify RTL
+  test_cpp_only: false    # only test C++ code with osci
+  num_test_samples: 100

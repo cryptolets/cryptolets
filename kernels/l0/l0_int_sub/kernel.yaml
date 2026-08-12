@@ -1,7 +1,5 @@
 # Direct dependencies
-deps:
-  - l0_int_add
-  - l0_int_sub
+deps: []
 
 # Kernel specific stage scripts
 stages:

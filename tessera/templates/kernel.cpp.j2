@@ -1,0 +1,7 @@
+#include "{{ kernel }}_top.h"
+
+{{ returns }} {{ kernel }}(
+{% for p in ports %}    {{ p.type }} {{ p.name }}{{ "," if not loop.last }}
+{% endfor %}) {
+    return {{ kernel }}_impl<{{ template_args }}>({{ args | join(', ') }});
+}

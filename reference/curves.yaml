@@ -1,0 +1,159 @@
+# Curve and field constants.
+#
+# Each curve holds its field moduli:
+#   base   - the field the curve is defined over
+#   scalar - the field of the curve's group order
+# Curve equation parameters (a, b for Weierstrass; a, d, k for Twisted Edwards)
+# are given in the base field of that curve.
+# All hex values are strings.
+
+bn254:
+  desc: "https://docs.rs/ark-bn254/latest/ark_bn254/"
+  form: Weierstrass
+  a: "0"
+  b: "3"
+  base:
+    bitwidth: 254
+    q: "30644e72e131a029b85045b68181585d97816a916871ca8d3c208c16d87cfd47"
+  scalar:
+    bitwidth: 254
+    q: "30644e72e131a029b85045b68181585d2833e84879b9709143e1f593f0000001"
+
+bls12_377:
+  desc: "https://docs.rs/ark-bls12-377/latest/ark_bls12_377/"
+  form: Weierstrass
+  a: "0"
+  b: "1"
+  base:
+    bitwidth: 377
+    q: "1ae3a4617c510eac63b05c06ca1493b1a22d9f300f5138f1ef3622fba094800170b5d44300000008508c00000000001"
+  scalar:
+    bitwidth: 253
+    q: "12ab655e9a2ca55660b44d1e5c37b00159aa76fed00000010a11800000000001"
+
+bls12_381:
+  desc: "https://docs.rs/ark-bls12-381/latest/ark_bls12_381/"
+  form: Weierstrass
+  a: "0"
+  b: "4"
+  base:
+    bitwidth: 381
+    q: "1a0111ea397fe69a4b1ba7b6434bacd764774b84f38512bf6730d2a0f6b0f6241eabfffeb153ffffb9feffffffffaaab"
+  scalar:
+    bitwidth: 255
+    q: "73eda753299d7d483339d80809a1d80553bda402fffe5bfeffffffff00000001"
+
+mnt4753:
+  desc: "https://docs.rs/ark-mnt4-753/latest/ark_mnt4_753/"
+  form: Weierstrass
+  a: "2"
+  b: "1373684a8c9dcae7a016ac5d7748d3313cd8e39051c596560835df0c9e50a5b59b882a92c78dc537e51a16703ec9855c77fc3d8bb21c8d68bb8cfb9db4b8c8fba773111c36c8b1b4e8f1ece940ef9eaad265458e06372009c9a0491678ef4"
+  base:
+    bitwidth: 753
+    q: "1c4c62d92c41110229022eee2cdadb7f997505b8fafed5eb7e8f96c97d87307fdb925e8a0ed8d99d124d9a15af79db117e776f218059db80f0da5cb537e38685acce9767254a4638810719ac425f0e39d54522cdd119f5e9063de245e8001"
+  scalar:
+    bitwidth: 753
+    q: "1c4c62d92c41110229022eee2cdadb7f997505b8fafed5eb7e8f96c97d87307fdb925e8a0ed8d99d124d9a15af79db26c5c28c859a99b3eebca9429212636b9dff97634993aa4d6c381bc3f0057974ea099170fa13a4fd90776e240000001"
+
+bn254_ed:
+  desc: "https://docs.rs/ark-ed-on-bn254/latest/ark_ed_on_bn254/"
+  form: TwistedEdwards
+  a: "1"
+  d: "1575bd81821016c07a5fd2dee78446612498beee8e01a829736c2b06fb281473"
+  k: "2aeb7b0304202d80f4bfa5bdcf088cc249317ddd1c035052e6d8560df65028e6"
+  base:
+    bitwidth: 254
+    q: "30644e72e131a029b85045b68181585d2833e84879b9709143e1f593f0000001"
+  scalar:
+    bitwidth: 251
+    q: "60c89ce5c263405370a08b6d0302b0bab3eedb83920ee0a677297dc392126f1"
+
+bls12_377_ed:
+  desc: "https://docs.rs/ark-ed-on-bls12-377/latest/ark_ed_on_bls12_377/"
+  form: TwistedEdwards
+  a: "12ab655e9a2ca55660b44d1e5c37b00159aa76fed00000010a11800000000000"
+  d: "bcd"
+  k: "179a"
+  base:
+    bitwidth: 253
+    q: "12ab655e9a2ca55660b44d1e5c37b00159aa76fed00000010a11800000000001"
+  scalar:
+    bitwidth: 251
+    q: "4aad957a68b2955982d1347970dec005293a3afc43c8afeb95aee9ac33fd9ff"
+
+bls12_381_ed:
+  desc: "https://docs.rs/ark-ed-on-bls12-381/latest/ark_ed_on_bls12_381/"
+  form: TwistedEdwards
+  a: "12ab655e9a2ca55660b44d1e5c37b00159aa76fed00000010a11800000000000"
+  d: "73eda753299d7d483339d80809a1d80553bda402fffe5bfeffffffff00000000"
+  k: "2a9318e74bfa2b48f5fd9207e6bd7fd4292d7f6d37579d2601065fd6d6343eb1"
+  base:
+    bitwidth: 255
+    q: "73eda753299d7d483339d80809a1d80553bda402fffe5bfeffffffff00000001"
+  scalar:
+    bitwidth: 252
+    q: "e7db4ea6533afa906673b0101343b00a6682093ccc81082d0970e5ed6f72cb7"
+
+mnt4753_ed:
+  desc: "https://docs.rs/ark-ed-on-mnt4-753/latest/ark_ed_on_mnt4_753/"
+  form: TwistedEdwards
+  a: "1c4c62d92c41110229022eee2cdadb7f997505b8fafed5eb7e8f96c97d87307fdb925e8a0ed8d99d124d9a15af79db26c5c28c859a99b3eebca9429212636b9dff97634993aa4d6c381bc3f0057974ea099170fa13a4fd90776e240000000"
+  d: "4d8fa"
+  k: "9b1f4"
+  base:
+    bitwidth: 753
+    q: "1c4c62d92c41110229022eee2cdadb7f997505b8fafed5eb7e8f96c97d87307fdb925e8a0ed8d99d124d9a15af79db26c5c28c859a99b3eebca9429212636b9dff97634993aa4d6c381bc3f0057974ea099170fa13a4fd90776e240000001"
+  scalar:
+    bitwidth: 750
+    q: "3898c5b25882220452045ddc59b5b6ff32ea0b71f5fdabd6fd1f2d92fb0e60ffb724bd141db1b33a249b342b5ef3b6490a08dc5d9e56d02724ae1c7684ca32bc5b518d7f9ce55d422dc9afaf4cc80d5ef4ec9727f1071a9ea9f328f16381"
+
+bls12_377_on_te:
+  desc: "https://eprint.iacr.org/2022/1396.pdf"
+  form: TwistedEdwards
+  a: "1ae3a4617c510eac63b05c06ca1493b1a22d9f300f5138f1ef3622fba094800170b5d44300000008508c00000000000"
+  d: "cb5d5818b4d2796505bb385732fe3a1bbc34cc60d19690bf8b2d97f059909cb9aeca3c3871e9f27016092b426b700b"
+  k: "0196bab03169a4f2ca0b7670ae65fc7437786998c1a32d217f165b2fe0b32139735d947870e3d3e4e02c125684d6e016"
+  base:
+    bitwidth: 377
+    q: "1ae3a4617c510eac63b05c06ca1493b1a22d9f300f5138f1ef3622fba094800170b5d44300000008508c00000000001"
+
+secp256k1:
+  desc: "https://docs.rs/ark-secp256k1/latest/ark_secp256k1/"
+  form: Weierstrass
+  a: "0"
+  b: "7"
+  base:
+    bitwidth: 256
+    q: "fffffffffffffffffffffffffffffffffffffffffffffffffffffffefffffc2f"
+  scalar:
+    bitwidth: 256
+    q: "fffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141"
+
+ed25519:
+  desc: "https://docs.rs/ark-ed25519/latest/ark_ed25519/"
+  form: TwistedEdwards
+  a: "7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffec"
+  d: "52036cee2b6ffe738cc740797779e89800700a4d4141d8ab75eb4dca135978a3"
+  k: "2406d9dc56dffce7198e80f2eef3d13000e0149a8283b156ebd69b9426b2f159"
+  base:
+    bitwidth: 255
+    q: "7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffed"
+
+ed448:
+  desc: "Curve from https://datatracker.ietf.org/doc/html/draft-ietf-lwig-curve-representations-23"
+  form: TwistedEdwards
+  a: "01"
+  d: "d78b4bdc7f0daf19f24f38c29373a2ccad46157242a50f37809b1da3412a12e79ccc9c81264cfe9ad080997058fb61c4243cc32dbaa156b9"
+  k: "af1697b8fe1b5e33e49e718526e745995a8c2ae4854a1e6f01363b47825425cf399939024c99fd35a10132e0b1f6c3884879865b7542ad73"
+  base:
+    bitwidth: 448
+    q: "fffffffffffffffffffffffffffffffffffffffffffffffffffffffeffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+
+test64:
+  desc: "for testing and debugging"
+  form: Weierstrass
+  a: "0"
+  b: "3"
+  base:
+    bitwidth: 64
+    q: "faaf4542e6aefc7b"

@@ -1,0 +1,14 @@
+#include "{{ kernel }}_top.h"
+#include "tb_helper.h"
+
+vector<string> run_per_row(vector<string>& samples_row) {
+{% for arg in inputs %}  {{ arg.type }} {{ arg.name }} = parse_ac_int<{{ arg.width }}>(samples_row[{{ loop.index0 }}]);
+{% endfor %}  {{ output_type }} result = CCS_DESIGN({{ kernel }})({{ inputs | map(attribute='name') | join(', ') }});
+  return {result.to_string(AC_DEC)};
+}
+
+// required for sc verify flow in Catapult
+CCS_MAIN(int argc, char** argv) {
+  run_tb(run_per_row, argv[1], argv[2]); // samples_file, output_file
+  CCS_RETURN(0);
+}

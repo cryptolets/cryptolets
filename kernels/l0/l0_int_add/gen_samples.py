@@ -1,25 +1,23 @@
-from tessera.samples import get_rng, get_modulus, write_csvs
-from reference.field import modadd
+from tessera.samples import get_rng, write_csvs
+from reference import integer
 
 def generate(design, sweep_flags, design_build_dir):
     bitwidth = design["bitwidth"]
     num_samples = sweep_flags.get("num_test_samples", 10)
     rng = get_rng()
-    q = get_modulus(design)
         
     samples = []
     goldens = []
 
-    max_val = q - 1
+    max_val = (1 << bitwidth) - 1
     mid_val = max_val // 2
 
-    # Edge cases
     samples = [
-        (0, 0, q),
-        (max_val, max_val, q),
-        (0, max_val, q),
-        (max_val, 0, q),
-        (mid_val, mid_val, q)
+        (0, 0),
+        (max_val, max_val),
+        (0, max_val),
+        (max_val, 0),
+        (mid_val, mid_val)
     ]
 
     # Remaining random samples, distributed across sub-bitwidth ranges
@@ -29,11 +27,11 @@ def generate(design, sweep_flags, design_build_dir):
         for i in range(effective_samples):
             sub_bw = sub_bitwidths[i % len(sub_bitwidths)]
             sub_max = (1 << sub_bw) - 1
-            x = rng.randint(0, min(sub_max, max_val))
-            y = rng.randint(0, min(sub_max, max_val))
-            samples.append((x, y, q))
+            x = rng.randint(0, sub_max)
+            y = rng.randint(0, sub_max)
+            samples.append((x, y))
     
-    for x, y, q in samples:
-        goldens.append((modadd(x, y, q),))
+    for x, y in samples:
+        goldens.append((integer.add(x, y),))
     
     write_csvs(samples, goldens, design_build_dir)

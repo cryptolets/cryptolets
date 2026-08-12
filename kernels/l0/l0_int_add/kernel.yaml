@@ -1,0 +1,8 @@
+# Direct dependencies
+deps: []
+
+# Kernel specific stage scripts
+stages:
+  compile: |
+    set_ii $ii
+    adder_tree_opt $tech_type
