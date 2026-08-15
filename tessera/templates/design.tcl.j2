@@ -3,3 +3,6 @@ set design_build_dir {{ design_build_dir }}
 {% for param, value in design.items() -%}
 set {{ param }} {{ value | tcl }}
 {% endfor %}
+{% for key, value in tech.items() -%}
+set tech_{{ key }} {{ value | tcl }}
+{% endfor %}

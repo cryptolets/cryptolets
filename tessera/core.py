@@ -15,7 +15,9 @@ from tessera.helper import get_license_info
 from tessera.samples import call_gen_samples
 from tessera.codegen import \
     gen_catapult_design_tcl, gen_catapult_kernel_tcl, \
-    gen_params_h, gen_kernel_src_cpp
+    gen_params_h, gen_kernel_top
+from tessera.package import write_package
+from tessera.blackbox import gen_blackbox_headers, check_rtl_elaborates
 
 BUILD_DIR = Path('build')
 
@@ -30,20 +32,6 @@ def run_catapult(kernel_build_dir, design_build_dir):
             stderr=subprocess.STDOUT,
         )
         return result.returncode
-
-def package_catapult_rtl(kernel, design_name, design_build_dir):
-    "Copy the generated RTL into the design's package dir."
-    solution_dir = design_build_dir / "Catapult" / f"{kernel}.v1"
-    text = (solution_dir / "concat_rtl.v").read_text()
-
-    # The top is the shortest match, since its _core child extends the same name.
-    top = min((l.split()[1].rstrip("(") for l in text.splitlines()
-               if l.startswith(f"module {kernel}")), key=len)
-
-    dst = design_build_dir / "package" / f"{top}.v"
-    dst.parent.mkdir(parents=True, exist_ok=True)
-    dst.write_text(text)
-    return dst
 
 def run_design_compiler(design_build_dir):
     pass
@@ -83,7 +71,6 @@ def run(kernel, threads, threads_per_process, sweep, run_only, dry_run, gui_mode
         sweep_flags = sweep_conf['flags']
 
     logging.info(f"Running {len(flattened_sweep)} designs for {kernel}")
-    enums = yaml.safe_load(Path(root_dir, 'tessera', 'enums.yaml').read_text())
 
     logging.info(f"Generating kernel files")
     logging.info(f"Flattened sweep designs:")
@@ -111,8 +98,9 @@ def run(kernel, threads, threads_per_process, sweep, run_only, dry_run, gui_mode
         if sweep_flags['test_cpp']:
             call_gen_samples(design, sweep_flags, kernel_path, design_build_dir)
 
-        gen_params_h(design, enums, design_build_dir)
-        gen_kernel_src_cpp(design, kernel, kernel_path, design_build_dir)
+        gen_params_h(design, design_build_dir)
+        gen_kernel_top(design, kernel, kernel_path, design_build_dir)
+        gen_blackbox_headers(design, kernel, kernel_path, design_build_dir)
         gen_catapult_design_tcl(design, design_name, design_build_dir)
     
     with ThreadPoolExecutor(max_workers=threads) as pool:
@@ -150,7 +138,8 @@ def run(kernel, threads, threads_per_process, sweep, run_only, dry_run, gui_mode
 
         if return_code == 0:
             logging.info(f"Catapult COMPLETED for {design_name} in {hrs:d} hrs {mins:d} mins {secs:05.2f} secs")
-            package_catapult_rtl(kernel, design_name, design_build_dir)
+            write_package(kernel, design, design_build_dir)
+            check_rtl_elaborates(design_build_dir, kernel)
             logging.info(f"Catapult RTL packaged for {design_name}")
         else:
             logging.error(f"Catapult FAILED for {design_name} in {hrs:d} hrs {mins:d} mins {secs:05.2f} secs")

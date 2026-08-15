@@ -5,12 +5,15 @@
 #include "params.h"
 
 template<int _BITWIDTH>
-ac_int<_BITWIDTH+1, false> l0_int_sub_impl(
-    const ac_int<_BITWIDTH, false> x,
-    const ac_int<_BITWIDTH, false> y
-) {
-   return x - y;
-}
-
+class l0_int_sub_impl {
+public:
+    void run(
+        const ac_int<_BITWIDTH, false> x,
+        const ac_int<_BITWIDTH, false> y,
+        ac_int<_BITWIDTH+1, true> &z
+    ) {
+        z = x - y;
+    }
+};
 
 #endif /* _L0_INT_SUB_H_ */

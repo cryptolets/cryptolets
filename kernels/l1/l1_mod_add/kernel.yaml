@@ -3,6 +3,9 @@ deps:
   - l0_int_add
   - l0_int_sub
 
+# Reuse each dep's packaged RTL instead of synthesizing it again
+blackbox: true
+
 # Kernel specific stage scripts
 stages:
   compile: |

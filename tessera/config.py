@@ -1,18 +1,17 @@
 "Validated configuration models"
 import logging
 from pathlib import Path
-from typing import Optional
+from typing import Literal, Optional, get_args
 
 import yaml
 from pydantic import BaseModel, model_validator
 
 CURVES_FILE = Path(__file__).parent.parent / "reference" / "curves.yaml"
-ARB_CURVE = "arb_curve"  # follows n instead of fixing it
-
+RUN_CONFIG_FILE = Path("config.yaml")
+ARB_CURVE = "arb_curve"
 
 def _load(model, path):
     return model.model_validate(yaml.safe_load(Path(path).read_text()))
-
 
 def curves():
     return yaml.safe_load(CURVES_FILE.read_text())
@@ -35,26 +34,42 @@ class Flags(BaseModel):
 
 class Sweep(BaseModel):
     bitwidth: list[int]
-    tech_type: list[str] = ["gf12"]
+    tech_type: list[str] = ["gf12_highperf"]
     period: list[float] = [1]
     ii: list[int] = [1]
 
+    # Blackboxed deps are built at period * ratio, so a chain of them fits
+    # the parent's clock. Applied again at each level of depth.
+    dep_period_ratio: list[float] = [1]
+
     # A named curve fixes n to its own bitwidth; arb_curve follows n
     curve: list[str] = [ARB_CURVE]
-    field: list[str] = ["base"]
-    q_type: list[str] = ["var_q"] # fixed_q bakes the modulus into the hardware, var_q takes it as a port
-    
+    field: list[Literal["base", "scalar"]] = ["base"]
+    q_type: list[Literal["fixed_q", "var_q"]] = ["var_q"] # fixed_q bakes the modulus into the hardware, var_q takes it as a port
+
     # Keyed by n, e.g. {16: [8, 16], 32: [16, 32]}
     base_mul_width: Optional[dict[int, list[int]]] = None
     kar_base_mul_width: Optional[dict[int, list[int]]] = None
 
+    @classmethod
+    def enums(cls):
+        "Fields limited to a set of values, which become the params.h defines"
+        out = {}
+        for name, field in cls.model_fields.items():
+            item_type = get_args(field.annotation)   # list[X] -> (X,)
+            values = get_args(item_type[0]) if item_type else ()
+            if values and all(isinstance(v, str) for v in values):
+                out[name] = list(values)
+        return out
+
     @model_validator(mode="after")
     def _check_curves(self):
-        known = curves()
+        known_tech = RunConfig.load().tech
+        for name in self.tech_type:
+            if name not in known_tech:
+                raise ValueError(f"unknown tech_type '{name}', pick from: {', '.join(sorted(known_tech))}")
 
-        for name in self.field:
-            if name not in ("base", "scalar"):
-                raise ValueError(f"field must be 'base' or 'scalar', got '{name}'")
+        known = curves()
 
         for name in self.curve:
             if name == ARB_CURVE:
@@ -86,6 +101,14 @@ class KernelConfig(BaseModel):
         return _load(cls, Path(kernel_path, "kernel.yaml"))
 
 
+class Tech(BaseModel):
+    lib_path: str
+    lib_name: str
+    vendor: str
+    technology: str
+    catapult_lib_file: Optional[str] = None
+
+
 class RunConfig(BaseModel):
     total_threads: int = 8
     threads_per_process: int = 1
@@ -94,6 +117,9 @@ class RunConfig(BaseModel):
     rtl_file: str = "rtl"
     gui_mode: bool = False
 
+    tools: dict[str, str] = {}
+    tech: dict[str, Tech] = {}
+
     @classmethod
-    def load(cls, path):
+    def load(cls, path=RUN_CONFIG_FILE):
         return _load(cls, path)

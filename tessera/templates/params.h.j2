@@ -12,13 +12,13 @@
 #define {{ name }} {{ value }}
 {% endfor %}
 {% if fields %}
-// Field descriptors. Q() is a compile time constant, so a fixed modulus
-// folds into the logic instead of costing a full width operand.
 {% for f in fields %}
 struct {{ f.name }} {
     static constexpr int W = {{ f.bitwidth }};
     static ac_int<{{ f.bitwidth }}, false> Q() {
-        return ac_int<{{ f.bitwidth }}, false>("0x{{ f.q }}");
+        ac_int<{{ f.bitwidth }}, false> q;
+        q.bit_fill_hex("{{ f.q }}");
+        return q;
     }
 };
 {% endfor %}

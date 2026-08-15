@@ -26,7 +26,13 @@ def derive_curve_width(design):
 
 
 
-DERIVATIONS = [derive_curve_width]
+def derive_arb_curve_field(design):
+    "An arb_curve prime is not tied to a curve, so it has only a base field."
+    if design.get("curve") == ARB_CURVE:
+        design["field"] = "base"
+
+
+DERIVATIONS = [derive_curve_width, derive_arb_curve_field]
 
 
 # --- filters: (design) -> reason to skip, or None to keep ---

@@ -1,6 +1,6 @@
 sweep:
-  bitwidth: [8, 16]
-  tech_type: [gf12]
+  bitwidth: [32, 33]
+  tech_type: [gf12_highperf]
   period: [1]
   ii: [1]
 

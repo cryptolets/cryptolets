@@ -5,6 +5,7 @@ import re
 from pathlib import Path
 import yaml
 
+from tessera.config import RunConfig, Sweep
 from tessera.field import design_fields, FIELD_CONSTANTS
 from tessera.kernel import resolve_deps
 from tessera.templating import render
@@ -25,14 +26,16 @@ catapult_stages = [
 
 # Catapult stages that save the table to a file
 SAVE_TABLE_STAGES = {"schedule", "dpfsm", "extract"}
-# Parameters that are not part of the design. curve and field are excluded
-# because the generated field descriptor already carries both.
-EXCLUDE_PARAMS = ['tech_type', 'curve', 'field']
 
-def gen_params_h(design, enums, design_build_dir):
+# Parameters that are not part of the design. 
+# Curve and field are excluded because the generated field
+# descriptor already carries both.
+EXCLUDE_PARAMS = ['tech_type', 'curve', 'field', 'dep_period_ratio']
+
+def gen_params_h(design, design_build_dir):
     enum_defines = {
         value.upper(): i
-        for enum, values in enums.items() if enum not in EXCLUDE_PARAMS
+        for enum, values in Sweep.enums().items() if enum not in EXCLUDE_PARAMS
         for i, value in enumerate(values)
     }
 
@@ -54,15 +57,14 @@ def gen_params_h(design, enums, design_build_dir):
         fields=design_fields(design),
     )
 
-def gen_kernel_src_cpp(design, kernel_name, kernel_path, design_build_dir):
-    "Generate the kernel source code from the template implementation"
-    impl = parse_kernel(f"{kernel_name}_impl", kernel_path / 'impl' / f"{kernel_name}.h")
+def to_macro(text):
+    "A template parameter _X is the params.h macro X"
+    text = re.sub(r"\b_FIELD::W\b", "BITWIDTH", text) # to override field's bitwidth
+    return re.sub(r"\b_([A-Z][A-Z0-9_]*)\b", r"\1", text)
 
-    def to_macro(text):
-        "A template parameter _X is the params.h macro X"
-        text = re.sub(r"\b_FIELD::W\b", "BITWIDTH", text) # to override field's bitwidth
-        return re.sub(r"\b_([A-Z][A-Z0-9_]*)\b", r"\1", text)
 
+def _top_ports(impl, design):
+    "The top's ports and the arguments it forwards to the impl"
     # With a fixed modulus the descriptor supplies q, so it is not a port
     fixed = design.get('q_type') == 'fixed_q'
 
@@ -71,12 +73,26 @@ def gen_kernel_src_cpp(design, kernel_name, kernel_path, design_build_dir):
         if fixed and param['name'] in FIELD_CONSTANTS:
             args.append(f"FIELD::{param['name'].upper()}()")
         else:
-            ports.append({'type': to_macro(param['type']), 'name': param['name']})
+            ports.append({
+                'type': to_macro(param['type']),
+                'name': param['name'],
+                'ref': param['is_output'],
+            })
             args.append(param['name'])
+    return ports, args
 
+
+def gen_kernel_top(design, kernel_name, kernel_path, design_build_dir):
+    "Generate the top header and the source file Catapult synthesizes"
+    header = kernel_path / 'impl' / f"{kernel_name}.h"
+    impl = parse_kernel(header)
+    if impl['name'] != f"{kernel_name}_impl":
+        raise Exception(
+            f"{header} defines '{impl['name']}', expected '{kernel_name}_impl'")
+
+    ports, args = _top_ports(impl, design)
     ctx = dict(
         kernel=kernel_name,
-        returns=to_macro(impl['returns']),
         ports=ports,
         args=args,
         template_args=", ".join(to_macro(p) for p in impl['template_params']),
@@ -86,12 +102,18 @@ def gen_kernel_src_cpp(design, kernel_name, kernel_path, design_build_dir):
     render("kernel.cpp.j2", design_build_dir / 'src' / f'{kernel_name}.cpp', **ctx)
 
 def gen_catapult_design_tcl(design, design_name, design_build_dir):
+    # Catapult supplies some libraries itself, so lib_file can be empty
+    tech = RunConfig.load().tech[design['tech_type']].model_dump()
+    tech = {k: str(Path(v).expanduser()) if v and k.endswith(('_path', '_file')) else (v or "")
+            for k, v in tech.items()}
+
     render(
         "design.tcl.j2",
         design_build_dir / "design.tcl",
         design_name=design_name,
         design_build_dir=design_build_dir.resolve(),
         design=design,
+        tech=tech,
     )
 
 
@@ -109,16 +131,24 @@ def _stage_bodies(kernel_name, kernel_path, root_dir):
     include_paths_str = "\n".join(f"  {p.resolve()}" for p in include_paths)
 
     analyze_stage = [
+        # The blackbox dir comes first, so a generated header shadows the
+        # kernel's own when that dep is blackboxed.
+        "options set Input/SearchPath [file join $design_build_dir blackbox] -append",
         "options set Input/SearchPath {\n" + include_paths_str + "\n} -append",
         "options set Input/SearchPath [file join $design_build_dir include] -append",
         "solution file add [file join $design_build_dir src " + f"{kernel_name}.cpp]",
+        "add_blackbox_rtl $design_build_dir",
         f"solution file add [file join {(Path(kernel_path) / f'{kernel_name}_tb.cpp').resolve()}] -exclude true",
         f"solution file add [file join {(verify_cpp_src_path / 'csvparser.cpp').resolve()}] -exclude true",
         f"solution file add [file join {(verify_cpp_src_path / 'tb_helper.cpp').resolve()}] -exclude true",
     ]
 
     compile_stage = [
-        f"solution design set {kernel_name} -top",
+        f"solution design set {kernel_name}_wrapper.run -top",
+        "directive set -CCORE_POINTS 1",
+        # A chain of blackboxed deps can take longer than one cycle, and
+        # Catapult will not schedule it at all unless multicycle is allowed.
+        "directive set -SCHED_USE_MULTICYCLE true",
         "directive set -DESIGN_GOAL latency",
         "directive set -OUTPUT_REGISTERS false",
         "directive set -OPT_CONST_MULTS full",
@@ -126,7 +156,7 @@ def _stage_bodies(kernel_name, kernel_path, root_dir):
 
     libraries_stage = [
         "run_osci_test $test_cpp $test_cpp_only $design_build_dir",
-        "set_tech_lib $tech_type $root_dir",
+        "set_tech_lib $tech_type $root_dir $tech_lib_path $tech_lib_name $tech_vendor $tech_technology $tech_catapult_lib_file",
         "set_clock $period",
     ]
 
@@ -159,4 +189,5 @@ def gen_catapult_kernel_tcl(sweep_conf, kernel_name, kernel_path, kernel_build_d
         catapult_verify_tcl=Path(root_dir, 'tessera', 'tcl', 'catapult', 'verify.tcl').resolve(),
         flags=sweep_conf['flags'],
         stages=stages,
+        tools={k: str(Path(v).expanduser()) for k, v in RunConfig.load().tools.items()},
     )

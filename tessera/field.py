@@ -19,15 +19,13 @@ def get_modulus(design, seed=SEED):
         return int(curves()[curve][design.get("field", "base")]["q"], 16)
 
     bitwidth = design["bitwidth"]
-    sympy_seed(seed)  # randprime uses sympy's own generator
+    sympy_seed(seed)
     return randprime(1 << (bitwidth - 1), (1 << bitwidth) - 1)
 
 
 def design_fields(design):
     """
-    Field descriptors to emit into params.h, as {name, bitwidth, q}.
-
-    The first one becomes FIELD, the default for single field kernels.
+    Generated Field (with prime modulus, bitwidth, etc.) descriptors into params.h
     """
     curve = design.get("curve", ARB_CURVE)
     field = design.get("field", "base")

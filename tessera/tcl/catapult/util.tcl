@@ -1,20 +1,21 @@
-proc set_tech_lib {tech_type root_dir} {    
+proc set_tech_lib {tech_type root_dir lib_path lib_name vendor technology {lib_file ""}} {
     solution library remove *
+    options set Flows/DesignCompiler/CustomScriptDirPath \
+        [file normalize "$root_dir/dc_custom_scripts"]
+
     if {$tech_type eq "45nm"} {
-        set custom_dc_script_path [file normalize "$root_dir/dc_custom_scripts"]
-        options set Flows/DesignCompiler/CustomScriptDirPath "$custom_dc_script_path"
-        options set ComponentLibs/TechLibSearchPath [file normalize "$root_dir/../45nm_db"] -append
+        options set ComponentLibs/TechLibSearchPath $lib_path -append
 
-        solution library add nangate-45nm_beh \
-            -- -rtlsyntool DesignCompiler -vendor Nangate -technology 045nm
-    } elseif {$tech_type eq "gf12"} {
-        set custom_dc_script_path [file normalize "$root_dir/dc_custom_scripts"]
-        options set Flows/DesignCompiler/CustomScriptDirPath "$custom_dc_script_path"
-        options set ComponentLibs/TechLibSearchPath "/ip/arm/gf12/sc7p5mcpp84_base_slvt_c14/r1p0/db" -append
+        solution library add $lib_name \
+            -- -rtlsyntool DesignCompiler -vendor $vendor -technology $technology
+    } elseif {$tech_type eq "gf12_highperf"} {
+        options set /ComponentLibs/TechLibSearchPath $lib_path/db  -append
+        options set /ComponentLibs/TechLibSearchPath $lib_path/lef -append
+        options set /ComponentLibs/TechLibSearchPath $lib_path/lib -append
 
-        solution library add sc7p5mcpp84_12lp_base_slvt_c14_tt_nominal_max_0p90v_25c_dc \
-            -file "$root_dir/../gf12_libs/sc7p5mcpp84_12lp_base_slvt_c14_tt_nominal_max_0p90v_25c_dc_smooth.lib" \
-            -- -rtlsyntool DesignCompiler -vendor GlobalFoundries -technology 012nm
+        solution options set ComponentLibs/SearchPath [file dirname $lib_file] -append
+        solution library add $lib_name \
+            -- -rtlsyntool DesignCompiler -vendor $vendor -technology $technology
     }
 }
 
@@ -52,4 +53,16 @@ proc set_ii { ii {multi_word 0} } {
 
 proc save_table { table_fp } {
     solution table export -file $table_fp
+}
+# Add each packaged RTL and turn the generated headers into blackboxes.
+# Without BLACKBOX_FLOW the headers fall back to the real implementation.
+proc add_blackbox_rtl { design_build_dir } {
+    set rtl_files [glob -nocomplain [file join $design_build_dir blackbox *.v]]
+    if {[llength $rtl_files] == 0} {
+        return
+    }
+    foreach rtl $rtl_files {
+        solution file add $rtl -type verilog -exclude true
+    }
+    options set Input/CompilerFlags "[options get Input/CompilerFlags] -DBLACKBOX_FLOW"
 }

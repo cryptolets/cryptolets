@@ -1,0 +1,33 @@
+#ifndef _{{ kernel | upper }}_BLACKBOX_H_
+#define _{{ kernel | upper }}_BLACKBOX_H_
+
+#if defined(__SYNTHESIS__) && defined(BLACKBOX_FLOW)
+
+#include <ac_int.h>
+#include <ac_blackbox.h>
+#include "params.h"
+
+template<int _BITWIDTH>
+class {{ kernel }}_impl {
+public:
+    {{ kernel }}_impl() {}
+
+    #pragma hls_design interface ccore blackbox
+    void run(
+{% for p in ports %}        ac_int<{{ p.width }}, {{ "true" if p.signed else "false" }}> {{ "&" if p.dir == "output" }}{{ p.name }}{{ "," if not loop.last }}
+{% endfor %}    ) {
+        ac_blackbox()
+            .entity("{{ entity }}")
+            .verilog_files("{{ rtl }}")
+            .outputs("{{ outputs }}")
+            .area({{ area }})
+            {{ timing }}
+            .end();
+    }
+};
+
+#else
+#include "{{ impl }}"
+#endif
+
+#endif /* _{{ kernel | upper }}_BLACKBOX_H_ */

@@ -2,10 +2,36 @@
 #define _{{ kernel | upper }}_TOP_H_
 
 #include <ac_int.h>
+#include <mc_scverify.h>
 #include "{{ kernel }}.h"
 
-{{ returns }} {{ kernel }}(
-{% for p in ports %}    {{ p.type }} {{ p.name }}{{ "," if not loop.last }}
-{% endfor %});
+class {{ kernel }} {
+    {{ kernel }}_impl<{{ template_args }}> inst;
+
+public:
+    {{ kernel }}() {}
+
+    #pragma hls_design interface ccore
+    #pragma hls_ccore_type combinational
+    void run(
+{% for p in ports %}        {{ p.type }} {{ "&" if p.ref }}{{ p.name }}{{ "," if not loop.last }}
+{% endfor %}    ) {
+        inst.run({{ args | join(', ') }});
+    }
+};
+
+class {{ kernel }}_wrapper {
+    {{ kernel }} core;
+
+public:
+    {{ kernel }}_wrapper() {}
+
+    #pragma hls_design interface top
+    void CCS_BLOCK({{ kernel }}_wrapper, run)(
+{% for p in ports %}        {{ p.type }} {{ "&" if p.ref }}{{ p.name }}{{ "," if not loop.last }}
+{% endfor %}    ) {
+        core.run({{ ports | map(attribute='name') | join(', ') }});
+    }
+};
 
 #endif /* _{{ kernel | upper }}_TOP_H_ */

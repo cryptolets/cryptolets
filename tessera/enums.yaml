@@ -1,8 +1,0 @@
-# This file defines all enums for sweep parameters across all kernels
-# These are then converted into C++ uppercase globals
-
-tech_type: [gf12]
-mul_type: [mul_kar, mul_sb, mul_nor]
-q_type: [fixed_q, var_q]
-redc_type: [fixed_rc, var_rc]
-modmul_type: [modmul_type_mont, modmul_type_bar, modmul_type_naive]

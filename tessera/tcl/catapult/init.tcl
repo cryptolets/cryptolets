@@ -1,4 +1,4 @@
-proc init_options {} {
+proc init_options {questa dc vivado} {
     options defaults
     options set /Input/CppStandard c++14
     options set /Input/TargetPlatform x86_64
@@ -14,8 +14,8 @@ proc init_options {} {
     # RTL simulation and verification
     # QSIM_HOME stops Questa from picking up Catapult's MGC_HOME
     options set Flows/SCVerify/USE_QUESTASIM true
-    options set Flows/QuestaSIM/Path /eda/siemens/Questasim/questasim/linux_x86_64
-    set ::env(QSIM_HOME) /eda/siemens/Questasim/questasim
+    options set Flows/QuestaSIM/Path $questa/linux_x86_64
+    set ::env(QSIM_HOME) $questa
 
     # Questa reads the license server from SALT_LICENSE_SERVER
     if { [info exists ::env(MGLS_LICENSE_FILE)] } {
@@ -23,10 +23,10 @@ proc init_options {} {
     }
 
     # Vivado
-    options set Flows/Vivado/XILINX_VIVADO /eda/xilinx/2026.1/Vivado/
+    options set Flows/Vivado/XILINX_VIVADO $vivado
 
     # Design Compiler
-    options set Flows/DesignCompiler/Path /eda/synopsys/syn/Y-2026.03/bin/
+    options set Flows/DesignCompiler/Path $dc/bin
     options set Flows/DesignCompiler/ShellExe dc_shell
     options set Flows/DesignCompiler/OutNetlistFormat verilog
     options set Flows/DesignCompiler/GenerateGateSdf true

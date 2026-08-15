@@ -1,30 +1,101 @@
 """
-Read a kernel's template function code and extract
-the function parameters and return with regex.
+Read a kernel's template class code with tree-sitter, so the framework
+can generate the top from what the kernel author wrote.
+
+A kernel is a class template with a run method. Outputs are the parameters
+it takes by reference.
 """
-import re
 from pathlib import Path
 
-COMMENTS = re.compile(r"//.*?$|/\*.*?\*/", re.S | re.M)
-# Each parameter ends in "<type> <name>", where the type may hold commas
-PARAM = re.compile(r"([\w:]+(?:\s*<[^<>]*>)?)\s+(\w+)\s*(?:,|$)")
-# Template parameters look the same but may carry a default, e.g. "bool _MW = false"
-TEMPLATE_PARAM = re.compile(r"[\w:]+\s+(\w+)\s*(?:=[^,]*)?(?:,|$)")
+import tree_sitter_cpp
+from tree_sitter import Language, Parser
 
 
-def parse_kernel(template_name, header):
-    "Return the kernel template as {returns, params, template_params}, in declaration order."
-    src = COMMENTS.sub("", Path(header).read_text())
+def _tree(header):
+    parser = Parser(Language(tree_sitter_cpp.language()))
+    return parser.parse(Path(header).read_bytes())
 
-    sig = re.search(
-        rf"template\s*<(.*?)>\s*(.+?)\s+{template_name}\s*\((.*?)\)\s*\{{",
-        src, re.S,
-    )
-    if not sig:
-        raise Exception(f"No template named '{template_name}' in {header}")
 
+def _text(node):
+    return node.text.decode().strip()
+
+
+def _template_param(node):
+    "int _BITWIDTH names its declarator, class _FIELD does not"
+    named = node.child_by_field_name("declarator") or node.child_by_field_name("name")
+    return _text(named) if named is not None else _text(node).split()[-1]
+
+
+def _parameter(node):
+    declarator = node.child_by_field_name("declarator")
+    name = _text(declarator) if declarator is not None else ""
     return {
-        "returns": sig.group(2).strip(),
-        "params": [{"type": t.strip(), "name": n} for t, n in PARAM.findall(sig.group(3))],
-        "template_params": TEMPLATE_PARAM.findall(sig.group(1)),
+        "type": _text(node.child_by_field_name("type")),
+        "name": name.lstrip("&"),
+        "is_output": name.startswith("&"),
     }
+
+
+def parse_kernel(header):
+    """
+    The kernel class in this header, as
+    {name, template_params, params, deps}.
+
+    deps are the member instances, as {kernel, args, name}.
+    """
+    for node in _walk(_tree(header).root_node):
+        if node.type != "template_declaration":
+            continue
+        cls = next((c for c in node.children if c.type == "class_specifier"), None)
+        if cls is None:
+            continue
+
+        body = cls.child_by_field_name("body")
+        run = next((c for c in body.named_children if _method_name(c) == "run"), None)
+        if run is None:
+            continue
+
+        tparams = next(c for c in node.children if c.type == "template_parameter_list")
+        params = run.child_by_field_name("declarator").child_by_field_name("parameters")
+
+        return {
+            "name": _text(cls.child_by_field_name("name")),
+            "template_params": [_template_param(p) for p in tparams.named_children],
+            "params": [_parameter(p) for p in params.named_children],
+            "deps": _members(body),
+        }
+
+    raise Exception(f"No kernel class with a 'run' method in {header}")
+
+
+def _method_name(node):
+    if node.type != "function_definition":
+        return None
+    declarator = node.child_by_field_name("declarator")
+    return _text(declarator.child_by_field_name("declarator"))
+
+
+def _members(body):
+    "Member instances of other kernels, e.g. l0_int_add_impl<_FIELD::W> int_add_inst"
+    deps = []
+    for field in body.named_children:
+        if field.type != "field_declaration":
+            continue
+        type_node = field.child_by_field_name("type")
+        if type_node is None or type_node.type != "template_type":
+            continue
+        kernel = _text(type_node.child_by_field_name("name"))
+        if not kernel.endswith("_impl"):
+            continue
+        deps.append({
+            "kernel": kernel[:-len("_impl")],
+            "args": _text(type_node.child_by_field_name("arguments")).strip("<>").strip(),
+            "name": _text(field.child_by_field_name("declarator")),
+        })
+    return deps
+
+
+def _walk(node):
+    yield node
+    for child in node.children:
+        yield from _walk(child)

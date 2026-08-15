@@ -1,17 +1,18 @@
 #include "l1_mod_add_top.h"
 #include "tb_helper.h"
 
-#define FIXED_Q 0 // TODO: temporary
-
 vector<string> run_per_row(vector<string>& samples_row) {
   ac_int<BITWIDTH, false> x = parse_ac_int<BITWIDTH>(samples_row[0]);
   ac_int<BITWIDTH, false> y = parse_ac_int<BITWIDTH>(samples_row[1]);
-  ac_int<BITWIDTH, false> q = parse_ac_int<BITWIDTH>(samples_row[2]);
 
-#if FIXED_Q
-  ac_int<BITWIDTH+1, false> result = CCS_DESIGN(l1_mod_add)(x, y);
+  ac_int<BITWIDTH, false> result;
+  CCS_DESIGN(l1_mod_add_wrapper) dut;
+
+#if Q_TYPE == FIXED_Q
+  dut.run(x, y, result);
 #else
-  ac_int<BITWIDTH+1, false> result = CCS_DESIGN(l1_mod_add)(x, y, q);
+  ac_int<BITWIDTH, false> q = parse_ac_int<BITWIDTH>(samples_row[2]);
+  dut.run(x, y, q, result);
 #endif
 
   return {result.to_string(AC_DEC)};

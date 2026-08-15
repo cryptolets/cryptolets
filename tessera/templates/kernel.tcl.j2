@@ -1,5 +1,8 @@
 set root_dir {{ root_dir }}
 set kernel_name {{ kernel_name }}
+{% for name, path in tools.items() -%}
+set tool_{{ name }} {{ path | tcl }}
+{% endfor %}
 source {{ catapult_util_tcl }}
 source {{ catapult_init_tcl }}
 source {{ catapult_verify_tcl }}
@@ -9,7 +12,11 @@ source design.tcl
 {% for flag, value in flags.items() -%}
 set {{ flag }} {{ value | tcl }}
 {% endfor %}
-init_options
+init_options $tool_questa $tool_dc $tool_vivado
+# Cache per design. The shared cache keys a CCORE on its C++ alone, so two
+# designs that differ only in which RTL they blackbox reuse the same core.
+options set Cache/UserCacheHome [file join $design_build_dir ccore_cache]
+options set Cache/DefaultCacheHomeEnabled false
 project new
 solution rename $kernel_name
 {% for stage in stages %}
@@ -21,4 +28,7 @@ go {{ stage.name }}
 {% endif %}
 project save
 {% endfor %}
+# The BOM carries the CCORE's own area and delay. The metrics table reports
+# the wrapper's totals instead.
+solution report -filename [file join $design_build_dir ccore.rpt] -window false -bom true -timing true
 run_verify_rtl $verify_rtl $design_build_dir

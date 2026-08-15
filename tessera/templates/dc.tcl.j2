@@ -1,0 +1,53 @@
+# Design Compiler synthesis for {{ kernel }}
+# Packaged children are linked, not re-synthesized, so a large parent stays
+# within what DC can compile.
+
+set target_library {{ target_library }}
+set link_library {* {{ target_library }} dw_foundation.sldb standard.sldb}
+set synthetic_library {dw_foundation.sldb standard.sldb}
+
+define_design_lib WORK -path ./work
+
+# Unmapped cells are a broken netlist, not a warning
+set_message_info -id LINT-61 -stop_on
+set_message_info -id UID-3   -stop_on
+
+{% if children %}
+# Children keep their own synthesis, so DC will not flatten them
+{% for child in children %}
+read_ddc {{ child.ddc }}
+{% endfor %}
+set_dont_touch [get_designs { {{ children | map(attribute='name') | join(' ') }} }]
+{% endif %}
+
+analyze -format verilog {{ rtl }}
+elaborate {{ kernel }}
+current_design {{ kernel }}
+link
+
+read_sdc {{ sdc }}
+set auto_wire_load_selection false
+set_fix_multiple_port_nets -all -buffer_constants
+
+# Flatten Catapult's IO handshake wrappers
+set wait_ctrl [find -hierarchy cell {*_triosy_obj_inst *_synci_inst *_staller_inst *_rsci*_inst}]
+if {[llength $wait_ctrl] > 0} {
+    ungroup $wait_ctrl -flatten
+}
+
+compile_ultra -no_autoungroup
+
+check_design -unmapped -nosplit
+
+report_area -hierarchy -nosplit  > {{ report_dir }}/area.rpt
+report_qor                       > {{ report_dir }}/qor.rpt
+report_timing -nosplit           > {{ report_dir }}/timing.rpt
+report_power -hierarchy          > {{ report_dir }}/power.rpt
+report_resources -hierarchy      > {{ report_dir }}/resources.rpt
+
+write -format ddc     -hierarchy -output {{ out_dir }}/{{ kernel }}.ddc
+write -format verilog -hierarchy -output {{ out_dir }}/{{ kernel }}_gate.v
+write_sdc {{ out_dir }}/{{ kernel }}_gate.sdc
+write_sdf {{ out_dir }}/{{ kernel }}_gate.sdf
+
+exit
