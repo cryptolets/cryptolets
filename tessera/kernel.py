@@ -1,7 +1,7 @@
 "Kernel lookup and dependency resolution"
 from pathlib import Path
 
-import yaml
+from tessera.parse import parse_kernel
 
 KERNELS_DIR = Path('kernels')
 
@@ -19,6 +19,9 @@ def find_kernel(name, kernels_dir=KERNELS_DIR):
 def resolve_deps(kernel_path, kernels_dir=KERNELS_DIR, _seen=None, _stack=()):
     """
     Every kernel this kernel needs, directly or through another dep.
+
+    The deps are the members the author declared, so the implementation is
+    the only place they are written down.
     A kernel is always listed after the kernels it needs.
     """
     seen = [] if _seen is None else _seen
@@ -27,9 +30,9 @@ def resolve_deps(kernel_path, kernels_dir=KERNELS_DIR, _seen=None, _stack=()):
     if name in _stack:
         raise Exception(f"Dependency cycle: {' -> '.join((*_stack, name))}")
 
-    kernel_yaml = yaml.safe_load(Path(kernel_path, 'kernel.yaml').read_text())
-    for dep in kernel_yaml.get('deps') or []:
-        dep_path = find_kernel(dep, kernels_dir)
+    impl_spec = parse_kernel(Path(kernel_path, 'impl', f"{name}_impl.h"))
+    for dep in impl_spec['deps']:
+        dep_path = find_kernel(dep['kernel'], kernels_dir)
         if dep_path in seen:
             continue
         resolve_deps(dep_path, kernels_dir, seen, (*_stack, name))

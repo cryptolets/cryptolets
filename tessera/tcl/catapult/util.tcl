@@ -66,3 +66,13 @@ proc add_blackbox_rtl { design_build_dir } {
     }
     options set Input/CompilerFlags "[options get Input/CompilerFlags] -DBLACKBOX_FLOW"
 }
+
+# The scheduled latency is final at the schedule stage, so the design does
+# not have to run to extract to know how many cycles it takes.
+proc latency_is_one { design_build_dir } {
+    set latency [solution get /DATUM/FIELDS/timing/COLUMNS/tm_latency_cycles/VALUE]
+    set fp [open [file join $design_build_dir Catapult latency.txt] w]
+    puts $fp $latency
+    close $fp
+    return [expr {$latency <= 1}]
+}

@@ -3,8 +3,9 @@
 
 #include <ac_int.h>
 #include <mc_scverify.h>
-#include "{{ kernel }}.h"
+#include "{{ kernel }}_impl.h"
 
+{% if combinational %}
 class {{ kernel }} {
     {{ kernel }}_impl<{{ template_args }}> inst;
 
@@ -20,18 +21,39 @@ public:
     }
 };
 
-class {{ kernel }}_wrapper {
+class {{ kernel }}_top {
     {{ kernel }} core;
 
 public:
-    {{ kernel }}_wrapper() {}
+    {{ kernel }}_top() {}
 
     #pragma hls_design interface top
-    void CCS_BLOCK({{ kernel }}_wrapper, run)(
+    void CCS_BLOCK({{ kernel }}_top, run)(
 {% for p in ports %}        {{ p.type }} {{ "&" if p.ref }}{{ p.name }}{{ "," if not loop.last }}
 {% endfor %}    ) {
         core.run({{ ports | map(attribute='name') | join(', ') }});
     }
 };
+{% else %}
+class {{ kernel }} {
+    {{ kernel }}_impl<{{ template_args }}> inst;
+
+public:
+    {{ kernel }}() {}
+
+    #pragma hls_design interface top
+    void CCS_BLOCK({{ kernel }}, run)(
+{% for p in ports %}        {{ p.type }} {{ "&" if p.ref }}{{ p.name }}{{ "," if not loop.last }}
+{% endfor %}    ) {
+        inst.run({{ args | join(', ') }});
+    }
+};
+
+// The RTL module takes the class name, 
+// so the top is named after the kernel in both flows. 
+// But, the testbench always instantiates the _top name,
+// so we typedef the kernel with the _top suffix.
+typedef {{ kernel }} {{ kernel }}_top;
+{% endif %}
 
 #endif /* _{{ kernel | upper }}_TOP_H_ */

@@ -1,6 +1,6 @@
-# Design Compiler synthesis for {{ kernel }}
-# Packaged children are linked, not re-synthesized, so a large parent stays
-# within what DC can compile.
+# Tessera Design Compiler synthesis for {{ kernel }}
+
+set_host_options -max_cores {{ max_cores }}
 
 set target_library {{ target_library }}
 set link_library {* {{ target_library }} dw_foundation.sldb standard.sldb}
@@ -11,23 +11,30 @@ define_design_lib WORK -path ./work
 # Unmapped cells are a broken netlist, not a warning
 set_message_info -id LINT-61 -stop_on
 set_message_info -id UID-3   -stop_on
+set_message_info -id RPT-7   -stop_on
 
 {% if children %}
-# Children keep their own synthesis, so DC will not flatten them
+# Children keep their own synthesis, so DC links them instead of flattening.
 {% for child in children %}
 read_ddc {{ child.ddc }}
 {% endfor %}
-set_dont_touch [get_designs { {{ children | map(attribute='name') | join(' ') }} }]
+set_dont_touch [get_designs { {{ children | map(attribute='entity') | join(' ') }} }]
 {% endif %}
 
+# Catapult's own IO and datapath components, which the RTL instantiates
+{% for lib in siflibs %}
+analyze -format verilog {{ lib }}
+{% endfor %}
+
 analyze -format verilog {{ rtl }}
-elaborate {{ kernel }}
-current_design {{ kernel }}
+elaborate {{ entity }}
+current_design {{ entity }}
 link
 
+set_multi_vth_constraint -reset
+set_fix_multiple_port_nets -all -buffer_constants
 read_sdc {{ sdc }}
 set auto_wire_load_selection false
-set_fix_multiple_port_nets -all -buffer_constants
 
 # Flatten Catapult's IO handshake wrappers
 set wait_ctrl [find -hierarchy cell {*_triosy_obj_inst *_synci_inst *_staller_inst *_rsci*_inst}]
@@ -35,19 +42,23 @@ if {[llength $wait_ctrl] > 0} {
     ungroup $wait_ctrl -flatten
 }
 
+set_multi_vth_constraint -reset
 compile_ultra -no_autoungroup
 
 check_design -unmapped -nosplit
 
-report_area -hierarchy -nosplit  > {{ report_dir }}/area.rpt
-report_qor                       > {{ report_dir }}/qor.rpt
-report_timing -nosplit           > {{ report_dir }}/timing.rpt
-report_power -hierarchy          > {{ report_dir }}/power.rpt
-report_resources -hierarchy      > {{ report_dir }}/resources.rpt
+redirect -file {{ report_dir }}/area.rpt      { report_area -hierarchy -designware -nosplit }
+redirect -file {{ report_dir }}/qor.rpt       { report_qor }
+redirect -file {{ report_dir }}/timing.rpt    { report_timing -nosplit }
+redirect -file {{ report_dir }}/power.rpt     { report_power -hierarchy }
+redirect -file {{ report_dir }}/resources.rpt { report_resources -hierarchy }
 
-write -format ddc     -hierarchy -output {{ out_dir }}/{{ kernel }}.ddc
-write -format verilog -hierarchy -output {{ out_dir }}/{{ kernel }}_gate.v
-write_sdc {{ out_dir }}/{{ kernel }}_gate.sdc
-write_sdf {{ out_dir }}/{{ kernel }}_gate.sdf
+write -format ddc     -hierarchy -output {{ syn_dir }}/{{ kernel }}.ddc
+write -format verilog -hierarchy -output {{ syn_dir }}/{{ kernel }}_gate.v
+write_sdc {{ syn_dir }}/{{ kernel }}_gate.sdc
+write_sdf {{ syn_dir }}/{{ kernel }}_gate.sdf
+
+# qor summary for package
+redirect -file {{ syn_dir }}/qor.rpt { report_qor }
 
 exit

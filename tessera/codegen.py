@@ -82,26 +82,39 @@ def _top_ports(impl, design):
     return ports, args
 
 
-def gen_kernel_top(design, kernel_name, kernel_path, design_build_dir):
-    "Generate the top header and the source file Catapult synthesizes"
-    header = kernel_path / 'impl' / f"{kernel_name}.h"
-    impl = parse_kernel(header)
-    if impl['name'] != f"{kernel_name}_impl":
+def read_impl_spec(kernel_name, kernel_path):
+    "The kernel class the author wrote, parsed once for every generator"
+    header = kernel_path / 'impl' / f"{kernel_name}_impl.h"
+    impl_spec = parse_kernel(header)
+    if impl_spec['name'] != f"{kernel_name}_impl":
         raise Exception(
-            f"{header} defines '{impl['name']}', expected '{kernel_name}_impl'")
+            f"{header} defines '{impl_spec['name']}', expected '{kernel_name}_impl'")
+    return impl_spec
 
-    ports, args = _top_ports(impl, design)
+
+def gen_kernel_top(
+    design, kernel_name, impl_spec, design_build_dir,
+    combinational=False # default is sequential
+):
+    """
+    Generate the top header and the source file Catapult synthesizes.
+    A combinational kernel is a CCORE inside a wrapper.
+    A sequential kernel is the top itself.
+    """
+    ports, args = _top_ports(impl_spec, design)
     ctx = dict(
         kernel=kernel_name,
         ports=ports,
         args=args,
-        template_args=", ".join(to_macro(p) for p in impl['template_params']),
+        combinational=combinational,
+        template_args=", ".join(to_macro(p) for p in impl_spec['template_params']),
     )
 
     render("kernel_top.h.j2", design_build_dir / 'include' / f'{kernel_name}_top.h', **ctx)
-    render("kernel.cpp.j2", design_build_dir / 'src' / f'{kernel_name}.cpp', **ctx)
+    render("kernel.cpp.j2", design_build_dir / 'src' / f'{kernel_name}_top.cpp', **ctx)
 
-def gen_catapult_design_tcl(design, design_name, design_build_dir):
+def gen_catapult_design_tcl(design, kernel_name, design_name, design_build_dir,
+                            comb_chk=False, combinational=False):
     # Catapult supplies some libraries itself, so lib_file can be empty
     tech = RunConfig.load().tech[design['tech_type']].model_dump()
     tech = {k: str(Path(v).expanduser()) if v and k.endswith(('_path', '_file')) else (v or "")
@@ -114,6 +127,9 @@ def gen_catapult_design_tcl(design, design_name, design_build_dir):
         design_build_dir=design_build_dir.resolve(),
         design=design,
         tech=tech,
+        comb_chk=comb_chk,
+        # A combinational kernel is a CCORE inside a top of its own
+        top_class=f"{kernel_name}_top" if combinational else kernel_name,
     )
 
 
@@ -136,7 +152,7 @@ def _stage_bodies(kernel_name, kernel_path, root_dir):
         "options set Input/SearchPath [file join $design_build_dir blackbox] -append",
         "options set Input/SearchPath {\n" + include_paths_str + "\n} -append",
         "options set Input/SearchPath [file join $design_build_dir include] -append",
-        "solution file add [file join $design_build_dir src " + f"{kernel_name}.cpp]",
+        "solution file add [file join $design_build_dir src " + f"{kernel_name}_top.cpp]",
         "add_blackbox_rtl $design_build_dir",
         f"solution file add [file join {(Path(kernel_path) / f'{kernel_name}_tb.cpp').resolve()}] -exclude true",
         f"solution file add [file join {(verify_cpp_src_path / 'csvparser.cpp').resolve()}] -exclude true",
@@ -144,26 +160,23 @@ def _stage_bodies(kernel_name, kernel_path, root_dir):
     ]
 
     compile_stage = [
-        f"solution design set {kernel_name}_wrapper.run -top",
+        # A combinational kernel wraps its CCORE, so the top class differs
+        "solution design set $top_class.run -top",
         "directive set -CCORE_POINTS 1",
-        # A chain of blackboxed deps can take longer than one cycle, and
-        # Catapult will not schedule it at all unless multicycle is allowed.
-        "directive set -SCHED_USE_MULTICYCLE true",
         "directive set -DESIGN_GOAL latency",
         "directive set -OUTPUT_REGISTERS false",
-        "directive set -OPT_CONST_MULTS full",
     ]
 
     libraries_stage = [
         "run_osci_test $test_cpp $test_cpp_only $design_build_dir",
-        "set_tech_lib $tech_type $root_dir $tech_lib_path $tech_lib_name $tech_vendor $tech_technology $tech_catapult_lib_file",
+        "set_tech_lib $tech_type $root_dir $tech_lib_path $tech_catapult_lib_name $tech_vendor $tech_technology $tech_catapult_lib_file",
         "set_clock $period",
     ]
 
     return {'analyze': analyze_stage, 'compile': compile_stage, 'libraries': libraries_stage}
 
 
-def gen_catapult_kernel_tcl(sweep_conf, kernel_name, kernel_path, kernel_build_dir, root_dir):
+def gen_catapult_kernel_tcl(sweep_flags, kernel_name, kernel_path, kernel_build_dir, root_dir):
     kernel_yaml = yaml.safe_load(Path(kernel_path, 'kernel.yaml').read_text())
 
     bodies = _stage_bodies(kernel_name, kernel_path, root_dir)
@@ -187,7 +200,7 @@ def gen_catapult_kernel_tcl(sweep_conf, kernel_name, kernel_path, kernel_build_d
         catapult_util_tcl=Path(root_dir, 'tessera', 'tcl', 'catapult', 'util.tcl').resolve(),
         catapult_init_tcl=Path(root_dir, 'tessera', 'tcl', 'catapult', 'init.tcl').resolve(),
         catapult_verify_tcl=Path(root_dir, 'tessera', 'tcl', 'catapult', 'verify.tcl').resolve(),
-        flags=sweep_conf['flags'],
+        flags=sweep_flags,
         stages=stages,
         tools={k: str(Path(v).expanduser()) for k, v in RunConfig.load().tools.items()},
     )

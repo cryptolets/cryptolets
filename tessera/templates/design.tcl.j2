@@ -1,5 +1,8 @@
 set design_name {{ design_name }}
 set design_build_dir {{ design_build_dir }}
+# Stop after schedule, so the latency can decide combinational or sequential
+set comb_chk {{ comb_chk | tcl }}
+set top_class {{ top_class }}
 {% for param, value in design.items() -%}
 set {{ param }} {{ value | tcl }}
 {% endfor %}

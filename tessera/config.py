@@ -19,13 +19,20 @@ def curves():
 
 class Flags(BaseModel):
     syn: bool = False
+    gls: bool = False
     test_cpp: bool = True
     verify_rtl: bool = False
     test_cpp_only: bool = False
     num_test_samples: int = 10
 
     @model_validator(mode="after")
-    def _rtl_verify_needs_cpp(self):
+    def _enable_what_each_stage_needs(self):
+        # Gate level simulation runs the RTL testbench against the synthesized
+        # netlist, so it needs both a netlist and that testbench
+        if self.gls:
+            self.syn = True
+            self.verify_rtl = True
+
         # RTL verification reuses the samples and goldens that the C++ test generates
         if self.verify_rtl:
             self.test_cpp = True
@@ -103,10 +110,17 @@ class KernelConfig(BaseModel):
 
 class Tech(BaseModel):
     lib_path: str
-    lib_name: str
+    catapult_lib_name: str
+    lib_db: str
     vendor: str
     technology: str
     catapult_lib_file: Optional[str] = None
+    # Behavioural models of the cells, which gate level simulation needs to
+    # know what a cell does. A tech without them cannot run one.
+    lib_verilog: Optional[str] = None
+    # Vendor macros the models are compiled with. ARM needs its unknown squash,
+    # or the cells hold X and the first transaction compares as a wrong answer.
+    lib_verilog_defines: str = ""
 
 
 class RunConfig(BaseModel):

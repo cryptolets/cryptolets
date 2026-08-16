@@ -70,7 +70,7 @@ sweep:
 
 flags:
   syn: false              # synthesize RTL
-  syn_sel: pareto      # all, pareto, small_fast (smallest and fastest)
+  syn_sel: all      # all, pareto, small_fast (smallest and fastest)
   test_cpp: true          # test C++ code
   verify_rtl: true        # verify RTL
   test_cpp_only: false    # only test C++ code with osci

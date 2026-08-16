@@ -6,7 +6,7 @@ vector<string> run_per_row(vector<string>& samples_row) {
   ac_int<BITWIDTH, false> y = parse_ac_int<BITWIDTH>(samples_row[1]);
 
   ac_int<BITWIDTH, false> result;
-  CCS_DESIGN(l1_mod_add_wrapper) dut;
+  CCS_DESIGN(l1_mod_add_top) dut;
 
 #if Q_TYPE == FIXED_Q
   dut.run(x, y, result);

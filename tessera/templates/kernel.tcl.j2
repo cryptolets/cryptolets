@@ -26,6 +26,10 @@ solution rename $kernel_name
 go {{ stage.name }}
 {% if stage.save_table %}save_table [file join $design_build_dir metrics.csv]
 {% endif %}
+{% if stage.name == "schedule" %}# A kernel that schedules in one cycle holds no state, so it is worth
+# rebuilding as a combinational CCORE. Anything else continues as it is.
+if {$comb_chk && [latency_is_one $design_build_dir]} { exit 2 }
+{% endif %}
 project save
 {% endfor %}
 # The BOM carries the CCORE's own area and delay. The metrics table reports

@@ -1,16 +1,8 @@
-# Direct dependencies
-deps:
-  - l0_int_add
-  - l0_int_sub
-
 # Reuse each dep's packaged RTL instead of synthesizing it again
 blackbox: true
 
 # Kernel specific stage scripts
 stages:
   compile: |
-    directive set -DESIGN_GOAL latency
-    directive set -OUTPUT_REGISTERS false
-    directive set -OPT_CONST_MULTS full
     set_ii $ii
     adder_tree_opt $tech_type

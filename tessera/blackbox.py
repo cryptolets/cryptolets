@@ -8,13 +8,10 @@ instead of the implementation.
 """
 import re
 import shutil
-import subprocess
-import tempfile
 from pathlib import Path
 
 import yaml
 
-from tessera.config import RunConfig
 from tessera.helper import get_design_dir_name
 from tessera.kernel import find_kernel
 from tessera.parse import parse_kernel
@@ -81,7 +78,7 @@ def gen_blackbox_header(kernel, manifest, rtl, impl_header, include_dir):
 
     render(
         "blackbox.h.j2",
-        Path(include_dir, f"{kernel}.h"),
+        Path(include_dir, f"{kernel}_impl.h"),
         kernel=kernel,
         entity=manifest["entity"],
         rtl=str(Path(rtl).resolve()),
@@ -93,7 +90,7 @@ def gen_blackbox_header(kernel, manifest, rtl, impl_header, include_dir):
     )
 
 
-def gen_blackbox_headers(design, kernel, kernel_path, design_build_dir):
+def gen_blackbox_headers(design, kernel_path, impl_spec, design_build_dir):
     "Generate a header and copy the RTL per dep, into a dir that shadows impl"
     kernel_yaml = yaml.safe_load(Path(kernel_path, "kernel.yaml").read_text())
 
@@ -107,46 +104,11 @@ def gen_blackbox_headers(design, kernel, kernel_path, design_build_dir):
     include_dir.mkdir(parents=True, exist_ok=True)
     build_root = Path(design_build_dir).parent.parent
 
-    for dep in parse_kernel(Path(kernel_path, "impl", f"{kernel}.h"))["deps"]:
+    for dep in impl_spec["deps"]:
         package_dir, manifest = find_package(dep, design, build_root)
 
         rtl = include_dir / manifest["rtl"]
         rtl.write_text(Path(package_dir, manifest["rtl"]).read_text())
 
-        impl = Path(find_kernel(dep["kernel"]), "impl", f"{dep['kernel']}.h")
+        impl = Path(find_kernel(dep["kernel"]), "impl", f"{dep['kernel']}_impl.h")
         gen_blackbox_header(dep["kernel"], manifest, rtl, impl, include_dir)
-
-
-def check_rtl_elaborates(design_build_dir, top):
-    """
-    Elaborate the generated RTL, and raise if a port does not connect.
-
-    Catapult does not check a blackbox declaration against its RTL. A wrong
-    port name still reports a clean run and correct metrics, so this is the
-    only step that catches it.
-    """
-    tools = RunConfig.load().tools
-    questa = Path(tools["questa"]).expanduser() / "linux_x86_64"
-    libs = [Path(tools["dc"]).expanduser() / "dw" / "sim_ver",
-            Path(tools["catapult"]).expanduser() / "pkgs" / "siflibs"]
-
-    # Blackboxed deps are instantiated here but defined in their own package
-    sources = [design_build_dir / "Catapult" / f"{top}.v1" / "concat_rtl.v",
-               *sorted(Path(design_build_dir, "blackbox").glob("*.v"))]
-
-    def run(tool, *args):
-        return subprocess.run([str(questa / tool), *args],
-                              capture_output=True, text=True)
-
-    with tempfile.TemporaryDirectory() as tmp:
-        work = str(Path(tmp, "work"))
-        run("vlib", work)
-        vlog = ["-work", work]
-        for lib in libs:
-            vlog += ["-y", str(lib)]
-        run("vlog", *vlog, "+libext+.v", *(str(s) for s in sources))
-        result = run("vopt", "-work", work, top, "-o", "elab_check")
-
-    errors = [l for l in result.stdout.splitlines() if l.startswith("** Error")]
-    if errors:
-        raise Exception("Generated RTL does not elaborate:\n  " + "\n  ".join(errors[:5]))

@@ -3,8 +3,8 @@
 
 #include <ac_int.h>
 #include "params.h"
-#include "l0_int_add.h"
-#include "l0_int_sub.h"
+#include "l0_int_add_impl.h"
+#include "l0_int_sub_impl.h"
 
 template<class _FIELD>
 class l1_mod_add_impl {

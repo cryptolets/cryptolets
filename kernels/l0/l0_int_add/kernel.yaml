@@ -1,6 +1,3 @@
-# Direct dependencies
-deps: []
-
 # Kernel specific stage scripts
 stages:
   compile: |

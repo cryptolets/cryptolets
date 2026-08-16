@@ -25,11 +25,12 @@ def app():
 @click.argument('kernel')
 @click.option('--threads', '-t', default=run_conf.get('total_threads', 8), type=int, help='Total number of threads.')
 @click.option('--threads-per-process', '-p', default=run_conf.get('threads_per_process', 1), type=int, help='Threads per process.')
-@click.option('--sweep', '-s', type=str, help='Sweep file.')
+@click.option('--sweep', '-s', type=str, required=True, help='Sweep file.')
 @click.option('--run-only', is_flag=True, default=run_conf.get('run_only', False), help='Run using existing flattened sweep configuration from build dir.')
 @click.option('--dry-run', is_flag=True, default=run_conf.get('dry_run', False), help='Only generate flattened sweep configuration and exit.')
+@click.option('--dc-only', is_flag=True, default=run_conf.get('dc_only', False), help='Run Design Compiler on an existing Catapult build.')
 @click.option('--gui-mode', is_flag=True, default=run_conf.get('gui_mode', False), help='Interactive GUI mode.')
-def run(kernel, threads, threads_per_process, sweep, run_only, dry_run, gui_mode):
+def run(kernel, threads, threads_per_process, sweep, run_only, dry_run, dc_only, gui_mode):
     core.run(
         kernel=kernel,
         threads=threads,
@@ -37,6 +38,7 @@ def run(kernel, threads, threads_per_process, sweep, run_only, dry_run, gui_mode
         sweep=sweep,
         run_only=run_only,
         dry_run=dry_run,
+        dc_only=dc_only,
         gui_mode=gui_mode,
     )
 
