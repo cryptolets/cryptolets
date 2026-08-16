@@ -1,3 +1,7 @@
+# The parameters that decide what this computes, so only designs that
+# could replace one another are compared
+kernel_key: [bitwidth, curve, field, q_type]
+
 # Reuse each dep's packaged RTL instead of synthesizing it again
 blackbox: true
 

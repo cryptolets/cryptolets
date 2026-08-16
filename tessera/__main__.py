@@ -3,6 +3,7 @@ import click
 import yaml
 import logging
 
+from tessera import analyze as analysis
 from tessera import core
 from tessera import scaffold
 
@@ -44,8 +45,25 @@ def run(kernel, threads, threads_per_process, sweep, run_only, dry_run, dc_only,
 
 @app.command()
 @click.argument('kernel')
-def analyze(kernel):
-    pass
+@click.option('--where', '-w', multiple=True, metavar='PARAM=VALUE',
+              help='Only show designs with this parameter, repeatable.')
+@click.option('--csv', type=click.Path(), help='Also write the rows to this file.')
+@click.option('--all-columns', is_flag=True, help='Show columns that hold nothing.')
+def analyze(kernel, where, csv, all_columns):
+    "Show what a sweep measured, one row per design"
+    filters = dict(pair.split('=', 1) for pair in where)
+
+    rows = analysis.where(analysis.collect(Path(core.BUILD_DIR, kernel)), filters)
+    if not all_columns:
+        rows = analysis.drop_empty_columns(rows)
+    rows = analysis.order_columns(rows)
+
+    click.echo(analysis.table(rows))
+    if rows:
+        click.echo(f"\n{len(rows)} design{'s' if len(rows) > 1 else ''}")
+    if csv:
+        analysis.write_csv(rows, csv)
+        click.echo(f"CSV written to {csv}")
 
 @app.command()
 @click.argument('kernel')

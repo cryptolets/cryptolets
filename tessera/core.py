@@ -1,14 +1,13 @@
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor
 from functools import partial
-import yaml
 import json
 import subprocess
 import uuid
 import logging
 import time
 
-from tessera.config import SweepConfig, RunConfig
+from tessera.config import SweepConfig, RunConfig, KernelConfig
 from tessera.helper import get_design_dir_name
 from tessera.kernel import find_kernel
 from tessera.sweep import flatten_sweep
@@ -17,10 +16,12 @@ from tessera.samples import call_gen_samples
 from tessera.codegen import \
     gen_catapult_design_tcl, gen_catapult_kernel_tcl, \
     gen_params_h, gen_kernel_top, read_impl_spec
-from tessera.package import write_package
+from tessera.package import write_package, update_manifest
 from tessera.blackbox import gen_blackbox_headers
-from tessera.syn import gen_dc_tcl
+from tessera.syn import gen_dc_tcl, read_dc_power
 from tessera.gls import gen_gls_makefile, run_gls
+from tessera.power import gen_power_tcl, read_power
+from tessera.select import select_designs
 
 BUILD_DIR = Path('build')
 
@@ -83,8 +84,7 @@ def gen_kernel_files(design, kernel, kernel_path, kernel_build_dir, impl_spec, s
     design_name = get_design_dir_name(design)
     design_build_dir = Path(kernel_build_dir, design_name)
 
-    # If a prior Catapult project exists, move it to a prior_catapult directory
-    # and give it a unique name
+    # A finished run is kept, so the next one starts from clean sources
     if design_build_dir.exists():
         archive_run(design_build_dir)
     else:
@@ -99,33 +99,25 @@ def gen_kernel_files(design, kernel, kernel_path, kernel_build_dir, impl_spec, s
     gen_catapult_design_tcl(design, kernel, design_name, design_build_dir, comb_chk=True)
 
 
-# Run Catapult per designs in parallel
 def catapult_worker(design, kernel, kernel_build_dir, impl_spec):
     design_name = get_design_dir_name(design)
     logging.info(f"Running Catapult for {design_name}")
     design_build_dir = Path(kernel_build_dir, design_name)
     start_time = time.time()
 
-    # Build sequential first, since most kernels are sequential.
-    # A kernel that schedules in one cycle stops there and is rebuilt as combinational.
-    # This allows us to push for lower latency designs.
-
+    # A kernel that schedules in one cycle is rebuilt as combinational, which
+    # gives a lower latency design than a sequential one would
     return_code = run_catapult(kernel_build_dir, design_build_dir)
 
-    # The script generates a latency.txt file which tells us
-    # if the design schedules in one cycle and should be rebuilt as combinational.
     latency_fp = design_build_dir / "Catapult" / "latency.txt"
     combinational = (return_code == COMB_CHK_EXIT and latency_fp.exists()
                      and int(latency_fp.read_text()) <= 1)
 
-    # If design is deemed combinational, rebuild it.
     if combinational:
         logging.info(f"{design_name} schedules in one cycle, rebuilding as combinational")
 
-        # the prev sequential proj is archived with a label comb_chk_
         archive_run(design_build_dir, label="comb_chk_")
 
-        # Regenerate the kernel top and design TCL for the combinational design flow
         gen_kernel_top(design, kernel, impl_spec, design_build_dir, combinational=True)
         gen_catapult_design_tcl(design, kernel, design_name, design_build_dir,
                                 combinational=True)
@@ -145,7 +137,7 @@ def dc_worker(design, kernel, kernel_path, kernel_build_dir, impl_spec, max_core
 
     # A blackboxed dep was synthesized on its own, so the script links that
     # result rather than compiling the dep again
-    gen_dc_tcl(design, kernel, impl_spec, kernel_path, design_build_dir, max_cores)
+    entity = gen_dc_tcl(design, kernel, impl_spec, kernel_path, design_build_dir, max_cores)
 
     if dry_run:
         logging.info(f"  would run Design Compiler for {design_name}")
@@ -169,6 +161,10 @@ def dc_worker(design, kernel, kernel_path, kernel_build_dir, impl_spec, max_core
         )
 
     log_elapsed("Design Compiler", design_name, result.returncode, start_time)
+    if result.returncode == 0:
+        power = read_dc_power(design_build_dir, entity)
+        if power:
+            update_manifest(design_build_dir, power_dc=power)
 
 
 def gls_worker(design, kernel, kernel_build_dir, dry_run=False):
@@ -200,6 +196,41 @@ def gls_worker(design, kernel, kernel_build_dir, dry_run=False):
     log_elapsed("Gate level simulation", design_name, 0 if passed else 1, start_time)
 
 
+def power_worker(design, kernel, kernel_build_dir, max_cores, dry_run=False):
+    design_name = get_design_dir_name(design)
+    design_build_dir = Path(kernel_build_dir, design_name)
+    start_time = time.time()
+
+    archive_run(design_build_dir, dirs=("power",))
+    power_dir = design_build_dir / "power"
+    gen_power_tcl(design, kernel, design_build_dir, power_dir, max_cores)
+
+    if dry_run:
+        logging.info(f"  would measure power for {design_name}")
+        return
+
+    logging.info(f"Running PrimeTime for {design_name}")
+
+    # PrimeTime reports PT-063 at startup, because this install has no Library
+    # Compiler beside it. It reads the compiled library regardless.
+    pt_shell = Path(RunConfig.load().tools["prime"]).expanduser() / "bin" / "pt_shell"
+
+    log_path = power_dir / "power.tessera.log"
+    with log_path.open("w") as log:
+        result = subprocess.run(
+            [str(pt_shell), "-f", str((power_dir / "power.tcl").resolve())],
+            cwd=power_dir,
+            stdout=log,
+            stderr=subprocess.STDOUT,
+        )
+
+    log_elapsed("PrimeTime", design_name, result.returncode, start_time)
+    if result.returncode == 0:
+        power = read_power(power_dir)
+        update_manifest(design_build_dir, power=power)
+        logging.info(f"  {design_name} uses {power['total'] * 1e6:.1f} uW")
+
+
 def run(kernel, threads, threads_per_process, sweep, run_only, dry_run, dc_only, gui_mode):
     kernel_build_dir = Path(BUILD_DIR, kernel)
     flattened_path = kernel_build_dir / 'flattened_sweep_config.json'
@@ -210,7 +241,7 @@ def run(kernel, threads, threads_per_process, sweep, run_only, dry_run, dc_only,
         f"  missing: {flattened_path}"
 
     kernel_path = find_kernel(kernel)
-    kernel_conf = yaml.safe_load(Path(kernel_path / 'kernel.yaml').read_text())
+    kernel_conf = KernelConfig.load(kernel_path)
     impl_spec = read_impl_spec(kernel, kernel_path)
 
     # Create build directory to store ephemeral build files
@@ -261,8 +292,9 @@ def run(kernel, threads, threads_per_process, sweep, run_only, dry_run, dc_only,
                                       impl_spec=impl_spec),
                   flattened_sweep, num_workers, license="catapult_ultra")
 
-    # TODO: Select Designs (all, pareto, smallest, fastest)
     if sweep_flags['syn']:
+        flattened_sweep = select_designs(flattened_sweep, kernel_build_dir,
+                                         sweep_flags['syn_sel'], kernel_conf.kernel_key)
         run_phase("Design Compiler", partial(dc_worker, kernel=kernel,
                                              kernel_path=kernel_path,
                                              kernel_build_dir=kernel_build_dir,
@@ -277,5 +309,13 @@ def run(kernel, threads, threads_per_process, sweep, run_only, dry_run, dc_only,
                                                    kernel_build_dir=kernel_build_dir,
                                                    dry_run=dry_run),
                   flattened_sweep, num_workers, dry_run=dry_run)
+
+    # Power is measured from the activity that simulation recorded
+    if sweep_flags['power']:
+        run_phase("PrimeTime", partial(power_worker, kernel=kernel,
+                                       kernel_build_dir=kernel_build_dir,
+                                       max_cores=threads_per_process,
+                                       dry_run=dry_run),
+                  flattened_sweep, num_workers, license="prime_power", dry_run=dry_run)
 
     # TODO: Externel flows (vcs -> primepower, fpga = vivado)

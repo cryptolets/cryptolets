@@ -19,7 +19,11 @@ def curves():
 
 class Flags(BaseModel):
     syn: bool = False
+    # Which designs are worth synthesizing, since synthesis costs far more than
+    # the high level run that estimated them
+    syn_sel: Literal["all", "pareto", "small_fast"] = "all"
     gls: bool = False
+    power: bool = False
     test_cpp: bool = True
     verify_rtl: bool = False
     test_cpp_only: bool = False
@@ -27,6 +31,10 @@ class Flags(BaseModel):
 
     @model_validator(mode="after")
     def _enable_what_each_stage_needs(self):
+        # Power is measured from the activity a gate level simulation records
+        if self.power:
+            self.gls = True
+
         # Gate level simulation runs the RTL testbench against the synthesized
         # netlist, so it needs both a netlist and that testbench
         if self.gls:
@@ -102,6 +110,11 @@ class SweepConfig(BaseModel):
 class KernelConfig(BaseModel):
     deps: list[str] = []
     stages: dict[str, str] = {}
+    blackbox: bool = False
+    # The parameters that decide what the kernel computes, rather than how. Two
+    # designs are only worth comparing when one could replace the other, so a
+    # frontier is found within each set of these.
+    kernel_key: list[str] = []
 
     @classmethod
     def load(cls, kernel_path):

@@ -81,6 +81,20 @@ def find_rtl(kernel, design, design_build_dir, combinational):
             read_design_metrics(design_build_dir / "metrics.csv", design["period"]))
 
 
+def update_manifest(design_build_dir, **results):
+    """
+    Add a later stage's results to the package.
+
+    Catapult writes the manifest when it packages the RTL, and synthesis and
+    power add what they measured, so one file describes the finished design.
+    """
+    path = Path(design_build_dir, "package", "manifest.yaml")
+    manifest = yaml.safe_load(path.read_text())
+    manifest.update(results)
+    path.write_text(yaml.safe_dump(manifest, sort_keys=False))
+    return manifest
+
+
 def write_package(kernel, design, design_build_dir, combinational):
     "Write the kernel's RTL and manifest into the design's package dir"
     rtl_path, metrics = find_rtl(kernel, design, design_build_dir, combinational)

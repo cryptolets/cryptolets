@@ -30,8 +30,8 @@ def gen_gls_makefile(kernel, design_build_dir, gls_dir, lib_verilog, lib_defines
     Write the makefile that simulates the netlist, and return its path.
 
     The dependency line for the design's slot names Catapult's RTL, so pointing
-    it at the netlist is the whole substitution. For a combinational kernel that
-    slot holds the CCORE and the wrapper around it stays RTL.
+    it at the DC netlist makes it work for gate level simulation. 
+    For a combinational kernel we use the CCORE's netlist, so the wrapper around it stays RTL.
     """
     src = Path(design_build_dir, "Catapult", f"{kernel}.v1",
                "scverify", "Verify_rtl_v_msim.mk")
@@ -74,9 +74,6 @@ def gen_gls_makefile(kernel, design_build_dir, gls_dir, lib_verilog, lib_defines
 def run_gls(kernel, design_build_dir, gls_dir, makefile, questa_home):
     """
     Simulate the netlist, and return whether it matched the golden outputs.
-
-    The makefile names its sources relative to the Catapult solution, so that is
-    where make runs. The VCD it writes is the switching activity a power run reads.
     """
     env = {
         **os.environ,

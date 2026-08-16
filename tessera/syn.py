@@ -5,6 +5,7 @@ A blackboxed dep was already synthesized on its own, so the parent reads that
 result instead of compiling the dep again. This keeps a large design within
 what DC can handle, and keeps its runtime close to the parent's own logic.
 """
+import re
 from pathlib import Path
 
 import yaml
@@ -46,6 +47,35 @@ def child_designs(design, impl_spec, kernel_path, build_root):
     return children
 
 
+def read_dc_power(design_build_dir, entity):
+    """
+    The power Design Compiler estimated, in watts.
+
+    This is what the design would use if every net switched as often as the tool
+    assumes. A power run measures the real figure instead. The report mixes its
+    units, giving dynamic power in mW and leakage in uW.
+    """
+    report = Path(design_build_dir, "dc_reports", "power.rpt")
+    if not report.exists():
+        return None
+
+    # The entity also names a row in the wire load table, so match the one
+    # whose columns are numbers
+    row = re.search(rf"^{re.escape(entity)}\s+([\d.e+-]+)\s+([\d.e+-]+)\s+([\d.e+-]+)\s",
+                    report.read_text(), re.M)
+    if not row:
+        return None
+
+    switching, internal, leakage = (float(v) for v in row.groups())
+    return {
+        "switching": switching * 1e-3,
+        "internal": internal * 1e-3,
+        "leakage": leakage * 1e-6,
+        # The reported total rounds the mixed units, so it is summed here instead
+        "total": (switching + internal) * 1e-3 + leakage * 1e-6,
+    }
+
+
 def gen_dc_tcl(design, kernel, impl_spec, kernel_path, design_build_dir, max_cores):
     "Write the Design Compiler script for one design"
     conf = RunConfig.load()
@@ -74,3 +104,4 @@ def gen_dc_tcl(design, kernel, impl_spec, kernel_path, design_build_dir, max_cor
         syn_dir=str(syn_dir(package_dir).resolve()),
         report_dir=str(report_dir.resolve()),
     )
+    return manifest["entity"]

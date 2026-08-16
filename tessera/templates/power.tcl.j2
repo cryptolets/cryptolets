@@ -1,0 +1,20 @@
+set power_enable_analysis true
+set power_analysis_mode time_based
+
+set_host_options -max_cores {{ max_cores }}
+set link_library "* {{ target_library }}"
+
+read_verilog {{ netlist }}
+link_design {{ entity }}
+
+read_sdc {{ sdc }}
+update_timing
+
+# The activity comes from a zero delay simulation, so PrimeTime is told not to
+# expect annotated delays. The path is where the design sits in the testbench.
+read_vcd {{ vcd }} -zero_delay -strip_path {{ dut_path }}
+
+update_power
+report_power > power.rpt
+report_power -verbose -hier -nosplit -sort_by name > power.hier.rpt
+exit
