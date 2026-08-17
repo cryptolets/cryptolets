@@ -1,14 +1,8 @@
 ![Tessera](imgs/mosaic.jpg)
 
-# Tessera: A Framework for Cryptographic Hardware Kernels
+# [WIP] Tessera: A Framework for Cryptographic Hardware Kernels
 
-Tessera is a framework for design space exploration over a library of
-cryptographic kernels, from integer and modular arithmetic to elliptic curve
-point operations. You write a kernel once in C++. Tessera builds every point in
-a sweep through high level synthesis, logic synthesis, gate level simulation and
-power analysis, then collects what each design measured into one table.
-
-Tessera is under the Cryptolets project.
+Tessera is a fully automated design space exploration (DSE) framework for cryptographic hardware kernels, covering integer and modular arithmetic through elliptic curve point operations; kernels that dominate Zero-Knowledge Proofs (ZKPs) and Fully Homomorphic Encryption (FHE). A kernel is specified once in HLS C\++, and a sweep as a set of parameter values. Each combination is built through high level synthesis (HLS), logic synthesis and power analysis. A single testbench verifies the design at the C++, RTL and gate level against a reference implementation of the arithmetic, and the resulting area, latency and power measurements are collected into one table. Together these define a highly productive methodology for hardware DSE of cryptographic kernels.
 
 ## Setup
 
@@ -23,11 +17,11 @@ Tessera is tested against the following tool and dependency versions:
 * `vivado` - 2026.1
 * `python` - 3.9.25
 
-### Intial Setup
+### Install
 ```
 bash setup.sh
 
-# Fillout `config.yaml` with your tool paths.
+# Fill in config.yaml with the tool and library paths for your site.
 cp config.yaml.tmp config.yaml
 ```
 
@@ -39,6 +33,7 @@ cp config.yaml.tmp config.yaml
 ```
 
 - The first command also builds `l0_int_add` and `l0_int_sub`, because `l1_mod_add` blackboxes them
+- The second prints one row per design, with what each stage measured
 - `-t` sets the thread count
 - `--dry-run` writes the files a tool would read, then stops
 - `--dc-only` synthesizes an existing Catapult build again
@@ -54,10 +49,10 @@ cp config.yaml.tmp config.yaml
 Catapult -> package -> Design Compiler -> gate level simulation -> PrimeTime
 ```
 
-- **Catapult** — C++ to RTL, and writes the package the parents read
-- **Design Compiler** — RTL to a gate netlist, and estimates power
-- **gate level simulation** — runs the RTL testbench against that netlist, and records switching activity
-- **PrimeTime** — measures power from that activity
+- **Catapult** — HLS C++ to RTL, and packages it with the ports, area, delay and latency a parent needs
+- **Design Compiler** — RTL to a gate netlist, and estimates power from assumed switching
+- **gate level simulation** — runs the same testbench against that netlist, and records the real switching activity
+- **PrimeTime** — measures power from that activity, which also gives peak and glitch power
 
 ### FPGA
 
@@ -123,7 +118,8 @@ Catapult -> package -> Design Compiler -> gate level simulation -> PrimeTime
 ### The testbench
 
 - `kernels/<level>/<name>/<name>_tb.cpp` drives `CCS_DESIGN`
-- `gen_samples.py` writes the samples and the golden outputs
+- `gen_samples.py` writes the samples and the golden outputs for the kernel
+- Golden outputs come from `reference/`, a Python library of the same arithmetic: fields, curves, coordinates and reduction
 - The same testbench checks the C++, the RTL and the gate netlist
 
 ## Authors
