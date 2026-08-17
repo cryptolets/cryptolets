@@ -10,14 +10,14 @@ Tessera is a fully automated design space exploration (DSE) framework for crypto
 
 Tessera is tested against the following tool and dependency versions:
 
-* `catapult` - 2026.1
-* `questasim` - 2026.2
-* `design compiler` - Y-2026.03
-* `primetime` - Y-2026.03
-* `vivado` - 2026.1
-* `python` - 3.9.25
+* `Catapult HLS Ultra` - 2026.1
+* `Catapult QuestaSim` - 2026.2
+* `Synposys Design Compiler` - Y-2026.03
+* `Synposys PrimePower` - Y-2026.03
+* `Vivado` - 2026.1
+* `Python` - 3.9.25
 
-### Install
+### Initial Setup
 ```
 bash setup.sh
 
@@ -25,7 +25,7 @@ bash setup.sh
 cp config.yaml.tmp config.yaml
 ```
 
-## Quick start
+## Quick Start
 
 ```
 .venv/bin/python -m tessera run l1_mod_add -s sweeps/l1_mod.yaml
@@ -39,20 +39,19 @@ cp config.yaml.tmp config.yaml
 - `--dc-only` synthesizes an existing Catapult build again
 - `--run-only` reuses the design list from the last run
 
-## The Flow
+## Tessera Flow
+### Designs and Dependency Scheduling Flow Diagram
+![Designs and dependency scheduling](imgs/design_dep_sch.png)
 
-<!-- Some Diagram here -->
+### Per-Design Flow Diagram
+![Per design flow](imgs/per_design_flow.png)
 
 ### ASIC
-
-```
-Catapult -> package -> Design Compiler -> gate level simulation -> PrimeTime
-```
 
 - **Catapult** — HLS C++ to RTL, and packages it with the ports, area, delay and latency a parent needs
 - **Design Compiler** — RTL to a gate netlist, and estimates power from assumed switching
 - **gate level simulation** — runs the same testbench against that netlist, and records the real switching activity
-- **PrimeTime** — measures power from that activity, which also gives peak and glitch power
+- **PrimePower** — measures power from that activity, which also gives peak and glitch power
 
 ### FPGA
 
