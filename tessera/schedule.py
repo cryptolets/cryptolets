@@ -1,9 +1,8 @@
 """
-Work out which kernels a sweep needs, and in what order.
+Functions for dependency resolution and scheduling a kernel sweep.
 
-A blackboxed dep is a design of its own, built at its own width and period, and
-the parent needs it packaged before it can run. Resolving that gives the kernels
-in build order, each with the exact designs the parents asked for.
+Build a dependency graph for a kernel sweep with topological order
+to determine the build order of children and parent kernels.
 """
 import logging
 from graphlib import TopologicalSorter
@@ -11,18 +10,15 @@ from pathlib import Path
 
 from tessera.blackbox import blackboxed_deps, dep_design
 from tessera.codegen import read_impl_spec
-from tessera.helper import get_design_dir_name
+from tessera.helper import get_design_dir_name, missing_products
 from tessera.kernel import find_kernel
 
 BUILD_DIR = Path('build')
 
-
 def resolve(kernel, designs):
     """
-    The kernels this sweep needs, deepest first, as [(kernel, designs), ...].
-
-    A kernel appears once, holding every design any parent asked of it, so a
-    dep two parents share is built one time.
+    Main function which returns the topologial order scheduling 
+    for kernels and its dependencies for the defined designs.
     """
     graph, needed = {}, {}
     _walk(kernel, designs, graph, needed)
@@ -32,34 +28,32 @@ def resolve(kernel, designs):
 
 
 def _walk(kernel, designs, graph, needed):
-    "Record what this kernel needs, then do the same for its blackboxed deps"
     seen = needed.setdefault(kernel, {})
-    fresh = [d for d in designs if get_design_dir_name(d) not in seen]
+    fresh = [d for d in designs if get_design_dir_name(d, kernel) not in seen]
     for design in fresh:
-        seen[get_design_dir_name(design)] = design
+        seen[get_design_dir_name(design, kernel)] = design
 
     kernel_path = find_kernel(kernel)
     tech_type = designs[0]["tech_type"] if designs else None
     deps = blackboxed_deps(kernel_path, read_impl_spec(kernel, kernel_path), tech_type)
     graph.setdefault(kernel, set()).update(dep["kernel"] for dep in deps)
 
-    # Only the designs new to this kernel can ask for a dep design not seen yet
+    # Recursing on the new designs alone terminates the walk: a node revisited
+    # with nothing new has nothing to pass down
     for dep in deps:
         if fresh:
             _walk(dep["kernel"], [dep_design(dep, d) for d in fresh], graph, needed)
 
 
-def unbuilt(kernel, designs, product):
+def to_build(kernel, designs, flow):
     """
-    The designs a phase still has to build, given what it produces.
-
-    A dep shared by several parents, or one an earlier run already built, is
-    finished. Building it again would only reproduce the file its parents read.
+    Given a kernel's designs and the flow to run, return the designs still
+    missing any of the files that flow produces.
     """
     todo, done = [], []
     for design in designs:
-        path = Path(BUILD_DIR, kernel, get_design_dir_name(design), product)
-        (done if path.exists() else todo).append(design)
+        target = todo if missing_products(kernel, design, flow) else done
+        target.append(design)
 
     if done:
         logging.info(f"{kernel}: {len(done)} of {len(designs)} designs already built")
@@ -68,10 +62,7 @@ def unbuilt(kernel, designs, product):
 
 
 def log_schedule(schedule):
-    "Say what will be built, since a sweep of one kernel can need several"
-    if len(schedule) < 2:
-        return
-
-    logging.info("Kernels this sweep needs, in build order:")
+    if len(schedule) < 2: return
+    logging.info("Parent kernel requires resolving the following dependencies in order:")
     for kernel, designs in schedule:
         logging.info(f"  {kernel}: {len(designs)} designs")

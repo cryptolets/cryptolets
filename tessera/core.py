@@ -2,6 +2,7 @@ from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor
 from functools import partial
 import json
+import yaml
 import subprocess
 import uuid
 import logging
@@ -18,11 +19,11 @@ from tessera.codegen import \
     gen_params_h, gen_kernel_top, read_impl_spec
 from tessera.package import write_package, update_manifest
 from tessera.blackbox import gen_blackbox_headers
-from tessera.syn import gen_dc_tcl, read_dc_power
+from tessera.syn import gen_dc_tcl, read_dc_delay, read_dc_power
 from tessera.gls import gen_gls_makefile, run_gls
 from tessera.power import gen_power_tcl, read_power
 from tessera.select import select_designs
-from tessera.schedule import resolve, log_schedule, unbuilt, BUILD_DIR
+from tessera.schedule import resolve, log_schedule, to_build, BUILD_DIR
 
 # kernel.tcl exits with this when the design schedules in one cycle
 COMB_CHK_EXIT = 2
@@ -54,7 +55,7 @@ def archive_run(design_build_dir, label="", dirs=("Catapult", "dc")):
         (design_build_dir / name).rename(run_dir / name)
 
 
-def run_phase(tool, worker, designs, workers, license=None, dry_run=False):
+def run_flow(tool, worker, designs, workers, license=None, dry_run=False):
     """
     A general wrapper to run one tool over every design, as far as its licenses allow.
     """
@@ -80,7 +81,7 @@ def log_elapsed(tool, design_name, return_code, start_time):
 
 
 def gen_kernel_files(design, kernel, kernel_path, kernel_build_dir, impl_spec, sweep_flags):
-    design_name = get_design_dir_name(design)
+    design_name = get_design_dir_name(design, kernel)
     design_build_dir = Path(kernel_build_dir, design_name)
 
     # A finished run is kept, so the next one starts from clean sources
@@ -99,7 +100,7 @@ def gen_kernel_files(design, kernel, kernel_path, kernel_build_dir, impl_spec, s
 
 
 def catapult_worker(design, kernel, kernel_build_dir, impl_spec):
-    design_name = get_design_dir_name(design)
+    design_name = get_design_dir_name(design, kernel)
     logging.info(f"Running Catapult for {design_name}")
     design_build_dir = Path(kernel_build_dir, design_name)
     start_time = time.time()
@@ -130,13 +131,14 @@ def catapult_worker(design, kernel, kernel_build_dir, impl_spec):
 
 def dc_worker(design, kernel, kernel_path, kernel_build_dir, impl_spec, max_cores,
               dry_run=False):
-    design_name = get_design_dir_name(design)
+    design_name = get_design_dir_name(design, kernel)
     design_build_dir = Path(kernel_build_dir, design_name)
     start_time = time.time()
 
     # A blackboxed dep was synthesized on its own, so the script links that
     # result rather than compiling the dep again
-    entity = gen_dc_tcl(design, kernel, impl_spec, kernel_path, design_build_dir, max_cores)
+    entity = gen_dc_tcl(design, kernel, impl_spec, kernel_path, design_build_dir,
+                        max_cores, dry_run)
 
     if dry_run:
         logging.info(f"  would run Design Compiler for {design_name}")
@@ -161,13 +163,13 @@ def dc_worker(design, kernel, kernel_path, kernel_build_dir, impl_spec, max_core
 
     log_elapsed("Design Compiler", design_name, result.returncode, start_time)
     if result.returncode == 0:
-        power = read_dc_power(design_build_dir, entity)
-        if power:
-            update_manifest(design_build_dir, power_dc=power)
+        measured = {"delay_dc": read_dc_delay(design_build_dir),
+                    "power_dc": read_dc_power(design_build_dir, entity)}
+        update_manifest(design_build_dir, **{k: v for k, v in measured.items() if v})
 
 
 def gls_worker(design, kernel, kernel_build_dir, dry_run=False):
-    design_name = get_design_dir_name(design)
+    design_name = get_design_dir_name(design, kernel)
     design_build_dir = Path(kernel_build_dir, design_name)
     start_time = time.time()
 
@@ -196,9 +198,16 @@ def gls_worker(design, kernel, kernel_build_dir, dry_run=False):
 
 
 def power_worker(design, kernel, kernel_build_dir, max_cores, dry_run=False):
-    design_name = get_design_dir_name(design)
+    design_name = get_design_dir_name(design, kernel)
     design_build_dir = Path(kernel_build_dir, design_name)
     start_time = time.time()
+
+    # TODO: combinational kernel have an issue with PrimePower, needs to be fixed
+    manifest = yaml.safe_load(
+        Path(design_build_dir, "package", "manifest.yaml").read_text())
+    if manifest["combinational"]:
+        logging.info(f"  {design_name} is combinational, so its power is not measured")
+        return
 
     archive_run(design_build_dir, dirs=("power",))
     power_dir = design_build_dir / "power"
@@ -208,30 +217,30 @@ def power_worker(design, kernel, kernel_build_dir, max_cores, dry_run=False):
         logging.info(f"  would measure power for {design_name}")
         return
 
-    logging.info(f"Running PrimeTime for {design_name}")
+    logging.info(f"Running PrimePower for {design_name}")
 
-    # PrimeTime reports PT-063 at startup, because this install has no Library
+    # pt_shell reports PT-063 at startup, because this install has no Library
     # Compiler beside it. It reads the compiled library regardless.
     pt_shell = Path(RunConfig.load().tools["prime"]).expanduser() / "bin" / "pt_shell"
 
-    log_path = power_dir / "power.tessera.log"
+    log_path = design_build_dir / "power.tessera.log"
     with log_path.open("w") as log:
         result = subprocess.run(
-            [str(pt_shell), "-f", str((power_dir / "power.tcl").resolve())],
+            [str(pt_shell), "-f", str((design_build_dir / "power.tcl").resolve())],
             cwd=power_dir,
             stdout=log,
             stderr=subprocess.STDOUT,
         )
 
-    log_elapsed("PrimeTime", design_name, result.returncode, start_time)
+    log_elapsed("PrimePower", design_name, result.returncode, start_time)
     if result.returncode == 0:
         power = read_power(power_dir)
         update_manifest(design_build_dir, power=power)
         logging.info(f"  {design_name} uses {power['total'] * 1e6:.1f} uW")
 
 
-def run_catapult_phase(kernel, designs, sweep_flags, root_dir, threads,
-                       threads_per_process, num_workers, dry_run):
+def run_catapult_flow(kernel, designs, sweep_flags, root_dir, threads,
+                      threads_per_process, num_workers):
     "Generate one kernel's sources and run the high level synthesis over them"
     kernel_path = find_kernel(kernel)
     kernel_build_dir = Path(BUILD_DIR, kernel)
@@ -248,19 +257,17 @@ def run_catapult_phase(kernel, designs, sweep_flags, root_dir, threads,
 
     gen_catapult_kernel_tcl(sweep_flags, kernel, kernel_path, kernel_build_dir,
                             root_dir, threads_per_process)
-    if dry_run:
-        return
 
-    run_phase("Catapult", partial(catapult_worker, kernel=kernel,
+    run_flow("Catapult", partial(catapult_worker, kernel=kernel,
                                   kernel_build_dir=kernel_build_dir,
                                   impl_spec=impl_spec),
               designs, num_workers, license="catapult_ultra")
 
 
-def run_dc_phase(kernel, designs, threads_per_process, num_workers, dry_run):
+def run_dc_flow(kernel, designs, threads_per_process, num_workers, dry_run):
     "Synthesize one kernel's designs, which its parents then link"
     kernel_path = find_kernel(kernel)
-    run_phase("Design Compiler",
+    run_flow("Design Compiler",
               partial(dc_worker, kernel=kernel,
                       kernel_path=kernel_path,
                       kernel_build_dir=Path(BUILD_DIR, kernel),
@@ -270,14 +277,17 @@ def run_dc_phase(kernel, designs, threads_per_process, num_workers, dry_run):
               designs, num_workers, license="dc", dry_run=dry_run)
 
 
-def run(kernel, threads, threads_per_process, sweep, run_only, dry_run, dc_only, gui_mode):
+def run(kernel, threads, threads_per_process, sweep, run_only, dry_run, only, gui_mode):
     kernel_build_dir = Path(BUILD_DIR, kernel)
     flattened_path = kernel_build_dir / 'flattened_sweep_config.json'
     root_dir = Path(__file__).parent.parent
 
-    assert not (run_only or dc_only) or flattened_path.exists(), \
-        f"--run-only and --dc-only reuse an existing build. Run without them first.\n" \
-        f"  missing: {flattened_path}"
+    # A flow on its own reuses what an earlier run built, so the design list
+    # comes from that run rather than the sweep
+    reuse = run_only or only
+    assert not reuse or flattened_path.exists(), \
+        f"--run-only and the --*-only flows reuse an existing build. " \
+        f"Run without them first.\n  missing: {flattened_path}"
 
     kernel_conf = KernelConfig.load(find_kernel(kernel))
     kernel_build_dir.mkdir(parents=True, exist_ok=True)
@@ -287,7 +297,7 @@ def run(kernel, threads, threads_per_process, sweep, run_only, dry_run, dc_only,
     sweep_conf = SweepConfig.load(sweep).model_dump()
     sweep_flags = sweep_conf['flags']
 
-    if not (run_only or dc_only):
+    if not reuse:
         flattened_sweep = flatten_sweep(sweep_conf['sweep'])
         flattened_path.write_text(json.dumps({'sweep': flattened_sweep}, indent=2))
     else:
@@ -301,58 +311,62 @@ def run(kernel, threads, threads_per_process, sweep, run_only, dry_run, dc_only,
 
     logging.info(f"Flattened sweep designs:")
     for i, design in enumerate(flattened_sweep, 1):
-        logging.info(f"  [{i}/{len(flattened_sweep)}] {get_design_dir_name(design)}")
+        logging.info(f"  [{i}/{len(flattened_sweep)}] {get_design_dir_name(design, kernel)}")
 
-    # A blackboxed dep is packaged before the parent can use it, so the whole
-    # chain is built deepest first
+    # automatic dependency resolution and scheduling
     schedule = resolve(kernel, flattened_sweep)
     log_schedule(schedule)
 
-    # A dc only run reads what Catapult already built, so it neither
-    # regenerates the sources nor archives the project holding them
-    if not dc_only:
+    # A flow the sweep did not ask for cannot run on its own
+    flag = {"dc": "syn", "gls": "gls", "power": "power"}.get(only)
+    if flag and not sweep_flags[flag]:
+        logging.warning(f"--{only}-only was given, but {sweep} has {flag}: false, "
+                        f"so no flow will run")
+
+    # For --dry-run only show the designs and dependencies which will be built.
+    if dry_run and not only:
+        logging.warning("Dry run. Nothing was built.")
+        return
+
+    # --- C++ Verification + Catapult HLS + HLS-generated RTL Verification with QuestaSim Flow ---
+    if only in (None, "catapult"):
+        # We build each dependent kernel sequentially in topological order.
+        # But all designs for a kernel are built in parallel.
         for dep_kernel, dep_designs in schedule:
-            # The kernel asked for is always rebuilt, since that is the request.
-            # A dep is not, since its package is what the parent reads.
+            # The parent kernel always rebuilt, since that is the request.
+            # For dependent kernels we check if its already built and reuse.
             if dep_kernel != kernel:
-                dep_designs = unbuilt(dep_kernel, dep_designs,
-                                      Path("package", "manifest.yaml"))
+                dep_designs = to_build(dep_kernel, dep_designs, "catapult")
             if dep_designs:
-                run_catapult_phase(dep_kernel, dep_designs, sweep_flags, root_dir,
-                                   threads, threads_per_process, num_workers, dry_run)
+                run_catapult_flow(dep_kernel, dep_designs, sweep_flags, root_dir,
+                                   threads, threads_per_process, num_workers)
 
-        # A dry run generates the Catapult files, then stops before the tool.
-        # With --dc-only it falls through, so the dc files are generated too.
-        if dry_run:
-            logging.warning("Dry run. Catapult run aborted.")
-            return
-
-    if sweep_flags['syn']:
-        flattened_sweep = select_designs(flattened_sweep, kernel_build_dir,
+    # --- Logic Synthesis with Design Compiler ---
+    if sweep_flags['syn'] and only in (None, "dc"):
+        # Select which designs to synthesize based on sweep file syn_sel flag
+        flattened_sweep = select_designs(flattened_sweep, kernel, kernel_build_dir,
                                          sweep_flags['syn_sel'], kernel_conf.kernel_key)
 
         # Only the deps the surviving designs still use are worth synthesizing
         for dep_kernel, dep_designs in resolve(kernel, flattened_sweep):
             if dep_kernel != kernel:
-                dep_designs = unbuilt(dep_kernel, dep_designs,
-                                      Path("package", "syn", f"{dep_kernel}.ddc"))
+                dep_designs = to_build(dep_kernel, dep_designs, "dc")
             if dep_designs:
-                run_dc_phase(dep_kernel, dep_designs, threads_per_process,
+                run_dc_flow(dep_kernel, dep_designs, threads_per_process,
                              num_workers, dry_run)
 
-    # Gate level simulation reruns the RTL testbench against what synthesis built
-    if sweep_flags['gls']:
-        run_phase("gate level simulation", partial(gls_worker, kernel=kernel,
+    # --- Gate Level Simulation with QuestaSim ---
+    if sweep_flags['gls'] and only in (None, "gls"):
+        run_flow("gate level simulation", partial(gls_worker, kernel=kernel,
                                                    kernel_build_dir=kernel_build_dir,
                                                    dry_run=dry_run),
                   flattened_sweep, num_workers, dry_run=dry_run)
 
-    # Power is measured from the activity that simulation recorded
-    if sweep_flags['power']:
-        run_phase("PrimeTime", partial(power_worker, kernel=kernel,
+    # --- Power Analysis Flow with PrimePower ---
+    if sweep_flags['power'] and only in (None, "power"):
+        run_flow("PrimePower", partial(power_worker, kernel=kernel,
                                        kernel_build_dir=kernel_build_dir,
                                        max_cores=threads_per_process,
                                        dry_run=dry_run),
                   flattened_sweep, num_workers, license="prime_power", dry_run=dry_run)
 
-    # TODO: Externel flows (vcs -> primepower, fpga = vivado)

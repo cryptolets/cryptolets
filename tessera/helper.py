@@ -1,12 +1,57 @@
 import subprocess
 import re
+from pathlib import Path
 
-def get_design_dir_name(design):
-    for k, v in design.items():
-        if isinstance(v, bool):
-            design[k] = int(v)
+BUILD_DIR = Path('build')
 
-    return "__".join([f"{k}_{v}" for k, v in design.items()])
+# What a flow writes for a design, and so what a parent reads from a dep it
+# blackboxes. A design holding all of a flow's files is built.
+PRODUCTS = {
+    "catapult": [
+        "package/manifest.yaml",   # its ports, area, delay and latency
+        "package/{kernel}.v",      # the RTL the blackbox header points at
+    ],
+    "dc": [
+        "package/syn/{kernel}.ddc",   # the synthesized block DC links
+    ],
+}
+
+
+def missing_products(kernel, design, flow, build_root=BUILD_DIR):
+    "The files a flow should have written for this design, and did not"
+    design_dir = Path(build_root, kernel, get_design_dir_name(design, kernel))
+    wanted = (design_dir / p.format(kernel=kernel) for p in PRODUCTS[flow])
+    return [p for p in wanted if not p.exists()]
+
+
+def require_built(kernel, design, flow, build_root=BUILD_DIR):
+    "Fail unless the flow has written everything a later one reads"
+    missing = missing_products(kernel, design, flow, build_root)
+    if missing:
+        raise Exception(
+            f"'{kernel}' at bitwidth {design['bitwidth']} period {design['period']} "
+            f"has no {flow} results, so build it with that flow first.\n"
+            + "\n".join(f"  missing: {p}" for p in missing))
+
+def get_design_dir_name(design, kernel=None):
+    """
+    What a design's build directory is called.
+
+    The kernel names the parameters that change its hardware, so two designs
+    differing only in one it ignores are the same build. Without a kernel the
+    whole design names it, which is what the sweep itself is keyed on.
+    """
+    keys = list(design)
+    if kernel:
+        from tessera.config import KernelConfig
+        from tessera.kernel import find_kernel
+        keys = KernelConfig.load(find_kernel(kernel)).design_key or keys
+
+    parts = []
+    for key in keys:
+        value = design[key]
+        parts.append(f"{key}_{int(value) if isinstance(value, bool) else value}")
+    return "__".join(parts)
 
 def tcl_type(value):
     if isinstance(value, bool):

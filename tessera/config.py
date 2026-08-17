@@ -139,10 +139,22 @@ class KernelConfig(BaseModel):
     # The deps to reuse as packaged RTL rather than compile again. A dep left
     # out is inlined, so it needs no build of its own.
     blackbox: list[str] = []
+    # The parameters that change the hardware, which name a design's build
+    # directory. One the kernel ignores would only build the same design twice.
+    design_key: list[str] = []
     # The parameters that decide what the kernel computes, rather than how. Two
     # designs are only worth comparing when one could replace the other, so a
     # frontier is found within each set of these.
     kernel_key: list[str] = []
+
+    @model_validator(mode="after")
+    def _kernel_key_is_part_of_the_design(self):
+        extra = set(self.kernel_key) - set(self.design_key or self.kernel_key)
+        if extra:
+            raise ValueError(
+                f"{', '.join(sorted(extra))} decide what the kernel computes, "
+                f"so they belong in design_key as well")
+        return self
 
     @classmethod
     def load(cls, kernel_path):

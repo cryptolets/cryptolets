@@ -3,7 +3,7 @@ from tessera.samples import get_rng, write_csvs
 
 
 def generate(design, sweep_flags, design_build_dir):
-    bitwidth = design["n"]
+    bitwidth = design["bitwidth"]
     num_samples = sweep_flags.get("num_test_samples", 10)
     rng = get_rng()
 

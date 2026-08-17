@@ -10,7 +10,8 @@ from pathlib import Path
 
 import yaml
 
-from tessera.blackbox import blackboxed_deps, find_package
+from tessera.blackbox import blackboxed_deps, dep_design, find_package
+from tessera.helper import require_built
 from tessera.config import RunConfig
 from tessera.templating import render
 
@@ -23,24 +24,43 @@ def syn_dir(package_dir):
     return Path(package_dir, "syn")
 
 
-def child_designs(design, impl_spec, kernel_path, build_root):
+def child_designs(design, impl_spec, kernel_path, build_root, require=True):
     """
     The synthesized deps this design links, as {entity, ddc}.
 
     A dep is only linked when it was blackboxed, since otherwise its logic is
-    already part of this design's own RTL.
+    already part of this design's own RTL. A dry run names where each result
+    will be without asking for it, since nothing has been synthesized yet.
     """
     children = []
     for dep in blackboxed_deps(kernel_path, impl_spec, design['tech_type']):
         package_dir, manifest = find_package(dep, design, build_root)
+        if require:
+            require_built(dep["kernel"], dep_design(dep, design), "dc", build_root)
+
         ddc = syn_dir(package_dir) / f"{dep['kernel']}.ddc"
-        if not ddc.exists():
-            raise Exception(
-                f"No synthesis for '{dep['kernel']}'. Build that kernel with "
-                f"syn enabled first.\n  expected: {ddc}")
         children.append({"entity": manifest["entity"], "ddc": str(ddc.resolve())})
 
     return children
+
+
+def read_dc_delay(design_build_dir):
+    """
+    The critical path Design Compiler achieved, in nanoseconds.
+
+    The high level run estimates this before synthesis, so the two together say
+    whether the design still meets its clock once it is built from real cells.
+    """
+    report = Path(design_build_dir, "dc_reports", "qor.rpt")
+    if not report.exists():
+        return None
+
+    period = re.search(r"Critical Path Clk Period:\s+(\S+)", report.read_text())
+    slack = re.search(r"Critical Path Slack:\s+(\S+)", report.read_text())
+    if not period or not slack or "uninit" in slack.group(1):
+        return None
+
+    return round(float(period.group(1)) - float(slack.group(1)), 4)
 
 
 def read_dc_power(design_build_dir, entity):
@@ -72,15 +92,18 @@ def read_dc_power(design_build_dir, entity):
     }
 
 
-def gen_dc_tcl(design, kernel, impl_spec, kernel_path, design_build_dir, max_cores):
+def gen_dc_tcl(design, kernel, impl_spec, kernel_path, design_build_dir, max_cores,
+               dry_run=False):
     "Write the Design Compiler script for one design"
     conf = RunConfig.load()
     tech = conf.tech[design["tech_type"]]
     catapult_home = Path(conf.tools["catapult"]).expanduser()
 
+    build_root = Path(design_build_dir).parent.parent
+    require_built(kernel, design, "catapult", build_root)
+
     package_dir = design_build_dir / "package"
     manifest = yaml.safe_load(Path(package_dir, "manifest.yaml").read_text())
-    build_root = Path(design_build_dir).parent.parent
 
     report_dir = design_build_dir / "dc_reports"
     report_dir.mkdir(parents=True, exist_ok=True)
@@ -95,7 +118,8 @@ def gen_dc_tcl(design, kernel, impl_spec, kernel_path, design_build_dir, max_cor
         sdc=str(Path(package_dir, manifest["sdc"]).resolve()),
         target_library=str(Path(tech.lib_db).expanduser()),
         siflibs=[str(catapult_home / "pkgs" / "siflibs" / lib) for lib in SIFLIBS],
-        children=child_designs(design, impl_spec, kernel_path, build_root),
+        children=child_designs(design, impl_spec, kernel_path, build_root,
+                               require=not dry_run),
         max_cores=max_cores,
         syn_dir=str(syn_dir(package_dir).resolve()),
         report_dir=str(report_dir.resolve()),

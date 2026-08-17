@@ -5,10 +5,14 @@
 #include "params.h"
 
 template<{{ template_params }}>
-{{ decl_output_type }} {{ kernel }}_impl(
-{% for arg in inputs %}    const {{ arg.decl_type }} {{ arg.name }}{{ "," if not loop.last }}
-{% endfor %}) {
-    // TODO: Implement kernel
-}
+class {{ kernel }}_impl {
+public:
+    void run(
+{% for arg in inputs %}        const {{ arg.decl_type }} {{ arg.name }},
+{% endfor %}        {{ decl_output_type }} &z
+    ) {
+        // TODO: Implement kernel
+    }
+};
 
 #endif /* _{{ kernel | upper }}_H_ */

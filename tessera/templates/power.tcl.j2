@@ -10,10 +10,11 @@ link_design {{ entity }}
 read_sdc {{ sdc }}
 update_timing
 
-# The activity comes from a zero delay simulation, so PrimeTime is told not to
-# expect annotated delays. The path is where the design sits in the testbench.
 read_vcd {{ vcd }} -zero_delay -strip_path {{ dut_path }}
 
+{% if clock -%}
+set_power_analysis_options -cycle_accurate_clock {{ clock }}
+{% endif -%}
 update_power
 report_power > power.rpt
 report_power -verbose -hier -nosplit -sort_by name > power.hier.rpt

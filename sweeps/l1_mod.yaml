@@ -1,17 +1,19 @@
 sweep:
-  bitwidth: [32]
+  bitwidth: [16, 32, 64]
   tech_type: [gf12_highperf]
   period: [1]
   ii: [1]
 
   # Field modulus. Omit both to get a random prime of width bitwidth.
-  curve: [arb_curve]   # name from reference/curves.yaml
+  curve: [arb_curve, bn254, bls12_381]   # name from reference/curves.yaml
   field: [base, scalar]       # which modulus of that curve to use
 
 flags:
-  syn: false           # Run Design Compiler or Vivado synthesis
-  syn_sel: all      # all, pareto, small_fast (smallest and fastest)
   test_cpp: true          # test C++ code
-  verify_rtl: true        # verify RTL
   test_cpp_only: false    # only test C++ code with osci
   num_test_samples: 100
+  verify_rtl: true        # verify RTL
+  syn: true               # synthesize the RTL
+  syn_sel: pareto         # all, pareto, small_fast (smallest and fastest)
+  gls: true              # simulate the gate netlist, needs syn
+  power: false            # measure power, needs gls

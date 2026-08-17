@@ -1,9 +1,10 @@
 """
-Gate-Level Simulation (GLS): Run the RTL testbench against the synthesized netlist.
+Gate-Level Simulation (GLS): 
+   Run the RTL testbench against the synthesized netlist.
 
-Catapult generates a makefile listing the Verilog that SCVerify compiles. Gate
-level simulation reuses all of it and swaps one entry: the design under test
-becomes the netlist Design Compiler produced.
+Catapult generates a makefile listing the Verilog that SCVerify compiles. 
+For gate level simulation, we reuse all of it and swap one entry: 
+the design under test becomes the netlist Design Compiler produced.
 """
 import os
 import re
@@ -66,7 +67,7 @@ def gen_gls_makefile(kernel, design_build_dir, gls_dir, lib_verilog, lib_defines
                "compile the cell models")
 
     gls_dir.mkdir(parents=True, exist_ok=True)
-    makefile = gls_dir / "gls.mk"
+    makefile = design_build_dir / "gls.mk"
     makefile.write_text(mk)
     return makefile, manifest["combinational"]
 
@@ -87,7 +88,7 @@ def run_gls(kernel, design_build_dir, gls_dir, makefile, questa_home):
     solution = Path(design_build_dir, "Catapult", f"{kernel}.v1")
     target = os.path.relpath(gls_dir.resolve(), solution.resolve())
 
-    log_path = gls_dir / "gls.tessera.log"
+    log_path = design_build_dir / "gls.tessera.log"
     with log_path.open("w") as log:
         subprocess.run(
             ["make", "-f", str(makefile.resolve()), "SIMTOOL=msim", f"TARGET={target}",

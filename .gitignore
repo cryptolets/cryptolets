@@ -8,3 +8,4 @@ __pycache__/
 .rce/
 config.yaml
 experiments/
+catapult_docs/

@@ -11,9 +11,20 @@ from pathlib import Path
 import yaml
 
 # The order results are shown in, after the parameters that the sweep varied
-METRICS = ["latency", "area", "area (mm^2)", "delay",
+METRICS = ["cycles", "latency", "area (um^2)", "area (mm^2)",
+           "delay", "delay_dc",
            "luts", "ffs", "dsps", "brams", "carry",
-           "power", "power_dc"]
+           "power (uW)", "power_dc (uW)"]
+
+# What a column is called, and what its value is scaled by to suit that name
+UNITS = {
+    "latency": ("cycles", 1),
+    "area": ("area (um^2)", 1),
+    "period": ("period", 1),
+    "dep_period_ratio": ("dpr", 1),
+    "power": ("power (uW)", 1e6),
+    "power_dc": ("power_dc (uW)", 1e6),
+}
 
 
 def collect(kernel_build_dir):
@@ -22,9 +33,25 @@ def collect(kernel_build_dir):
     for manifest_path in sorted(Path(kernel_build_dir).glob("*/package/manifest.yaml")):
         manifest = yaml.safe_load(manifest_path.read_text())
 
-        row = dict(manifest.get("params", {}))
-        for metric in ("latency", "area", "delay",
-                       "luts", "ffs", "dsps", "brams", "carry"):
+        row = {}
+        for name, value in manifest.get("params", {}).items():
+            label, scale = UNITS.get(name, (name, 1))
+            row[label] = value * scale if isinstance(value, (int, float)) else value
+
+        for metric in ("latency", "area"):
+            label, scale = UNITS[metric]
+            value = manifest.get(metric)
+            row[label] = value * scale if value is not None else None
+
+        # What the high level run estimated, and what synthesis achieved
+        row["delay"] = manifest.get("delay")
+        row["delay_dc"] = manifest.get("delay_dc")
+
+        # A sequential design takes its cycles at the clock it was built for
+        cycles, period = manifest.get("latency"), manifest["params"]["period"]
+        row["latency"] = cycles * period if cycles else manifest.get("delay")
+
+        for metric in ("luts", "ffs", "dsps", "brams", "carry"):
             row[metric] = manifest.get(metric)
 
         area = manifest.get("area")
@@ -32,8 +59,9 @@ def collect(kernel_build_dir):
 
         # Both are the whole design's power, one estimated and one measured
         for key in ("power", "power_dc"):
+            label, scale = UNITS[key]
             measured = manifest.get(key)
-            row[key] = measured["total"] if measured else None
+            row[label] = measured["total"] * scale if measured else None
 
         rows.append(row)
 
@@ -81,8 +109,8 @@ def order_columns(rows):
 def _format(key, value):
     if value is None:
         return ""
-    if key in ("power", "power_dc"):
-        return f"{value:.2e}"
+    if key.startswith("power"):
+        return f"{value:.2f}"
     if key == "area (mm^2)":
         return f"{value:.3f}"
     if isinstance(value, float):

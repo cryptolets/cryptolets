@@ -13,7 +13,7 @@ from pathlib import Path
 import yaml
 
 from tessera.config import KernelConfig, is_fpga
-from tessera.helper import get_design_dir_name
+from tessera.helper import get_design_dir_name, require_built
 from tessera.kernel import find_kernel
 from tessera.parse import parse_kernel
 from tessera.templating import render
@@ -68,17 +68,11 @@ def blackboxed_deps(kernel_path, impl_spec, tech_type=None):
 def find_package(dep, design, build_root):
     "The dep's package dir and manifest, or an error naming what is missing"
     wanted = dep_design(dep, design)
-    design_dir = get_design_dir_name(dict(wanted))
-    package_dir = Path(build_root, dep["kernel"], design_dir, "package")
-    manifest = package_dir / "manifest.yaml"
+    require_built(dep["kernel"], wanted, "catapult", build_root)
 
-    if not manifest.exists():
-        raise Exception(
-            f"No package for '{dep['kernel']}' at bitwidth {wanted['bitwidth']} "
-            f"period {wanted['period']}. Build that kernel first.\n"
-            f"  expected: {manifest}")
-
-    return package_dir, yaml.safe_load(manifest.read_text())
+    package_dir = Path(build_root, dep["kernel"],
+                       get_design_dir_name(wanted, dep["kernel"]), "package")
+    return package_dir, yaml.safe_load(Path(package_dir, "manifest.yaml").read_text())
 
 
 def gen_blackbox_header(kernel, manifest, rtl, impl_header, include_dir):

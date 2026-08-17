@@ -1,4 +1,6 @@
-"Scaffold a new kernel"
+"""
+Scaffold a new kernel
+"""
 from pathlib import Path
 from tessera.templating import render
 
@@ -31,7 +33,7 @@ def new(kernel, level, force=False):
         "edge_cases": DEFAULT_EDGE_CASES,
     }
 
-    render("kernel.h.j2", p / "impl" / f"{kernel}.h", **ctx)
+    render("kernel.h.j2", p / "impl" / f"{kernel}_impl.h", **ctx)
     render("kernel_tb.cpp.j2", p / f"{kernel}_tb.cpp", **ctx)
     render("gen_samples.py.j2", p / "gen_samples.py", **ctx)
     render("kernel.yaml.j2", p / "kernel.yaml", **ctx)

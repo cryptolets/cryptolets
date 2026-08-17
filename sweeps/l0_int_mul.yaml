@@ -69,9 +69,11 @@ sweep:
     8192: [4096, 2048, 1024, 512, 256, 128, 64]
 
 flags:
-  syn: false              # synthesize RTL
-  syn_sel: all      # all, pareto, small_fast (smallest and fastest)
   test_cpp: true          # test C++ code
-  verify_rtl: true        # verify RTL
   test_cpp_only: false    # only test C++ code with osci
   num_test_samples: 100
+  verify_rtl: true        # verify RTL
+  syn: false              # synthesize the RTL
+  syn_sel: all            # all, pareto, small_fast (smallest and fastest)
+  gls: false              # simulate the gate netlist, needs syn
+  power: false            # measure power, needs gls

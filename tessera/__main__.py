@@ -18,7 +18,10 @@ logging.basicConfig(
     datefmt="%H:%M:%S"
 )
 
-@click.group()
+CONTEXT_SETTINGS = {"help_option_names": ["-h", "--help"]}
+
+
+@click.group(context_settings=CONTEXT_SETTINGS)
 def app():
     pass
 
@@ -29,9 +32,14 @@ def app():
 @click.option('--sweep', '-s', type=str, required=True, help='Sweep file.')
 @click.option('--run-only', is_flag=True, default=run_conf.get('run_only', False), help='Run using existing flattened sweep configuration from build dir.')
 @click.option('--dry-run', is_flag=True, default=run_conf.get('dry_run', False), help='Only generate flattened sweep configuration and exit.')
-@click.option('--dc-only', is_flag=True, default=run_conf.get('dc_only', False), help='Run Design Compiler on an existing Catapult build.')
+@click.option('--dc-only', 'only', flag_value='dc', default=None,
+              help='Only synthesize, reusing an existing Catapult build.')
+@click.option('--gls-only', 'only', flag_value='gls',
+              help='Only simulate the netlist, reusing an existing synthesis.')
+@click.option('--power-only', 'only', flag_value='power',
+              help='Only measure power, reusing an existing simulation.')
 @click.option('--gui-mode', is_flag=True, default=run_conf.get('gui_mode', False), help='Interactive GUI mode.')
-def run(kernel, threads, threads_per_process, sweep, run_only, dry_run, dc_only, gui_mode):
+def run(kernel, threads, threads_per_process, sweep, run_only, dry_run, only, gui_mode):
     core.run(
         kernel=kernel,
         threads=threads,
@@ -39,7 +47,7 @@ def run(kernel, threads, threads_per_process, sweep, run_only, dry_run, dc_only,
         sweep=sweep,
         run_only=run_only,
         dry_run=dry_run,
-        dc_only=dc_only,
+        only=only,
         gui_mode=gui_mode,
     )
 

@@ -1,9 +1,12 @@
-# The parameters that decide what this computes, so only designs that
+# The parameters that change the hardware, which name a design's build directory
+design_key: [bitwidth, tech_type, period, ii, dep_period_ratio, curve, field, q_type]
+
+# Of those, the ones that decide what this computes, so only designs that
 # could replace one another are compared
 kernel_key: [bitwidth, curve, field, q_type]
 
 # Reuse each dep's packaged RTL instead of synthesizing it again
-blackbox: [l0_int_add, l0_int_sub]
+blackbox: []
 
 # Kernel specific stage scripts
 stages:
