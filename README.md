@@ -41,7 +41,7 @@ cp config.yaml.tmp config.yaml
 
 ## Tessera Flow
 ### Designs and Dependency Scheduling Flow Diagram
-![Designs and dependency scheduling](imgs/design_dep_sch.png)
+<img src="imgs/design_dep_sch.png" alt="Designs and dependency scheduling" width="50%">
 
 ### Per-Design Flow Diagram
 ![Per design flow](imgs/per_design_flow.png)
