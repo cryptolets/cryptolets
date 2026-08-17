@@ -3,24 +3,41 @@ total_threads: 8
 threads_per_process: 1
 run_only: false
 dry_run: false
-gui_mode: false
+gui_mode: false # TODO: not supported yet
 
+# Install directories, the flow appends bin/ and other subdirectories
 tools:
-  catapult: "/eda/siemens/Catapult/Mgc_home//bin/catapult"
-  dc_shell: "/eda/synopsys/syn/Y-2026.03/bin/dc_shell"
-  vcs: "/eda/synopsys/vcs/Y-2026.03/bin/vcs"
+  catapult: "/eda/siemens/Catapult/Mgc_home"
+  questa: "/eda/siemens/Questasim/questasim"
+  dc: "/eda/synopsys/syn/Y-2026.03"
+  prime: "/eda/synopsys/prime/Y-2026.03"
+  vivado: "/eda/xilinx/2026.1/Vivado"
 
 # Keys must match tech_type in framework/enums.yaml
 tech:
   gf12_highperf:
-    lib_path: "/ip/arm/gf12/sc7p5mcpp84_base_slvt_c14/r1p0/db"
-    lib_name: "sc7p5mcpp84_12lp_base_slvt_c14_tt_nominal_max_0p90v_25c_dc"
+    lib_path: "/ip/arm/gf12/sc7p5mcpp84_base_slvt_c14/r1p0"
+    catapult_lib_name: "sc7p5mcpp84_12lp_base_slvt_c14_tt_nominal_max_0p90v_25c_dc"
     catapult_lib_file: "~/gf12_libs/gf12_highperf.lib"
+    lib_db: "/ip/arm/gf12/sc7p5mcpp84_base_slvt_c14/r1p0/db/sc7p5mcpp84_12lp_base_slvt_c14_tt_nominal_max_0p90v_25c.db"
+    lib_verilog: "/ip/arm/gf12/sc7p5mcpp84_base_slvt_c14/r1p0/verilog/sc7p5mcpp84_12lp_base_slvt_c14.v"
+    lib_verilog_defines: "+define+ARM_UD_MODEL +define+ARM_EN_X_SQUASH"
     vendor: "GlobalFoundries"
     technology: "012nm"
 
+  # An FPGA is a part rather than a cell library, and Vivado synthesizes it
+  # during the Catapult run
+  fpga_vu9p:
+    catapult_lib_name: "mgc_Xilinx-VIRTEX-uplus-2_beh"
+    vendor: "Xilinx"
+    technology: "VIRTEX-uplus"
+    family: "VIRTEX-uplus"
+    speed: "-2"
+    part: "xcvu9p-flga2104-2-i"
+
   45nm:
-    lib_path: "45nm_db"
-    lib_name: "nangate-45nm_beh"
+    lib_path: "~/45nm_db"
+    catapult_lib_name: "nangate-45nm_beh"
+    lib_db: "~/45nm_db/NangateOpenCellLibrary_typical_ccs.db"
     vendor: "Nangate"
     technology: "045nm"
