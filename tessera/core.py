@@ -22,8 +22,7 @@ from tessera.syn import gen_dc_tcl, read_dc_power
 from tessera.gls import gen_gls_makefile, run_gls
 from tessera.power import gen_power_tcl, read_power
 from tessera.select import select_designs
-
-BUILD_DIR = Path('build')
+from tessera.schedule import resolve, log_schedule, unbuilt, BUILD_DIR
 
 # kernel.tcl exits with this when the design schedules in one cycle
 COMB_CHK_EXIT = 2
@@ -231,6 +230,46 @@ def power_worker(design, kernel, kernel_build_dir, max_cores, dry_run=False):
         logging.info(f"  {design_name} uses {power['total'] * 1e6:.1f} uW")
 
 
+def run_catapult_phase(kernel, designs, sweep_flags, root_dir, threads,
+                       threads_per_process, num_workers, dry_run):
+    "Generate one kernel's sources and run the high level synthesis over them"
+    kernel_path = find_kernel(kernel)
+    kernel_build_dir = Path(BUILD_DIR, kernel)
+    kernel_build_dir.mkdir(parents=True, exist_ok=True)
+    impl_spec = read_impl_spec(kernel, kernel_path)
+
+    logging.info(f"Generating kernel files for {kernel}")
+    with ThreadPoolExecutor(max_workers=threads) as pool:
+        list(pool.map(partial(gen_kernel_files, kernel=kernel,
+                              kernel_path=kernel_path,
+                              kernel_build_dir=kernel_build_dir,
+                              impl_spec=impl_spec, sweep_flags=sweep_flags),
+                      designs))
+
+    gen_catapult_kernel_tcl(sweep_flags, kernel, kernel_path, kernel_build_dir,
+                            root_dir, threads_per_process)
+    if dry_run:
+        return
+
+    run_phase("Catapult", partial(catapult_worker, kernel=kernel,
+                                  kernel_build_dir=kernel_build_dir,
+                                  impl_spec=impl_spec),
+              designs, num_workers, license="catapult_ultra")
+
+
+def run_dc_phase(kernel, designs, threads_per_process, num_workers, dry_run):
+    "Synthesize one kernel's designs, which its parents then link"
+    kernel_path = find_kernel(kernel)
+    run_phase("Design Compiler",
+              partial(dc_worker, kernel=kernel,
+                      kernel_path=kernel_path,
+                      kernel_build_dir=Path(BUILD_DIR, kernel),
+                      impl_spec=read_impl_spec(kernel, kernel_path),
+                      max_cores=threads_per_process,
+                      dry_run=dry_run),
+              designs, num_workers, license="dc", dry_run=dry_run)
+
+
 def run(kernel, threads, threads_per_process, sweep, run_only, dry_run, dc_only, gui_mode):
     kernel_build_dir = Path(BUILD_DIR, kernel)
     flattened_path = kernel_build_dir / 'flattened_sweep_config.json'
@@ -240,12 +279,8 @@ def run(kernel, threads, threads_per_process, sweep, run_only, dry_run, dc_only,
         f"--run-only and --dc-only reuse an existing build. Run without them first.\n" \
         f"  missing: {flattened_path}"
 
-    kernel_path = find_kernel(kernel)
-    kernel_conf = KernelConfig.load(kernel_path)
-    impl_spec = read_impl_spec(kernel, kernel_path)
-
-    # Create build directory to store ephemeral build files
-    Path(BUILD_DIR, kernel).mkdir(parents=True, exist_ok=True)
+    kernel_conf = KernelConfig.load(find_kernel(kernel))
+    kernel_build_dir.mkdir(parents=True, exist_ok=True)
 
     # The flags are settings, so they always come from the sweep file. Only
     # the designs are stored, since a rerun has to match what was built.
@@ -268,18 +303,23 @@ def run(kernel, threads, threads_per_process, sweep, run_only, dry_run, dc_only,
     for i, design in enumerate(flattened_sweep, 1):
         logging.info(f"  [{i}/{len(flattened_sweep)}] {get_design_dir_name(design)}")
 
+    # A blackboxed dep is packaged before the parent can use it, so the whole
+    # chain is built deepest first
+    schedule = resolve(kernel, flattened_sweep)
+    log_schedule(schedule)
+
     # A dc only run reads what Catapult already built, so it neither
     # regenerates the sources nor archives the project holding them
     if not dc_only:
-        logging.info(f"Generating kernel files")
-        with ThreadPoolExecutor(max_workers=threads) as pool:
-            list(pool.map(partial(gen_kernel_files, kernel=kernel,
-                                  kernel_path=kernel_path,
-                                  kernel_build_dir=kernel_build_dir,
-                                  impl_spec=impl_spec, sweep_flags=sweep_flags),
-                          flattened_sweep))
-
-        gen_catapult_kernel_tcl(sweep_flags, kernel, kernel_path, kernel_build_dir, root_dir)
+        for dep_kernel, dep_designs in schedule:
+            # The kernel asked for is always rebuilt, since that is the request.
+            # A dep is not, since its package is what the parent reads.
+            if dep_kernel != kernel:
+                dep_designs = unbuilt(dep_kernel, dep_designs,
+                                      Path("package", "manifest.yaml"))
+            if dep_designs:
+                run_catapult_phase(dep_kernel, dep_designs, sweep_flags, root_dir,
+                                   threads, threads_per_process, num_workers, dry_run)
 
         # A dry run generates the Catapult files, then stops before the tool.
         # With --dc-only it falls through, so the dc files are generated too.
@@ -287,21 +327,18 @@ def run(kernel, threads, threads_per_process, sweep, run_only, dry_run, dc_only,
             logging.warning("Dry run. Catapult run aborted.")
             return
 
-        run_phase("Catapult", partial(catapult_worker, kernel=kernel,
-                                      kernel_build_dir=kernel_build_dir,
-                                      impl_spec=impl_spec),
-                  flattened_sweep, num_workers, license="catapult_ultra")
-
     if sweep_flags['syn']:
         flattened_sweep = select_designs(flattened_sweep, kernel_build_dir,
                                          sweep_flags['syn_sel'], kernel_conf.kernel_key)
-        run_phase("Design Compiler", partial(dc_worker, kernel=kernel,
-                                             kernel_path=kernel_path,
-                                             kernel_build_dir=kernel_build_dir,
-                                             impl_spec=impl_spec,
-                                             max_cores=threads_per_process,
-                                             dry_run=dry_run),
-                  flattened_sweep, num_workers, license="dc", dry_run=dry_run)
+
+        # Only the deps the surviving designs still use are worth synthesizing
+        for dep_kernel, dep_designs in resolve(kernel, flattened_sweep):
+            if dep_kernel != kernel:
+                dep_designs = unbuilt(dep_kernel, dep_designs,
+                                      Path("package", "syn", f"{dep_kernel}.ddc"))
+            if dep_designs:
+                run_dc_phase(dep_kernel, dep_designs, threads_per_process,
+                             num_workers, dry_run)
 
     # Gate level simulation reruns the RTL testbench against what synthesis built
     if sweep_flags['gls']:

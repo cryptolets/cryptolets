@@ -1,22 +1,30 @@
-proc set_tech_lib {tech_type root_dir lib_path lib_name vendor technology {lib_file ""}} {
+proc set_tech_lib {tech_type root_dir lib_path lib_name vendor technology \
+                   {lib_file ""} {family ""} {speed ""} {part ""}} {
     solution library remove *
     options set Flows/DesignCompiler/CustomScriptDirPath \
         [file normalize "$root_dir/dc_custom_scripts"]
 
-    if {$tech_type eq "45nm"} {
-        options set ComponentLibs/TechLibSearchPath $lib_path -append
-
+    # An FPGA names a part, and Vivado synthesizes it during this run
+    if {[is_fpga $tech_type]} {
         solution library add $lib_name \
-            -- -rtlsyntool DesignCompiler -vendor $vendor -technology $technology
-    } elseif {$tech_type eq "gf12_highperf"} {
-        options set /ComponentLibs/TechLibSearchPath $lib_path/db  -append
-        options set /ComponentLibs/TechLibSearchPath $lib_path/lef -append
-        options set /ComponentLibs/TechLibSearchPath $lib_path/lib -append
-
-        solution options set ComponentLibs/SearchPath [file dirname $lib_file] -append
-        solution library add $lib_name \
-            -- -rtlsyntool DesignCompiler -vendor $vendor -technology $technology
+            -- -rtlsyntool Vivado -manufacturer $vendor \
+            -family $family -speed $speed -part $part
+        return
     }
+
+    # A cell library is found by its files, which differ per vendor
+    if {$lib_path ne ""} {
+        foreach sub {"" db lef lib} {
+            options set /ComponentLibs/TechLibSearchPath \
+                [file join $lib_path $sub] -append
+        }
+    }
+    if {$lib_file ne ""} {
+        solution options set ComponentLibs/SearchPath [file dirname $lib_file] -append
+    }
+
+    solution library add $lib_name \
+        -- -rtlsyntool DesignCompiler -vendor $vendor -technology $technology
 }
 
 

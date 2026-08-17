@@ -12,6 +12,7 @@ from pathlib import Path
 
 import yaml
 
+from tessera.config import KernelConfig, is_fpga
 from tessera.helper import get_design_dir_name
 from tessera.kernel import find_kernel
 from tessera.parse import parse_kernel
@@ -40,6 +41,28 @@ def dep_design(dep, design):
         "bitwidth": dep_width(dep["args"], design),
         "period": round(design["period"] * ratio, 4),
     }
+
+
+def blackboxed_deps(kernel_path, impl_spec, tech_type=None):
+    """
+    The deps this kernel reuses as packaged RTL, as the impl spec describes them.
+
+    The kernel names which ones, so the rest are compiled into it and need no
+    build of their own.
+    """
+    # TODO: support blackboxing on FPGA. Vivado synthesizes the whole design at
+    # once, so a packaged dep would need an equivalent of the ASIC flow's ddc.
+    if tech_type and is_fpga(tech_type):
+        return []
+
+    wanted = KernelConfig.load(kernel_path).blackbox
+    unknown = set(wanted) - {dep["kernel"] for dep in impl_spec["deps"]}
+    if unknown:
+        raise Exception(
+            f"'{impl_spec['name']}' does not use {', '.join(sorted(unknown))}, "
+            f"so they cannot be blackboxed")
+
+    return [dep for dep in impl_spec["deps"] if dep["kernel"] in wanted]
 
 
 def find_package(dep, design, build_root):
@@ -92,19 +115,19 @@ def gen_blackbox_header(kernel, manifest, rtl, impl_header, include_dir):
 
 def gen_blackbox_headers(design, kernel_path, impl_spec, design_build_dir):
     "Generate a header and copy the RTL per dep, into a dir that shadows impl"
-    kernel_yaml = yaml.safe_load(Path(kernel_path, "kernel.yaml").read_text())
+    blackboxed = blackboxed_deps(kernel_path, impl_spec, design['tech_type'])
 
     # The TCL blackboxes whatever this dir holds, so a stale one from an
-    # earlier run would keep blackboxing after the flag is turned off.
+    # earlier run would keep blackboxing a dep that is now inlined.
     include_dir = design_build_dir / "blackbox"
     shutil.rmtree(include_dir, ignore_errors=True)
-    if not kernel_yaml.get("blackbox"):
+    if not blackboxed:
         return
 
     include_dir.mkdir(parents=True, exist_ok=True)
     build_root = Path(design_build_dir).parent.parent
 
-    for dep in impl_spec["deps"]:
+    for dep in blackboxed:
         package_dir, manifest = find_package(dep, design, build_root)
 
         rtl = include_dir / manifest["rtl"]

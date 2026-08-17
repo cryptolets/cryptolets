@@ -1,5 +1,4 @@
-# TODO: Integrate later
-proc inject_threads_vivado {syn_file_pat threads_per_process} {
+proc inject_threads_vivado {syn_file_path threads_per_process} {
     # Read file
     set fh [open $syn_file_path r]
     set content [read $fh]
@@ -25,10 +24,9 @@ proc run_fpga_syn {tech_type threads_per_process} {
     if {[is_fpga $tech_type]} {
         puts "Running FPGA synthesis with Vivado"
 
-        # Fixes issue with running Vivado for Versal HBM fpga (TODO: check if still an issue)
-        set ::env(LD_LIBRARY_PATH) "/eda/xilinx/Vivado/2024.2/lib/lnx64.o"
+        # Vivado loads its own libraries, and an inherited preload breaks it
+        set ::env(LD_LIBRARY_PATH) [file join $::tool_vivado lib lnx64.o]
         catch {unset ::env(LD_PRELOAD)}
-        puts "LD_LIBRARY_PATH is now: $::env(LD_LIBRARY_PATH)"
 
         set syn_file_path [file join [solution get /SOLUTION_DIR] "vivado_v" "rtl.v.xv"]
         inject_threads_vivado $syn_file_path $threads_per_process

@@ -11,6 +11,8 @@ from pathlib import Path
 
 import yaml
 
+from tessera.config import is_fpga
+
 
 def read_ccore_metrics(report, kernel):
     """
@@ -63,6 +65,40 @@ def read_design_metrics(metrics_csv, period):
     }
 
 
+# What an FPGA design is measured in, since it holds parts rather than cells
+FPGA_METRICS = {
+    "luts": "Area(LUTs)",
+    "ffs": "Area(FFs)",
+    "dsps": "Area(DSP)",
+    "brams": "Area(BRAMs)",
+    "carry": "Area(CARRY8)",
+}
+
+
+def read_fpga_metrics(metrics_csv):
+    """
+    What Vivado reported, as {luts, ffs, dsps, brams, carry}.
+
+    The table holds a section per tool, and Catapult writes Vivado's once it
+    has run. The first row of that section is the design's own total.
+    """
+    lines = metrics_csv.read_text().splitlines()
+    start = next((i for i, line in enumerate(lines) if line.strip() == "Vivado"), None)
+    if start is None:
+        return {}
+
+    header = [col.strip() for col in lines[start + 1].split(",")]
+    row = lines[start + 2].split(",")
+
+    found = {}
+    for name, column in FPGA_METRICS.items():
+        if column in header:
+            value = row[header.index(column)].strip()
+            found[name] = float(value) if value else 0.0
+
+    return found
+
+
 def find_rtl(kernel, design, design_build_dir, combinational):
     """
     The RTL to package, and the metrics that describe it.
@@ -100,6 +136,11 @@ def write_package(kernel, design, design_build_dir, combinational):
     rtl_path, metrics = find_rtl(kernel, design, design_build_dir, combinational)
     rtl = rtl_path.read_text()
 
+    # An FPGA holds parts rather than cells, so Vivado's counts describe it
+    # better than the area the high level run estimated
+    if is_fpga(design["tech_type"]):
+        metrics = {**metrics, **read_fpga_metrics(design_build_dir / "metrics.csv")}
+
     # The last module is the top, since its children are declared before it
     entity = re.findall(r"^module (\S+)", rtl, re.M)[-1]
     header, body = re.search(rf"^module {entity} \((.*?)\);(.*?)^endmodule",
@@ -111,14 +152,16 @@ def write_package(kernel, design, design_build_dir, combinational):
 
     # Catapult writes the constraints beside the RTL, and they name that
     # module's own ports. The wrapper's constraints would match nothing.
-    (package_dir / f"{kernel}.sdc").write_text(
-        Path(f"{rtl_path}.dc.sdc").read_text())
+    # Only the ASIC flow writes them, since they are for Design Compiler.
+    sdc = Path(f"{rtl_path}.dc.sdc")
+    if sdc.exists():
+        (package_dir / f"{kernel}.sdc").write_text(sdc.read_text())
 
     manifest = {
         "kernel": kernel,
         "entity": entity,
         "rtl": f"{kernel}.v",
-        "sdc": f"{kernel}.sdc",
+        "sdc": f"{kernel}.sdc" if sdc.exists() else None,
         "combinational": combinational,
         "ports": parse_module_ports(header, body),
         "params": dict(design),

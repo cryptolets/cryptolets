@@ -1,0 +1,35 @@
+total_threads: 8
+threads_per_process: 1
+run_only: false
+dry_run: false
+gui_mode: false # TODO: not supported yet
+
+# Path to tool install directories
+tools:
+  catapult: <PATH TO CATAPULT MGC_HOME>   # high level synthesis
+  questa: <PATH TO QUESTASIM>             # C++ and RTL verification, gate level simulation
+  dc: <PATH TO DESIGN COMPILER>           # ASIC synthesis
+  prime: <PATH TO PRIMETIME>              # ASIC power
+  vivado: <PATH TO VIVADO>                # FPGA synthesis
+
+# Tech node configuration; tech_type uses one of these. 
+tech:
+  # An ASIC tech is a cell library
+  <ASIC TECH NAME>:
+    catapult_lib_name: <CATAPULT LIBRARY NAME>
+    vendor: <VENDOR>
+    technology: <TECHNOLOGY>
+    lib_path: <PATH TO THE LIBRARY ROOT>
+    lib_db: <PATH TO THE .db, WHICH DESIGN COMPILER READS>
+    lib_verilog: <PATH TO THE CELL SIMULATION MODELS>
+    lib_verilog_defines: <MACROS THE MODELS ARE COMPILED WITH>
+    catapult_lib_file: <PATH TO THE CATAPULT LIB FILE>
+
+  # "fpga_" prefix defined FPGA tech node
+  fpga_<PART NAME>:
+    catapult_lib_name: <LIBRARY CATAPULT KNOWS IT BY>
+    vendor: <VENDOR>
+    technology: <FAMILY>
+    family: <FAMILY>
+    speed: <SPEED GRADE>
+    part: <PART NUMBER>

@@ -17,6 +17,11 @@ def curves():
     return yaml.safe_load(CURVES_FILE.read_text())
 
 
+def is_fpga(tech_type):
+    "An FPGA tech is named for it, the same rule the TCL follows"
+    return tech_type.startswith("fpga")
+
+
 class Flags(BaseModel):
     syn: bool = False
     # Which designs are worth synthesizing, since synthesis costs far more than
@@ -84,6 +89,11 @@ class Sweep(BaseModel):
             if name not in known_tech:
                 raise ValueError(f"unknown tech_type '{name}', pick from: {', '.join(sorted(known_tech))}")
 
+        # The two report different things and take different flows, so a sweep
+        # holding both would compare designs that cannot be compared
+        if len({is_fpga(name) for name in self.tech_type}) > 1:
+            raise ValueError("a sweep is either FPGA or ASIC, not both")
+
         known = curves()
 
         for name in self.curve:
@@ -106,11 +116,29 @@ class SweepConfig(BaseModel):
     def load(cls, path):
         return _load(cls, path)
 
+    @model_validator(mode="after")
+    def _fpga_runs_inside_catapult(self):
+        """
+        An FPGA design is synthesized by Vivado during the Catapult run, so the
+        stages that follow one belong to the ASIC flow alone.
+        """
+        if not any(is_fpga(name) for name in self.sweep.tech_type):
+            return self
+
+        asked = [name for name in ("syn", "gls", "power") if getattr(self.flags, name)]
+        if asked:
+            raise ValueError(
+                f"an FPGA sweep cannot {', '.join(asked)}, since Vivado runs "
+                f"inside Catapult and the rest is the ASIC flow")
+        return self
+
 
 class KernelConfig(BaseModel):
     deps: list[str] = []
     stages: dict[str, str] = {}
-    blackbox: bool = False
+    # The deps to reuse as packaged RTL rather than compile again. A dep left
+    # out is inlined, so it needs no build of its own.
+    blackbox: list[str] = []
     # The parameters that decide what the kernel computes, rather than how. Two
     # designs are only worth comparing when one could replace the other, so a
     # frontier is found within each set of these.
@@ -122,12 +150,17 @@ class KernelConfig(BaseModel):
 
 
 class Tech(BaseModel):
-    lib_path: str
     catapult_lib_name: str
-    lib_db: str
     vendor: str
     technology: str
+    # An FPGA is a part rather than a cell library, so it needs none of the
+    # files the ASIC flow reads
+    lib_path: Optional[str] = None
+    lib_db: Optional[str] = None
     catapult_lib_file: Optional[str] = None
+    family: Optional[str] = None
+    speed: Optional[str] = None
+    part: Optional[str] = None
     # Behavioural models of the cells, which gate level simulation needs to
     # know what a cell does. A tech without them cannot run one.
     lib_verilog: Optional[str] = None

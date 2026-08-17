@@ -10,7 +10,7 @@ from pathlib import Path
 
 import yaml
 
-from tessera.blackbox import find_package
+from tessera.blackbox import blackboxed_deps, find_package
 from tessera.config import RunConfig
 from tessera.templating import render
 
@@ -30,12 +30,8 @@ def child_designs(design, impl_spec, kernel_path, build_root):
     A dep is only linked when it was blackboxed, since otherwise its logic is
     already part of this design's own RTL.
     """
-    kernel_yaml = yaml.safe_load(Path(kernel_path, "kernel.yaml").read_text())
-    if not kernel_yaml.get("blackbox"):
-        return []
-
     children = []
-    for dep in impl_spec["deps"]:
+    for dep in blackboxed_deps(kernel_path, impl_spec, design['tech_type']):
         package_dir, manifest = find_package(dep, design, build_root)
         ddc = syn_dir(package_dir) / f"{dep['kernel']}.ddc"
         if not ddc.exists():

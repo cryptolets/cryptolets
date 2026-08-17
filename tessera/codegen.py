@@ -169,14 +169,17 @@ def _stage_bodies(kernel_name, kernel_path, root_dir):
 
     libraries_stage = [
         "run_osci_test $test_cpp $test_cpp_only $design_build_dir",
-        "set_tech_lib $tech_type $root_dir $tech_lib_path $tech_catapult_lib_name $tech_vendor $tech_technology $tech_catapult_lib_file",
+        "set_tech_lib $tech_type $root_dir $tech_lib_path $tech_catapult_lib_name \
+     $tech_vendor $tech_technology $tech_catapult_lib_file \
+     $tech_family $tech_speed $tech_part",
         "set_clock $period",
     ]
 
     return {'analyze': analyze_stage, 'compile': compile_stage, 'libraries': libraries_stage}
 
 
-def gen_catapult_kernel_tcl(sweep_flags, kernel_name, kernel_path, kernel_build_dir, root_dir):
+def gen_catapult_kernel_tcl(sweep_flags, kernel_name, kernel_path, kernel_build_dir,
+                            root_dir, threads_per_process=1):
     kernel_yaml = yaml.safe_load(Path(kernel_path, 'kernel.yaml').read_text())
 
     bodies = _stage_bodies(kernel_name, kernel_path, root_dir)
@@ -200,7 +203,9 @@ def gen_catapult_kernel_tcl(sweep_flags, kernel_name, kernel_path, kernel_build_
         catapult_util_tcl=Path(root_dir, 'tessera', 'tcl', 'catapult', 'util.tcl').resolve(),
         catapult_init_tcl=Path(root_dir, 'tessera', 'tcl', 'catapult', 'init.tcl').resolve(),
         catapult_verify_tcl=Path(root_dir, 'tessera', 'tcl', 'catapult', 'verify.tcl').resolve(),
+        catapult_vivado_tcl=Path(root_dir, 'tessera', 'tcl', 'catapult', 'vivado.tcl').resolve(),
         flags=sweep_flags,
+        threads_per_process=threads_per_process,
         stages=stages,
         tools={k: str(Path(v).expanduser()) for k, v in RunConfig.load().tools.items()},
     )

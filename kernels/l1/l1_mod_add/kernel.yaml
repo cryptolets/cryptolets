@@ -3,7 +3,7 @@
 kernel_key: [bitwidth, curve, field, q_type]
 
 # Reuse each dep's packaged RTL instead of synthesizing it again
-blackbox: true
+blackbox: [l0_int_add, l0_int_sub]
 
 # Kernel specific stage scripts
 stages:

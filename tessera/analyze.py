@@ -11,7 +11,9 @@ from pathlib import Path
 import yaml
 
 # The order results are shown in, after the parameters that the sweep varied
-METRICS = ["latency", "area", "area (mm^2)", "delay", "power", "power_dc"]
+METRICS = ["latency", "area", "area (mm^2)", "delay",
+           "luts", "ffs", "dsps", "brams", "carry",
+           "power", "power_dc"]
 
 
 def collect(kernel_build_dir):
@@ -21,7 +23,8 @@ def collect(kernel_build_dir):
         manifest = yaml.safe_load(manifest_path.read_text())
 
         row = dict(manifest.get("params", {}))
-        for metric in ("latency", "area", "delay"):
+        for metric in ("latency", "area", "delay",
+                       "luts", "ffs", "dsps", "brams", "carry"):
             row[metric] = manifest.get(metric)
 
         area = manifest.get("area")
