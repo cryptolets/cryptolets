@@ -1,6 +1,5 @@
 from tessera.samples import get_rng, get_modulus, write_csvs
-from reference.field import modmul_mont
-from reference.redc import mont_get_q_prime
+from reference.redc import mont_get_q_prime, to_mont
 
 
 def generate(design, sweep_flags, design_build_dir):
@@ -35,7 +34,13 @@ def generate(design, sweep_flags, design_build_dir):
             y = rng.randint(0, min(sub_max, max_val))
             samples.append((x, y, q, q_prime))
 
+    # The kernel works in the Montgomery domain, so x*y*R^-1 on the converted
+    # operands is x*y*R on the plain ones
+    R = 1 << bitwidth
     for x, y, q, q_prime in samples:
-        goldens.append((modmul_mont(x, y, q, q_prime),))
+        goldens.append(((x * y * R) % q,))
+
+    samples = [(to_mont(x, q), to_mont(y, q), q, q_prime)
+               for x, y, q, q_prime in samples]
 
     write_csvs(samples, goldens, design_build_dir)

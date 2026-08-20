@@ -4,9 +4,18 @@
 vector<string> run_per_row(vector<string>& samples_row) {
   ac_int<BITWIDTH, false> x = parse_ac_int<BITWIDTH>(samples_row[0]);
   ac_int<BITWIDTH, false> y = parse_ac_int<BITWIDTH>(samples_row[1]);
-  ac_int<BITWIDTH+1, false> result;
+  ac_int<2*BITWIDTH, false> mu = parse_ac_int<2*BITWIDTH>(samples_row[3]);
+
+  ac_int<BITWIDTH, false> result;
   CCS_DESIGN(l1_mod_mul_barrett_top) dut;
-  dut.run(x, y, result);
+
+#if Q_TYPE == FIXED_Q
+  dut.run(x, y, mu, result);
+#else
+  ac_int<BITWIDTH, false> q = parse_ac_int<BITWIDTH>(samples_row[2]);
+  dut.run(x, y, q, mu, result);
+#endif
+
   return {result.to_string(AC_DEC)};
 }
 
