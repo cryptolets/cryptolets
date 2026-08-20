@@ -8,7 +8,7 @@
 #include "l0_int_sub_impl.h"
 
 template<class _FIELD>
-class l1_mod_mul_mont_impl {
+class l1_mod_mul_mont {
     l0_int_mul_impl<_FIELD::W>             int_mul_inst;
     l0_int_cmul_impl<_FIELD, CMUL_Q_PRIME> cmul_q_prime_inst;
     l0_int_cmul_impl<_FIELD, CMUL_Q>       cmul_q_inst;

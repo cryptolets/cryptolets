@@ -8,7 +8,7 @@
 #include "l0_int_cmul_impl.h"
 
 template<class _FIELD>
-class l1_mod_mul_barrett_impl {
+class l1_mod_mul_barrett {
     l0_int_mul_impl<_FIELD::W>                        int_mul_inst;
     l0_int_mul_par_impl<2*_FIELD::W, 1>               mul_red_inst;
     l0_int_cmul_impl<_FIELD, CMUL_MU>                 cmul_mu_inst;

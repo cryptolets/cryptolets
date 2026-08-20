@@ -1,6 +1,6 @@
 from tessera.samples import get_rng, get_modulus, write_csvs
 from reference.field import modmul
-from reference.redc import barrett_get_mu
+from reference.redc import barrett_get_mu, mont_get_q_prime, to_mont
 
 
 def generate(design, sweep_flags, design_build_dir):
@@ -8,7 +8,8 @@ def generate(design, sweep_flags, design_build_dir):
     num_samples = sweep_flags.get("num_test_samples", 10)
     rng = get_rng()
     q = get_modulus(design)
-    mu = barrett_get_mu(q)
+    mont = design["mred"] == "mred_mont"
+    rc = mont_get_q_prime(q) if mont else barrett_get_mu(q)
 
     goldens = []
 
@@ -17,11 +18,11 @@ def generate(design, sweep_flags, design_build_dir):
 
     # Edge cases
     samples = [
-        (0, 0, q, mu),
-        (max_val, max_val, q, mu),
-        (0, max_val, q, mu),
-        (max_val, 0, q, mu),
-        (mid_val, mid_val, q, mu),
+        (0, 0, q, rc),
+        (max_val, max_val, q, rc),
+        (0, max_val, q, rc),
+        (max_val, 0, q, rc),
+        (mid_val, mid_val, q, rc),
     ]
 
     # Remaining random samples, distributed across sub-bitwidth ranges
@@ -33,9 +34,15 @@ def generate(design, sweep_flags, design_build_dir):
             sub_max = (1 << sub_bw) - 1
             x = rng.randint(0, min(sub_max, max_val))
             y = rng.randint(0, min(sub_max, max_val))
-            samples.append((x, y, q, mu))
+            samples.append((x, y, q, rc))
 
-    for x, y, q, mu in samples:
-        goldens.append((modmul(x, y, q),))
+    # Montgomery works in its own domain, so x*y*R^-1 on the converted operands
+    # is x*y*R on the plain ones
+    R = 1 << bitwidth
+    for x, y, q, rc in samples:
+        goldens.append(((x * y * R) % q if mont else modmul(x, y, q),))
+
+    if mont:
+        samples = [(to_mont(x, q), to_mont(y, q), q, rc) for x, y, q, rc in samples]
 
     write_csvs(samples, goldens, design_build_dir)

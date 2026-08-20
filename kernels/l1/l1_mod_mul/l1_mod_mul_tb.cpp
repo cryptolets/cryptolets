@@ -1,19 +1,28 @@
-#include "l1_mod_mul_mont_top.h"
+#include "l1_mod_mul_top.h"
 #include "tb_helper.h"
+
+// The reduction constant is q_prime for Montgomery and the wider mu for Barrett
+#if MRED == MRED_BAR
+static constexpr int RC_W = 2*BITWIDTH;
+#else
+static constexpr int RC_W = BITWIDTH;
+#endif
 
 vector<string> run_per_row(vector<string>& samples_row) {
   ac_int<BITWIDTH, false> x = parse_ac_int<BITWIDTH>(samples_row[0]);
   ac_int<BITWIDTH, false> y = parse_ac_int<BITWIDTH>(samples_row[1]);
-  ac_int<BITWIDTH, false> q = parse_ac_int<BITWIDTH>(samples_row[2]);
-  ac_int<BITWIDTH, false> q_prime = parse_ac_int<BITWIDTH>(samples_row[3]);
+  ac_int<RC_W, false> rc = parse_ac_int<RC_W>(samples_row[3]);
+
   ac_int<BITWIDTH, false> result;
-  CCS_DESIGN(l1_mod_mul_mont_top) dut;
-  // A fixed modulus is built into the hardware, so it is not a port
+  CCS_DESIGN(l1_mod_mul_top) dut;
+
 #if Q_TYPE == FIXED_Q
-  dut.run(x, y, q_prime, result);
+  dut.run(x, y, rc, result);
 #else
-  dut.run(x, y, q, q_prime, result);
+  ac_int<BITWIDTH, false> q = parse_ac_int<BITWIDTH>(samples_row[2]);
+  dut.run(x, y, q, rc, result);
 #endif
+
   return {result.to_string(AC_DEC)};
 }
 
