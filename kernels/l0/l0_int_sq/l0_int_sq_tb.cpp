@@ -3,10 +3,9 @@
 
 vector<string> run_per_row(vector<string>& samples_row) {
   ac_int<BITWIDTH, false> x = parse_ac_int<BITWIDTH>(samples_row[0]);
-  ac_int<BITWIDTH, false> y = parse_ac_int<BITWIDTH>(samples_row[1]);
-  ac_int<BITWIDTH+1, false> result;
+  ac_int<2*BITWIDTH, false> result;
   CCS_DESIGN(l0_int_sq_top) dut;
-  dut.run(x, y, result);
+  dut.run(x, result);
   return {result.to_string(AC_DEC)};
 }
 

@@ -19,7 +19,7 @@ from tessera.codegen import \
     gen_params_h, gen_kernel_top, read_impl_spec
 from tessera.package import write_package, update_manifest
 from tessera.blackbox import gen_blackbox_headers
-from tessera.syn import gen_dc_tcl, read_dc_delay, read_dc_power
+from tessera.syn import gen_dc_tcl, read_dc_area, read_dc_delay, read_dc_power
 from tessera.gls import gen_gls_makefile, run_gls
 from tessera.power import gen_power_tcl, read_power
 from tessera.select import select_designs
@@ -80,7 +80,8 @@ def log_elapsed(tool, design_name, return_code, start_time):
     log(f"{tool} {status} for {design_name} in {hrs:d} hrs {mins:d} mins {secs:05.2f} secs")
 
 
-def gen_kernel_files(design, kernel, kernel_path, kernel_build_dir, impl_spec, sweep_flags):
+def gen_kernel_files(design, kernel, kernel_path, kernel_build_dir, impl_spec,
+                     sweep_flags, dry_run=False):
     design_name = get_design_dir_name(design, kernel)
     design_build_dir = Path(kernel_build_dir, design_name)
 
@@ -95,7 +96,7 @@ def gen_kernel_files(design, kernel, kernel_path, kernel_build_dir, impl_spec, s
 
     gen_params_h(design, design_build_dir)
     gen_kernel_top(design, kernel, impl_spec, design_build_dir)
-    gen_blackbox_headers(design, kernel_path, impl_spec, design_build_dir)
+    gen_blackbox_headers(design, kernel_path, impl_spec, design_build_dir, dry_run)
     gen_catapult_design_tcl(design, kernel, design_name, design_build_dir, comb_chk=True)
 
 
@@ -163,7 +164,8 @@ def dc_worker(design, kernel, kernel_path, kernel_build_dir, impl_spec, max_core
 
     log_elapsed("Design Compiler", design_name, result.returncode, start_time)
     if result.returncode == 0:
-        measured = {"delay_dc": read_dc_delay(design_build_dir),
+        measured = {"area_dc": read_dc_area(design_build_dir),
+                    "delay_dc": read_dc_delay(design_build_dir),
                     "power_dc": read_dc_power(design_build_dir, entity)}
         update_manifest(design_build_dir, **{k: v for k, v in measured.items() if v})
 
@@ -240,7 +242,7 @@ def power_worker(design, kernel, kernel_build_dir, max_cores, dry_run=False):
 
 
 def run_catapult_flow(kernel, designs, sweep_flags, root_dir, threads,
-                      threads_per_process, num_workers):
+                      threads_per_process, num_workers, dry_run=False):
     "Generate one kernel's sources and run the high level synthesis over them"
     kernel_path = find_kernel(kernel)
     kernel_build_dir = Path(BUILD_DIR, kernel)
@@ -252,11 +254,15 @@ def run_catapult_flow(kernel, designs, sweep_flags, root_dir, threads,
         list(pool.map(partial(gen_kernel_files, kernel=kernel,
                               kernel_path=kernel_path,
                               kernel_build_dir=kernel_build_dir,
-                              impl_spec=impl_spec, sweep_flags=sweep_flags),
+                              impl_spec=impl_spec, sweep_flags=sweep_flags,
+                              dry_run=dry_run),
                       designs))
 
     gen_catapult_kernel_tcl(sweep_flags, kernel, kernel_path, kernel_build_dir,
                             root_dir, threads_per_process)
+    if dry_run:
+        logging.info(f"  would run Catapult for {len(designs)} designs")
+        return
 
     run_flow("Catapult", partial(catapult_worker, kernel=kernel,
                                   kernel_build_dir=kernel_build_dir,
@@ -323,11 +329,6 @@ def run(kernel, threads, threads_per_process, sweep, run_only, dry_run, only, gu
         logging.warning(f"--{only}-only was given, but {sweep} has {flag}: false, "
                         f"so no flow will run")
 
-    # For --dry-run only show the designs and dependencies which will be built.
-    if dry_run and not only:
-        logging.warning("Dry run. Nothing was built.")
-        return
-
     # --- C++ Verification + Catapult HLS + HLS-generated RTL Verification with QuestaSim Flow ---
     if only in (None, "catapult"):
         # We build each dependent kernel sequentially in topological order.
@@ -339,11 +340,15 @@ def run(kernel, threads, threads_per_process, sweep, run_only, dry_run, only, gu
                 dep_designs = to_build(dep_kernel, dep_designs, "catapult")
             if dep_designs:
                 run_catapult_flow(dep_kernel, dep_designs, sweep_flags, root_dir,
-                                   threads, threads_per_process, num_workers)
+                                   threads, threads_per_process, num_workers, dry_run)
+
+    # The flows below read what Catapult packaged, so a dry run of the whole
+    # sweep stops here. Asking for one of them on its own still generates it.
+    if dry_run and not only:
+        return
 
     # --- Logic Synthesis with Design Compiler ---
     if sweep_flags['syn'] and only in (None, "dc"):
-        # Select which designs to synthesize based on sweep file syn_sel flag
         flattened_sweep = select_designs(flattened_sweep, kernel, kernel_build_dir,
                                          sweep_flags['syn_sel'], kernel_conf.kernel_key)
 

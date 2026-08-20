@@ -101,19 +101,24 @@ def read_fpga_metrics(metrics_csv):
 
 def find_rtl(kernel, design, design_build_dir, combinational):
     """
-    The RTL to package, and the metrics that describe it.
-    For a combinational kernel the RTL is from the CCORE.
-    For a sequential kernel the RTL is from the design itself.
+    The RTL to package, the constraints for it, and the metrics describing it.
+
+    concat_rtl.v is the whole design in one file, defining the datapath and IO
+    components the kernel only instantiates, so the package stands alone.
     """
+    rtl = design_build_dir / "Catapult" / f"{kernel}.v1" / "concat_rtl.v"
+
     if combinational:
+        # The kernel here is a CCORE inside a clocked wrapper, and only the
+        # CCORE's own constraints name its ports. The wrapper's name the clock.
         catapult_dir = design_build_dir / "Catapult"
         solutions = sorted((catapult_dir / "td_ccore_solutions").glob(f"{kernel}_*"))
         if not solutions:
             raise Exception(f"No CCORE solution for '{kernel}' in {catapult_dir}")
-        return (solutions[0] / "rtl.v",
+        return (rtl, solutions[0] / "rtl.v.dc.sdc",
                 read_ccore_metrics(design_build_dir / "ccore.rpt", kernel))
 
-    return (design_build_dir / "Catapult" / f"{kernel}.v1" / "rtl.v",
+    return (rtl, Path(f"{rtl}.dc.sdc"),
             read_design_metrics(design_build_dir / "metrics.csv", design["period"]))
 
 
@@ -133,7 +138,7 @@ def update_manifest(design_build_dir, **results):
 
 def write_package(kernel, design, design_build_dir, combinational):
     "Write the kernel's RTL and manifest into the design's package dir"
-    rtl_path, metrics = find_rtl(kernel, design, design_build_dir, combinational)
+    rtl_path, sdc, metrics = find_rtl(kernel, design, design_build_dir, combinational)
     rtl = rtl_path.read_text()
 
     # An FPGA holds parts rather than cells, so Vivado's counts describe it
@@ -141,8 +146,9 @@ def write_package(kernel, design, design_build_dir, combinational):
     if is_fpga(design["tech_type"]):
         metrics = {**metrics, **read_fpga_metrics(design_build_dir / "metrics.csv")}
 
-    # The last module is the top, since its children are declared before it
-    entity = re.findall(r"^module (\S+)", rtl, re.M)[-1]
+    # A CCORE is wrapped, so the kernel is named rather than last. Elsewhere
+    # the design is the top, whose children are declared before it.
+    entity = kernel if combinational else re.findall(r"^module (\S+)", rtl, re.M)[-1]
     header, body = re.search(rf"^module {entity} \((.*?)\);(.*?)^endmodule",
                              rtl, re.S | re.M).groups()
 
@@ -150,10 +156,7 @@ def write_package(kernel, design, design_build_dir, combinational):
     package_dir.mkdir(parents=True, exist_ok=True)
     (package_dir / f"{kernel}.v").write_text(rtl)
 
-    # Catapult writes the constraints beside the RTL, and they name that
-    # module's own ports. The wrapper's constraints would match nothing.
-    # Only the ASIC flow writes them, since they are for Design Compiler.
-    sdc = Path(f"{rtl_path}.dc.sdc")
+    # Only the ASIC flow writes constraints, since they are for Design Compiler
     if sdc.exists():
         (package_dir / f"{kernel}.sdc").write_text(sdc.read_text())
 

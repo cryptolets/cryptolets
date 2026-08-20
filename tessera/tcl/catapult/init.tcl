@@ -1,4 +1,4 @@
-proc init_options {questa dc vivado} {
+proc init_options {questa dc vivado threads_per_process} {
     options defaults
     options set /Input/CppStandard c++14
     options set /Input/TargetPlatform x86_64
@@ -32,5 +32,5 @@ proc init_options {questa dc vivado} {
     options set Flows/DesignCompiler/GenerateGateSdf true
     options set Flows/DesignCompiler/EnablePowerReporting true
     options set Flows/DesignCompiler/DesignCompilerMode DC-Ultra
-    options set Flows/DesignCompiler/MaxCores 8
+    options set Flows/DesignCompiler/MaxCores $threads_per_process
 }

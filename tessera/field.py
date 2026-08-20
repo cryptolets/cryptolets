@@ -7,6 +7,7 @@ prime of the requested bitwidth.
 from sympy import randprime
 from sympy.core.random import seed as sympy_seed
 
+from reference.redc import barrett_get_mu, mont_get_q_prime
 from tessera.config import ARB_CURVE, curves
 
 SEED = 42
@@ -31,8 +32,12 @@ def design_fields(design):
     field = design.get("field", "base")
     name = curve if curve == ARB_CURVE else f"{curve}_{field}"
 
+    q = get_modulus(design)
     return [{
         "name": name,
         "bitwidth": design["bitwidth"],
-        "q": f"{get_modulus(design):x}",
+        "q": f"{q:x}",
+        # A constant multiplier bakes one of these in
+        "q_prime": f"{mont_get_q_prime(q):x}",
+        "mu": f"{barrett_get_mu(q):x}",
     }]

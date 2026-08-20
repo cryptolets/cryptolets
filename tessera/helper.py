@@ -47,8 +47,12 @@ def get_design_dir_name(design, kernel=None):
         from tessera.kernel import find_kernel
         keys = KernelConfig.load(find_kernel(kernel)).design_key or keys
 
+    # A parameter the sweep did not give this design names nothing, so a
+    # multiplier that never splits carries no base width
     parts = []
     for key in keys:
+        if key not in design:
+            continue
         value = design[key]
         parts.append(f"{key}_{int(value) if isinstance(value, bool) else value}")
     return "__".join(parts)

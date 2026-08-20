@@ -16,6 +16,7 @@ read_vcd {{ vcd }} -zero_delay -strip_path {{ dut_path }}
 set_power_analysis_options -cycle_accurate_clock {{ clock }}
 {% endif -%}
 update_power
+report_switching_activity -list_not_annotated -show_pin > annotation.rpt
 report_power > power.rpt
 report_power -verbose -hier -nosplit -sort_by name > power.hier.rpt
 exit

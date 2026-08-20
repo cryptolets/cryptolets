@@ -13,7 +13,7 @@ source design.tcl
 {% for flag, value in flags.items() -%}
 set {{ flag }} {{ value | tcl }}
 {% endfor %}
-init_options $tool_questa $tool_dc $tool_vivado
+init_options $tool_questa $tool_dc $tool_vivado {{ threads_per_process }}
 # Cache per design. The shared cache keys a CCORE on its C++ alone, so two
 # designs that differ only in which RTL they blackbox reuse the same core.
 options set Cache/UserCacheHome [file join $design_build_dir ccore_cache]

@@ -8,10 +8,11 @@ set synthetic_library {dw_foundation.sldb standard.sldb}
 
 define_design_lib WORK -path ./work
 
-# Unmapped cells are a broken netlist, not a warning
+# A broken netlist should error and stop dc
 set_message_info -id LINT-61 -stop_on
 set_message_info -id UID-3   -stop_on
 set_message_info -id RPT-7   -stop_on
+set_message_info -id UID-341 -stop_on
 
 {% if children %}
 # Children keep their own synthesis, so DC links them instead of flattening.
@@ -20,11 +21,6 @@ read_ddc {{ child.ddc }}
 {% endfor %}
 set_dont_touch [get_designs { {{ children | map(attribute='entity') | join(' ') }} }]
 {% endif %}
-
-# Catapult's own IO and datapath components, which the RTL instantiates
-{% for lib in siflibs %}
-analyze -format verilog {{ lib }}
-{% endfor %}
 
 analyze -format verilog {{ rtl }}
 elaborate {{ entity }}

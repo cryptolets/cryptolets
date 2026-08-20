@@ -20,6 +20,16 @@ struct {{ f.name }} {
         q.bit_fill_hex("{{ f.q }}");
         return q;
     }
+    static ac_int<{{ f.bitwidth }}, false> Q_PRIME() {
+        ac_int<{{ f.bitwidth }}, false> q_prime;
+        q_prime.bit_fill_hex("{{ f.q_prime }}");
+        return q_prime;
+    }
+    static ac_int<{{ f.bitwidth }}+1, false> MU() {
+        ac_int<{{ f.bitwidth }}+1, false> mu;
+        mu.bit_fill_hex("{{ f.mu }}");
+        return mu;
+    }
 };
 {% endfor %}
 using FIELD = {{ fields[0].name }};

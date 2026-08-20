@@ -3,6 +3,8 @@ import click
 import yaml
 import logging
 
+from tessera.config import KernelConfig
+from tessera.kernel import find_kernel
 from tessera import analyze as analysis
 from tessera import core
 from tessera import scaffold
@@ -57,11 +59,15 @@ def run(kernel, threads, threads_per_process, sweep, run_only, dry_run, only, gu
               help='Only show designs with this parameter, repeatable.')
 @click.option('--csv', type=click.Path(), help='Also write the rows to this file.')
 @click.option('--all-columns', is_flag=True, help='Show columns that hold nothing.')
-def analyze(kernel, where, csv, all_columns):
+@click.option('--build', default=str(core.BUILD_DIR), type=click.Path(),
+              help='Build directory to read, for keeping older runs aside.')
+def analyze(kernel, where, csv, all_columns, build):
     "Show what a sweep measured, one row per design"
     filters = dict(pair.split('=', 1) for pair in where)
 
-    rows = analysis.where(analysis.collect(Path(core.BUILD_DIR, kernel)), filters)
+    design_key = KernelConfig.load(find_kernel(kernel)).design_key
+    rows = analysis.where(
+        analysis.collect(Path(build, kernel), design_key), filters)
     if not all_columns:
         rows = analysis.drop_empty_columns(rows)
     rows = analysis.order_columns(rows)

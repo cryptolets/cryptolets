@@ -1,12 +1,15 @@
+# Direct dependencies
+deps: []
+
+# Deps to reuse as packaged RTL. The rest are inlined.
+blackbox: []
+
 # The parameters that change the hardware, which name a design's build directory
 design_key: [bitwidth, tech_type, period, ii]
 
 # Of those, the ones that decide what this computes, so only designs that
 # could replace one another are compared
 kernel_key: [bitwidth]
-
-# Deps to reuse as packaged RTL. The rest are inlined.
-blackbox: []
 
 # Kernel specific stage scripts
 stages:

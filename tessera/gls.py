@@ -49,6 +49,12 @@ def gen_gls_makefile(kernel, design_build_dir, gls_dir, lib_verilog, lib_defines
         mk = patch(mk, r"\.\./\.\./blackbox/(\w+)\.v/\1\.v\.vts ?", "",
                    "drop the blackboxed dependencies")
 
+    # The netlist defines the design and its clusters as gates, so Catapult's
+    # own RTL for them would be a second definition
+    if re.search(r"ccore_cache/\S+\.vts", mk):
+        mk = patch(mk, r"\S*ccore_cache/\S+?\.vts ?", "", "drop the cluster RTL")
+        mk = patch(mk, r"\./rtl\.v/rtl\.v_\d+\.vts", DUT_SLOT, "find the sequential design")
+
     # The slot appears again to carry per file options, so match the line that
     # names a source rather than one that sets a variable
     mk = patch(mk, rf"{re.escape(DUT_SLOT)}: (?![A-Z_]+=)\S+", f"{DUT_SLOT}: {netlist}",

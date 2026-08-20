@@ -14,4 +14,5 @@ kernel_key: [bitwidth, curve, field, q_type]
 # Kernel specific stage scripts
 stages:
   compile: |
-    # TODO: Add Kernel specific stage directives
+    set_ii $ii
+    adder_tree_opt $tech_type

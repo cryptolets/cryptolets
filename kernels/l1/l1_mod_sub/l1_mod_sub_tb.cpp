@@ -2,11 +2,12 @@
 #include "tb_helper.h"
 
 vector<string> run_per_row(vector<string>& samples_row) {
-  ac_int<BITWIDTH, false> x = parse_ac_int<BITWIDTH>(samples_row[0]);
-  ac_int<BITWIDTH, false> y = parse_ac_int<BITWIDTH>(samples_row[1]);
-  ac_int<BITWIDTH+1, false> result;
+  ac_int<BITWIDTH, false> a = parse_ac_int<BITWIDTH>(samples_row[0]);
+  ac_int<BITWIDTH, false> b = parse_ac_int<BITWIDTH>(samples_row[1]);
+  ac_int<BITWIDTH, false> q = parse_ac_int<BITWIDTH>(samples_row[2]);
+  ac_int<BITWIDTH, false> result;
   CCS_DESIGN(l1_mod_sub_top) dut;
-  dut.run(x, y, result);
+  dut.run(a, b, q, result);
   return {result.to_string(AC_DEC)};
 }
 

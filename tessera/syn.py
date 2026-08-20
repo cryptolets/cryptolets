@@ -15,10 +15,6 @@ from tessera.helper import require_built
 from tessera.config import RunConfig
 from tessera.templating import render
 
-# Catapult's IO and datapath components, which every packaged design uses
-SIFLIBS = ["ccs_in_v1.v", "ccs_out_v1.v", "mgc_io_sync_v2.v"]
-
-
 def syn_dir(package_dir):
     "Where a package keeps its Design Compiler results"
     return Path(package_dir, "syn")
@@ -42,6 +38,16 @@ def child_designs(design, impl_spec, kernel_path, build_root, require=True):
         children.append({"entity": manifest["entity"], "ddc": str(ddc.resolve())})
 
     return children
+
+
+def read_dc_area(design_build_dir):
+    "The cell area Design Compiler built, in square micrometres"
+    report = Path(design_build_dir, "dc_reports", "qor.rpt")
+    if not report.exists():
+        return None
+
+    area = re.search(r"Cell Area:\s+(\S+)", report.read_text())
+    return round(float(area.group(1)), 4) if area else None
 
 
 def read_dc_delay(design_build_dir):
@@ -97,7 +103,6 @@ def gen_dc_tcl(design, kernel, impl_spec, kernel_path, design_build_dir, max_cor
     "Write the Design Compiler script for one design"
     conf = RunConfig.load()
     tech = conf.tech[design["tech_type"]]
-    catapult_home = Path(conf.tools["catapult"]).expanduser()
 
     build_root = Path(design_build_dir).parent.parent
     require_built(kernel, design, "catapult", build_root)
@@ -117,7 +122,6 @@ def gen_dc_tcl(design, kernel, impl_spec, kernel_path, design_build_dir, max_cor
         rtl=str(Path(package_dir, manifest["rtl"]).resolve()),
         sdc=str(Path(package_dir, manifest["sdc"]).resolve()),
         target_library=str(Path(tech.lib_db).expanduser()),
-        siflibs=[str(catapult_home / "pkgs" / "siflibs" / lib) for lib in SIFLIBS],
         children=child_designs(design, impl_spec, kernel_path, build_root,
                                require=not dry_run),
         max_cores=max_cores,

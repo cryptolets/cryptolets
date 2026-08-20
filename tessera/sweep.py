@@ -73,6 +73,21 @@ def _apply_width_maps(sweep, design):
         for name, value in zip(WIDTH_MAPS, values):
             if value is not None:
                 out[name] = value
+
+        # A multiplier that never splits down to a width does not sweep it, so
+        # pinning it to the full width collapses those designs onto one
+        mul_type = out.get("mul_type")
+        if mul_type in ("mul_nor", "mul_sb") and "kar_base_mul_width" in out:
+            out["kar_base_mul_width"] = n
+        if mul_type == "mul_nor" and "base_mul_width" in out:
+            out["base_mul_width"] = n
+
+        # Karatsuba recurses down to its base width, then schoolbook takes over
+        # and recurses to its own. Stopping karatsuba below that does nothing.
+        kar, base = out.get("kar_base_mul_width"), out.get("base_mul_width")
+        if kar is not None and base is not None and kar < base:
+            continue
+
         yield out
 
 

@@ -11,39 +11,51 @@ from pathlib import Path
 import yaml
 
 # The order results are shown in, after the parameters that the sweep varied
-METRICS = ["cycles", "latency", "area (um^2)", "area (mm^2)",
+METRICS = ["cycles", "latency", "area (um^2)", "area_dc (um^2)", "area (mm^2)",
            "delay", "delay_dc",
            "luts", "ffs", "dsps", "brams", "carry",
            "power (uW)", "power_dc (uW)"]
 
 # What a column is called, and what its value is scaled by to suit that name
-UNITS = {
+COLUMNS = {
     "latency": ("cycles", 1),
     "area": ("area (um^2)", 1),
     "period": ("period", 1),
     "dep_period_ratio": ("dpr", 1),
+    "base_mul_width": ("base", 1),
+    "kar_base_mul_width": ("kar", 1),
     "power": ("power (uW)", 1e6),
     "power_dc": ("power_dc (uW)", 1e6),
 }
 
 
-def collect(kernel_build_dir):
-    "One row per design, holding its parameters and what each stage measured"
+def collect(kernel_build_dir, design_key=None):
+    """
+    One row per design, holding its parameters and what each stage measured.
+
+    A design carries the whole sweep's parameters, so only the ones the kernel
+    builds from are shown.
+    """
     rows = []
     for manifest_path in sorted(Path(kernel_build_dir).glob("*/package/manifest.yaml")):
         manifest = yaml.safe_load(manifest_path.read_text())
 
+        params = manifest.get("params", {})
+        if design_key:
+            params = {k: v for k, v in params.items() if k in design_key}
+
         row = {}
-        for name, value in manifest.get("params", {}).items():
-            label, scale = UNITS.get(name, (name, 1))
+        for name, value in params.items():
+            label, scale = COLUMNS.get(name, (name, 1))
             row[label] = value * scale if isinstance(value, (int, float)) else value
 
         for metric in ("latency", "area"):
-            label, scale = UNITS[metric]
+            label, scale = COLUMNS[metric]
             value = manifest.get(metric)
             row[label] = value * scale if value is not None else None
 
         # What the high level run estimated, and what synthesis achieved
+        row["area_dc (um^2)"] = manifest.get("area_dc")
         row["delay"] = manifest.get("delay")
         row["delay_dc"] = manifest.get("delay_dc")
 
@@ -59,7 +71,7 @@ def collect(kernel_build_dir):
 
         # Both are the whole design's power, one estimated and one measured
         for key in ("power", "power_dc"):
-            label, scale = UNITS[key]
+            label, scale = COLUMNS[key]
             measured = manifest.get(key)
             row[label] = measured["total"] * scale if measured else None
 

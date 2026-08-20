@@ -66,6 +66,11 @@ class Sweep(BaseModel):
     curve: list[str] = [ARB_CURVE]
     field: list[Literal["base", "scalar"]] = ["base"]
     q_type: list[Literal["fixed_q", "var_q"]] = ["var_q"] # fixed_q bakes the modulus into the hardware, var_q takes it as a port
+    redc_type: list[Literal["fixed_rc", "var_rc"]] = ["var_rc"] # fixed_rc bakes q_prime in, the same way
+    
+    mul_type: list[Literal["mul_nor", "mul_sb", "mul_kar"]] = ["mul_nor"]
+    skip_upper: list[int] = [0]
+    cmul_const: list[Literal["cmul_q", "cmul_q_prime", "cmul_mu"]] = ["cmul_q"]
 
     # Keyed by n, e.g. {16: [8, 16], 32: [16, 32]}
     base_mul_width: Optional[dict[int, list[int]]] = None

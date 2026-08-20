@@ -13,32 +13,50 @@ from pathlib import Path
 import yaml
 
 from tessera.config import KernelConfig, is_fpga
-from tessera.helper import get_design_dir_name, require_built
+from tessera.helper import get_design_dir_name, missing_products, require_built
 from tessera.kernel import find_kernel
 from tessera.parse import parse_kernel
 from tessera.templating import render
 
 
-def dep_width(args, design):
-    "Evaluate a dep's template argument, e.g. _FIELD::W+1 with W=32 gives 33"
-    expr = re.sub(r"\b_FIELD::W\b|\b_BITWIDTH\b", str(design["bitwidth"]), args)
-    if not re.fullmatch(r"[\d\s+\-*/()]+", expr):
-        raise Exception(f"Cannot evaluate dep width '{args}'")
-    return eval(expr)
+def dep_arg(arg, design):
+    "A name is an enum, so MUL_KAR gives mul_kar. Else arithmetic, _FIELD::W+1 gives 33."
+    expr = re.sub(r"\b_FIELD::W\b|\b_BITWIDTH\b", str(design["bitwidth"]), arg).strip()
+    if re.fullmatch(r"[A-Za-z_]\w*", expr):
+        # A parameter of the parent passes its value on, anything else is an enum
+        return design.get(expr.lower(), expr.lower())
+
+    try:
+        return eval(expr, {"__builtins__": {}})
+    except Exception:
+        raise Exception(f"Cannot read dep argument '{arg}'")
+
+
+def dep_params(dep, design):
+    "The parameters a dep's template arguments set, positional against its class"
+    header = Path(find_kernel(dep["kernel"]), "impl", f"{dep['kernel']}_impl.h")
+    names = [p.lstrip("_").lower() for p in parse_kernel(header)["template_params"]]
+
+    args = [a for a in dep["args"].split(",") if a.strip()]
+    if len(args) > len(names):
+        raise Exception(
+            f"'{dep['kernel']}' takes {len(names)} template parameters "
+            f"({', '.join(names)}), but {dep['name']} gives {len(args)}")
+
+    return {name: dep_arg(arg, design) for name, arg in zip(names, args)}
 
 
 def dep_design(dep, design):
     """
     The design a dep is packaged as.
 
-    It runs at its own width, and at a fraction of the parent's period so a
-    chain of blackboxes still fits the parent's clock. Keeping the ratio
-    applies it again to the dep's own deps.
+    Its template arguments say how it differs from the parent, and it runs at a
+    fraction of the parent's period so a chain of blackboxes fits its clock.
     """
     ratio = design.get("dep_period_ratio", 1)
     return {
         **design,
-        "bitwidth": dep_width(dep["args"], design),
+        **dep_params(dep, design),
         "period": round(design["period"] * ratio, 4),
     }
 
@@ -107,7 +125,7 @@ def gen_blackbox_header(kernel, manifest, rtl, impl_header, include_dir):
     )
 
 
-def gen_blackbox_headers(design, kernel_path, impl_spec, design_build_dir):
+def gen_blackbox_headers(design, kernel_path, impl_spec, design_build_dir, dry_run=False):
     "Generate a header and copy the RTL per dep, into a dir that shadows impl"
     blackboxed = blackboxed_deps(kernel_path, impl_spec, design['tech_type'])
 
@@ -122,6 +140,18 @@ def gen_blackbox_headers(design, kernel_path, impl_spec, design_build_dir):
     build_root = Path(design_build_dir).parent.parent
 
     for dep in blackboxed:
+        # A dry run stops before the tool, so a dep it would have built is
+        # named rather than described
+        if dry_run and missing_products(dep["kernel"], dep_design(dep, design),
+                                        "catapult", build_root):
+            render("blackbox_todo.h.j2",
+                   Path(include_dir, f"{dep['kernel']}_impl.h"),
+                   kernel=dep["kernel"],
+                   manifest=Path(build_root, dep["kernel"],
+                                 get_design_dir_name(dep_design(dep, design), dep["kernel"]),
+                                 "package", "manifest.yaml"))
+            continue
+
         package_dir, manifest = find_package(dep, design, build_root)
 
         rtl = include_dir / manifest["rtl"]
