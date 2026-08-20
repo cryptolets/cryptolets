@@ -1,6 +1,3 @@
-# Direct dependencies
-deps: []
-
 # Deps to reuse as packaged RTL. The rest are inlined.
 blackbox: []
 

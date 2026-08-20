@@ -139,7 +139,6 @@ class SweepConfig(BaseModel):
 
 
 class KernelConfig(BaseModel):
-    deps: list[str] = []
     stages: dict[str, str] = {}
     # The deps to reuse as packaged RTL rather than compile again. A dep left
     # out is inlined, so it needs no build of its own.

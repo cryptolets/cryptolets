@@ -12,15 +12,37 @@ from pathlib import Path
 
 import yaml
 
-from tessera.config import KernelConfig, is_fpga
+from tessera.config import KernelConfig, curves, is_fpga
 from tessera.helper import get_design_dir_name, missing_products, require_built
 from tessera.kernel import find_kernel
 from tessera.parse import parse_kernel
 from tessera.templating import render
 
 
+def dep_field(arg, design):
+    "A field names a curve and one of its fields, so BN254_BASE gives both"
+    if arg == "_FIELD":
+        return {}  # the parent's own field, which the dep design already holds
+
+    name = arg.lower()
+    for curve, fields in curves().items():
+        for field in ("base", "scalar"):
+            if field in fields and name == f"{curve}_{field}":
+                return {"curve": curve, "field": field}
+
+    raise Exception(f"Cannot read dep field '{arg}'")
+
+
 def dep_arg(arg, design):
-    "A name is an enum, so MUL_KAR gives mul_kar. Else arithmetic, _FIELD::W+1 gives 33."
+    """
+    What a dep's template argument sets, as {param: value}.
+
+    A field sets the curve and the field together, anything else sets the one
+    parameter it stands for.
+    """
+    if arg == "_FIELD" or re.fullmatch(r"[A-Za-z_]\w*_(base|scalar)", arg, re.I):
+        return dep_field(arg, design)
+
     expr = re.sub(r"\b_FIELD::W\b|\b_BITWIDTH\b", str(design["bitwidth"]), arg).strip()
     if re.fullmatch(r"[A-Za-z_]\w*", expr):
         # A parameter of the parent passes its value on, anything else is an enum
@@ -43,7 +65,12 @@ def dep_params(dep, design):
             f"'{dep['kernel']}' takes {len(names)} template parameters "
             f"({', '.join(names)}), but {dep['name']} gives {len(args)}")
 
-    return {name: dep_arg(arg, design) for name, arg in zip(names, args)}
+    params = {}
+    for name, arg in zip(names, args):
+        value = dep_arg(arg, design)
+        # A field argument names its own parameters, the rest set just theirs
+        params.update(value if isinstance(value, dict) else {name: value})
+    return params
 
 
 def dep_design(dep, design):
