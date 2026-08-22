@@ -30,7 +30,13 @@ struct {{ f.name }} {
         mu.bit_fill_hex("{{ f.mu }}");
         return mu;
     }
-};
+{% for c in ['a', 'b', 'd', 'k'] %}{% if c in f %}
+    static ac_int<{{ f.bitwidth }}, false> {{ c | upper }}() {
+        ac_int<{{ f.bitwidth }}, false> {{ c }};
+        {{ c }}.bit_fill_hex("{{ f[c] }}");
+        return {{ c }};
+    }
+{% endif %}{% endfor %}};
 {% endfor %}
 using FIELD = {{ fields[0].name }};
 {% endif %}

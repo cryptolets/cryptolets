@@ -135,12 +135,12 @@ def gen_catapult_design_tcl(design, kernel_name, design_name, design_build_dir,
 
 def _stage_bodies(kernel_name, kernel_path, root_dir):
     "Kernel-agnostic TCL per stage, before kernel.yaml additions are appended"
-    verify_cpp_path = Path(root_dir, 'tessera', 'verify_cpp')
-    verify_cpp_src_path = verify_cpp_path / 'src'
+    cpp_path = Path(root_dir, 'tessera', 'cpp')
+    cpp_src_path = cpp_path / 'src'
     dep_paths = resolve_deps(kernel_path, Path(root_dir, 'kernels'))
 
     include_paths = [
-        verify_cpp_path / 'include',
+        cpp_path / 'include',
         Path(kernel_path, 'impl'),
         *(p / 'impl' for p in dep_paths),
     ]
@@ -155,8 +155,8 @@ def _stage_bodies(kernel_name, kernel_path, root_dir):
         "solution file add [file join $design_build_dir src " + f"{kernel_name}_top.cpp]",
         "add_blackbox_rtl $design_build_dir",
         f"solution file add [file join {(Path(kernel_path) / f'{kernel_name}_tb.cpp').resolve()}] -exclude true",
-        f"solution file add [file join {(verify_cpp_src_path / 'csvparser.cpp').resolve()}] -exclude true",
-        f"solution file add [file join {(verify_cpp_src_path / 'tb_helper.cpp').resolve()}] -exclude true",
+        f"solution file add [file join {(cpp_src_path / 'csvparser.cpp').resolve()}] -exclude true",
+        f"solution file add [file join {(cpp_src_path / 'tb_helper.cpp').resolve()}] -exclude true",
     ]
 
     compile_stage = [

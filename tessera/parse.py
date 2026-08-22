@@ -5,6 +5,7 @@ can generate the top from what the kernel author wrote.
 A kernel is a class template with a run method. Outputs are the parameters
 it takes by reference.
 """
+import re
 from pathlib import Path
 
 import tree_sitter_cpp
@@ -58,11 +59,14 @@ def parse_kernel(header):
         tparams = next(c for c in node.children if c.type == "template_parameter_list")
         params = run.child_by_field_name("declarator").child_by_field_name("parameters")
 
+        # Keyed by member name, since sub implementations share their deps
+        deps = {d["name"]: d for d in [*_members(body), *_include_members(header)]}
+
         return {
             "name": _text(cls.child_by_field_name("name")),
             "template_params": [_template_param(p) for p in tparams.named_children],
             "params": [_parameter(p) for p in params.named_children],
-            "deps": _members(body),
+            "deps": list(deps.values()),
         }
 
     raise Exception(f"No kernel class with a 'run' method in {header}")
@@ -73,6 +77,26 @@ def _method_name(node):
         return None
     declarator = node.child_by_field_name("declarator")
     return _text(declarator.child_by_field_name("declarator"))
+
+
+def _include_members(header, seen=None):
+    "Member instances in headers beside this one, which hold its sub implementations"
+    header = Path(header)
+    seen = seen if seen is not None else {header}
+
+    for line in header.read_text().splitlines():
+        name = re.match(r'#include "(\S+\.h)"', line)
+        if not name:
+            continue
+        inc = header.parent / name[1]
+        if not inc.exists() or inc in seen:
+            continue
+        seen.add(inc)
+
+        for node in _walk(_tree(inc).root_node):
+            if node.type == "class_specifier":
+                yield from _members(node.child_by_field_name("body"))
+        yield from _include_members(inc, seen)
 
 
 def _members(body):

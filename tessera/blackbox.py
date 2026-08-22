@@ -45,8 +45,10 @@ def dep_arg(arg, design):
 
     expr = re.sub(r"\b_FIELD::W\b|\b_BITWIDTH\b", str(design["bitwidth"]), arg).strip()
     if re.fullmatch(r"[A-Za-z_]\w*", expr):
-        # A parameter of the parent passes its value on, anything else is an enum
-        return design.get(expr.lower(), expr.lower())
+        # A parameter of the parent passes its value on, named with the leading
+        # underscore a template takes or without it. Anything else is an enum.
+        name = expr.lower()
+        return design.get(name, design.get(name.lstrip("_"), name))
 
     try:
         return eval(expr, {"__builtins__": {}})
@@ -129,11 +131,6 @@ def gen_blackbox_header(kernel, manifest, rtl, impl_header, include_dir):
     just produces RTL that cannot be elaborated.
     """
     ports = [p for p in manifest["ports"] if p["name"] not in ("clk", "rst")]
-
-    # Verilog ports carry no sign, so it comes from the implementation. The
-    # two agree in order, since the RTL ports are built from its parameters.
-    for port, param in zip(ports, parse_kernel(impl_header)["params"]):
-        port["signed"] = param["type"].rstrip("> ").endswith("true")
 
     timing = (f'.delay({manifest["delay"]})' if manifest["combinational"] else
               f'.clock_name("clk").latency({manifest["latency"]}).init_delay(1)')

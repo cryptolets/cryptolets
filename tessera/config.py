@@ -70,7 +70,11 @@ class Sweep(BaseModel):
     
     mul_type: list[Literal["mul_nor", "mul_sb", "mul_kar"]] = ["mul_nor"]
     skip_upper: list[int] = [0]
-    cmul_const: list[Literal["cmul_q", "cmul_q_prime", "cmul_mu"]] = ["cmul_q"]
+    cmul_const: list[Literal["cmul_q", "cmul_q_prime", "cmul_mu",
+                             "cmul_a", "cmul_b", "cmul_d", "cmul_k"]] = ["cmul_q"]
+    mred: list[Literal["mred_mont", "mred_bar"]] = ["mred_mont"]
+    pdbl_form: list[Literal["pdbl_a0", "pdbl_a3", "pdbl_avar"]] = ["pdbl_a0"]
+    padd_te_form: list[Literal["padd_te_add", "padd_te_cyclone"]] = ["padd_te_add"]
 
     # Keyed by n, e.g. {16: [8, 16], 32: [16, 32]}
     base_mul_width: Optional[dict[int, list[int]]] = None

@@ -7,11 +7,12 @@ prime of the requested bitwidth.
 from sympy import randprime
 from sympy.core.random import seed as sympy_seed
 
-from reference.redc import barrett_get_mu, mont_get_q_prime
+from reference.redc import barrett_get_mu, mont_get_q_prime, to_mont
 from tessera.config import ARB_CURVE, curves
 
 SEED = 42
 FIELD_CONSTANTS = ("q",) # constant kernel parameters
+ARB_COEFFS = {"a": "0", "b": "1", "d": "2"}
 
 
 def get_modulus(design, seed=SEED):
@@ -40,4 +41,28 @@ def design_fields(design):
         # A constant multiplier bakes one of these in
         "q_prime": f"{mont_get_q_prime(q):x}",
         "mu": f"{barrett_get_mu(q):x}",
+        **curve_coeffs(curve, q, design.get("mred") == "mred_mont"),
     }]
+
+
+def curve_coeffs(curve, q, mont):
+    """
+    The curve's own constants, which the point operations multiply by.
+
+    A montgomery design works in its own domain, so it holds them converted.
+    """
+    # An arb_curve is not a real curve, so its coefficients are only there to
+    # give a design something to multiply by
+    known = ARB_COEFFS if curve == ARB_CURVE else curves()[curve]
+
+    out = {}
+    for name in ("a", "b", "d"):
+        if name in known:
+            value = int(known[name], 16) % q
+            out[name] = f"{to_mont(value, q) if mont else value:x}"
+
+    # The twisted edwards addition reads 2d, so it is precomputed
+    if "d" in known:
+        k = (2 * int(known["d"], 16)) % q
+        out["k"] = f"{to_mont(k, q) if mont else k:x}"
+    return out

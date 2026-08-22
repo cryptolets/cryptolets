@@ -55,6 +55,22 @@ def port_width(text):
     return high - low + 1
 
 
+def manifest_ports(header, body, impl_spec):
+    """
+    The module's ports, each carrying the sign its parameter was declared with.
+
+    Verilog holds no sign, and Catapult renames a port to carry its handshake,
+    so the name a parameter took is the prefix of the ones built from it.
+    """
+    signs = port_signs(impl_spec)
+
+    ports = []
+    for port in parse_module_ports(header, body):
+        name = next((n for n in signs if port["name"].startswith(n)), None)
+        ports.append({**port, "signed": bool(name and signs[name])})
+    return ports
+
+
 def read_design_metrics(metrics_csv, period):
     "The design's own area, latency and delay, from the metrics table"
     row = metrics_csv.read_text().splitlines()[2].split(",")
@@ -136,7 +152,13 @@ def update_manifest(design_build_dir, **results):
     return manifest
 
 
-def write_package(kernel, design, design_build_dir, combinational):
+def port_signs(impl_spec):
+    "Whether each of the run parameters is signed, keyed by its name"
+    return {p["name"]: p["type"].rstrip("> ").endswith("true")
+            for p in impl_spec["params"]}
+
+
+def write_package(kernel, design, design_build_dir, combinational, impl_spec):
     "Write the kernel's RTL and manifest into the design's package dir"
     rtl_path, sdc, metrics = find_rtl(kernel, design, design_build_dir, combinational)
     rtl = rtl_path.read_text()
@@ -166,7 +188,7 @@ def write_package(kernel, design, design_build_dir, combinational):
         "rtl": f"{kernel}.v",
         "sdc": f"{kernel}.sdc" if sdc.exists() else None,
         "combinational": combinational,
-        "ports": parse_module_ports(header, body),
+        "ports": manifest_ports(header, body, impl_spec),
         "params": dict(design),
         **metrics,
     }

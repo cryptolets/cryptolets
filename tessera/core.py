@@ -69,7 +69,12 @@ def run_flow(tool, worker, designs, workers, license=None, dry_run=False):
 
     logging.info(f"{'Generating files for' if dry_run else 'Running'} {tool}")
     with ThreadPoolExecutor(max_workers=workers) as pool:
-        list(pool.map(worker, designs))
+        results = list(pool.map(worker, designs))
+
+    # A worker that stops early reports nothing, so it did not pass
+    if not dry_run and results:
+        passed, total = sum(bool(r) for r in results), len(results)
+        logging.info(f"{tool} Success Rate: {passed}/{total} ({100*passed/total:.0f}%)")
 
 
 def log_elapsed(tool, design_name, return_code, start_time):
@@ -78,6 +83,7 @@ def log_elapsed(tool, design_name, return_code, start_time):
     status = "COMPLETED" if return_code == 0 else "FAILED"
     log = logging.info if return_code == 0 else logging.error
     log(f"{tool} {status} for {design_name} in {hrs:d} hrs {mins:d} mins {secs:05.2f} secs")
+    return return_code == 0
 
 
 def gen_kernel_files(design, kernel, kernel_path, kernel_build_dir, impl_spec,
@@ -124,10 +130,11 @@ def catapult_worker(design, kernel, kernel_build_dir, impl_spec):
                                 combinational=True)
         return_code = run_catapult(kernel_build_dir, design_build_dir)
 
-    log_elapsed("Catapult", design_name, return_code, start_time)
-    if return_code == 0:
-        write_package(kernel, design, design_build_dir, combinational)
+    ok = log_elapsed("Catapult", design_name, return_code, start_time)
+    if ok:
+        write_package(kernel, design, design_build_dir, combinational, impl_spec)
         logging.info(f"Catapult RTL packaged for {design_name}")
+    return ok
 
 
 def dc_worker(design, kernel, kernel_path, kernel_build_dir, impl_spec, max_cores,
@@ -162,12 +169,13 @@ def dc_worker(design, kernel, kernel_path, kernel_build_dir, impl_spec, max_core
             stderr=subprocess.STDOUT,
         )
 
-    log_elapsed("Design Compiler", design_name, result.returncode, start_time)
-    if result.returncode == 0:
+    ok = log_elapsed("Design Compiler", design_name, result.returncode, start_time)
+    if ok:
         measured = {"area_dc": read_dc_area(design_build_dir),
                     "delay_dc": read_dc_delay(design_build_dir),
                     "power_dc": read_dc_power(design_build_dir, entity)}
         update_manifest(design_build_dir, **{k: v for k, v in measured.items() if v})
+    return ok
 
 
 def gls_worker(design, kernel, kernel_build_dir, dry_run=False):
@@ -196,7 +204,8 @@ def gls_worker(design, kernel, kernel_build_dir, dry_run=False):
     logging.info(f"Running gate level simulation for {design_name} ({kind})")
     passed = run_gls(kernel, design_build_dir, gls_dir, makefile, conf.tools["questa"])
 
-    log_elapsed("Gate level simulation", design_name, 0 if passed else 1, start_time)
+    ok = log_elapsed("Gate level simulation", design_name, 0 if passed else 1, start_time)
+    return ok
 
 
 def power_worker(design, kernel, kernel_build_dir, max_cores, dry_run=False):
@@ -234,11 +243,12 @@ def power_worker(design, kernel, kernel_build_dir, max_cores, dry_run=False):
             stderr=subprocess.STDOUT,
         )
 
-    log_elapsed("PrimePower", design_name, result.returncode, start_time)
-    if result.returncode == 0:
+    ok = log_elapsed("PrimePower", design_name, result.returncode, start_time)
+    if ok:
         power = read_power(power_dir)
         update_manifest(design_build_dir, power=power)
         logging.info(f"  {design_name} uses {power['total'] * 1e6:.1f} uW")
+    return ok
 
 
 def run_catapult_flow(kernel, designs, sweep_flags, root_dir, threads,
@@ -362,7 +372,7 @@ def run(kernel, threads, threads_per_process, sweep, run_only, dry_run, only, gu
 
     # --- Gate Level Simulation with QuestaSim ---
     if sweep_flags['gls'] and only in (None, "gls"):
-        run_flow("gate level simulation", partial(gls_worker, kernel=kernel,
+        run_flow("Gate level simulation", partial(gls_worker, kernel=kernel,
                                                    kernel_build_dir=kernel_build_dir,
                                                    dry_run=dry_run),
                   flattened_sweep, num_workers, dry_run=dry_run)
