@@ -1,8 +1,8 @@
 sweep:
-  mul_type: [mul_karatsuba, mul_schoolbook]
-  bitwidth: [16, 32, 64]
+  mul_type: [mul_nor, mul_kar, mul_sb]
+  bitwidth: [256]
   tech_type: [gf12_highperf]
-  period: [1]
+  period: [0.90]
   ii: [1]
   base_mul_width:
     8: [8]
@@ -73,7 +73,7 @@ flags:
   test_cpp_only: false    # only test C++ code with osci
   num_test_samples: 100
   verify_rtl: true        # verify RTL
-  syn: false              # synthesize the RTL
+  syn: true              # synthesize the RTL
   syn_sel: all            # all, pareto, small_fast (smallest and fastest)
-  gls: false              # simulate the gate netlist, needs syn
-  power: false            # measure power, needs gls
+  gls: true              # simulate the gate netlist, needs syn
+  power: true            # measure power, needs gls

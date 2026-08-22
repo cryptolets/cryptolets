@@ -1,0 +1,46 @@
+sweep:
+  bitwidth: [254]
+  tech_type: [gf12_highperf]
+  period: [1]
+  ii: [1]
+  mul_type: [mul_nor]
+  dep_period_ratio: [1]
+
+  base_mul_width:
+    254: [63]
+    255: [63]
+    381: [47]
+    508: [63]
+    510: [63]
+    762: [47]
+  kar_base_mul_width:
+    254: [127, 63]
+    255: [127, 63]
+    381: [190, 95, 47]
+    508: [254, 127, 63]
+    510: [255, 127, 63]
+    762: [381, 190, 95, 47]
+
+  # fixed bakes the constant into the hardware, var takes it as a port
+  q_type: [var_q]
+  redc_type: [var_rc]
+
+  # Which modular reduction the multiply uses
+  mred: [mred_bar]
+
+  # Which twisted edwards addition
+  padd_te_form: [padd_te_add, padd_te_cyclone]
+
+  # Field modulus. Omit both to get a random prime of width bitwidth.
+  curve: [ed25519]   # name from reference/curves.yaml
+  field: [base]               # which modulus of that curve to use
+
+flags:
+  test_cpp: true          # test C++ code
+  test_cpp_only: false    # only test C++ code with osci
+  num_test_samples: 20
+  verify_rtl: true        # verify RTL
+  syn: false              # synthesize the RTL
+  syn_sel: all            # all, pareto, small_fast (smallest and fastest)
+  gls: false              # simulate the gate netlist, needs syn
+  power: false            # measure power, needs gls

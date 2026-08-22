@@ -1,0 +1,25 @@
+sweep:
+  bitwidth: [32]
+  tech_type: [gf12_highperf]
+  period: [1]
+  ii: [1]
+
+  # Which field constant is baked into the multiplier
+  cmul_const: [cmul_q, cmul_q_prime, cmul_b, cmul_d, cmul_k]
+
+  # A curve coefficient is held in the domain its reduction works in
+  mred: [mred_mont, mred_bar]
+
+  # Field modulus. Omit both to get a random prime of width bitwidth.
+  curve: [arb_curve]          # name from reference/curves.yaml
+  field: [base]               # which modulus of that curve to use
+
+flags:
+  test_cpp: true          # test C++ code
+  test_cpp_only: false    # only test C++ code with osci
+  num_test_samples: 100
+  verify_rtl: true        # verify RTL
+  syn: true               # synthesize the RTL
+  syn_sel: all            # all, pareto, small_fast (smallest and fastest)
+  gls: true              # simulate the gate netlist, needs syn
+  power: true            # measure power, needs gls

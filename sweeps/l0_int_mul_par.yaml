@@ -1,15 +1,22 @@
 sweep:
-  bitwidth: [16, 32]
+  bitwidth: [32, 64]
   tech_type: [gf12_highperf]
   period: [1]
   ii: [1]
+
+  # 0 keeps the low product, 1 keeps the high one
+  skip_upper: [0, 1]
+
+  base_mul_width:
+    32: [16]
+    64: [32]
 
 flags:
   test_cpp: true          # test C++ code
   test_cpp_only: false    # only test C++ code with osci
   num_test_samples: 100
   verify_rtl: true        # verify RTL
-  syn: false               # synthesize the RTL
+  syn: false              # synthesize the RTL
   syn_sel: all            # all, pareto, small_fast (smallest and fastest)
   gls: false              # simulate the gate netlist, needs syn
   power: false            # measure power, needs gls
