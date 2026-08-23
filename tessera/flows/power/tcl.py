@@ -8,13 +8,6 @@ from pathlib import Path
 from tessera.config import RunConfig
 from tessera.templating import render
 
-# Where SCVerify puts the design under test, relative to its testbench
-DUT_INST = "scverify_top/rtl/dut_inst"
-
-# A combinational kernel sits two levels below the instance SCVerify drives
-CCORE_INST = "{kernel}_top_run_inst/core_run_rg"
-
-
 def gen_power_tcl(design, kernel, design_build_dir, power_dir, max_cores):
     "Write the PrimePower script for one design"
     conf = RunConfig.load()
@@ -29,8 +22,8 @@ def gen_power_tcl(design, kernel, design_build_dir, power_dir, max_cores):
             f"No switching activity for '{kernel}'. Build it with gls enabled "
             f"first.\n  expected: {vcd}")
 
-    dut_path = (f"{DUT_INST}/{CCORE_INST.format(kernel=kernel)}"
-                if manifest["combinational"] else DUT_INST)
+    # Where the design sits in the recording, which packaging worked out
+    dut_path = manifest["dut_path"]
     sdc = Path(package_dir, manifest["sdc"])
 
     power_dir.mkdir(parents=True, exist_ok=True)
@@ -62,8 +55,19 @@ def real_clock(sdc):
     return None
 
 
+# An unannotated net is read as never switching, so a design the simulation
+# barely covered still reports a number, and it is too low
+MIN_ANNOTATED = 90.0
+
+
 def read_power(power_dir):
     "Parse the PrimePower's power report"
+    annotation = Path(power_dir, "annotation.rpt")
+    annotated = re.search(r"^\s*Nets\s+\d+\(([\d.]+)%\)", annotation.read_text(), re.M)
+    if not annotated or float(annotated.group(1)) < MIN_ANNOTATED:
+        raise Exception(f"Too little of the design was simulated to measure its "
+                        f"power.\n  see: {annotation}")
+
     report = Path(power_dir, "power.rpt")
     if not report.exists():
         raise Exception(f"PrimePower wrote no report at {report}")

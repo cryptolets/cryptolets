@@ -32,3 +32,14 @@ def module_ports(rtl, entity):
                                "width": port_width(width)}
 
     return [found[n] for n in names]
+
+
+def find_instance(rtl, module):
+    "The name a module is instantiated under, and the module holding it"
+    m = re.search(rf"^\s+{module}\s+(\w+)\s*\(", rtl, re.M)
+    if not m:
+        return None
+
+    holders = [(n.group(1), n.start()) for n in re.finditer(r"^module (\S+)", rtl, re.M)
+               if n.start() < m.start()]
+    return m.group(1), holders[-1][0]

@@ -58,8 +58,12 @@ class Catapult(Flow):
 
             gen_kernel_top(design, kernel_ctx.kernel, kernel_ctx.impl_spec, design_build_dir,
                            combinational=True)
+            # The headers were written before the first run, so the rebuild
+            # keeps blackboxing whichever deps got one
             gen_catapult_design_tcl(design, kernel_ctx.kernel, design_name,
-                                    design_build_dir, combinational=True)
+                                    design_build_dir,
+                                    list(Path(design_build_dir, "blackbox").glob("*.h")),
+                                    combinational=True)
             return_code = run_catapult(kernel_ctx.kernel_build_dir, design_build_dir)
 
         return log_elapsed(self.name, design_name, return_code, start_time)

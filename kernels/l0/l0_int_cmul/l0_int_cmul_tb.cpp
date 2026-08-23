@@ -3,7 +3,8 @@
 
 // The ports follow the constant, as the implementation defines them
 static constexpr int CMUL_IN  = (CMUL_CONST == CMUL_MU) ? 2*BITWIDTH : BITWIDTH;
-static constexpr int CMUL_OUT = (CMUL_CONST == CMUL_Q)  ? 2*BITWIDTH : BITWIDTH;
+static constexpr int CMUL_OUT = (CMUL_CONST == CMUL_Q_PRIME
+                              || CMUL_CONST == CMUL_MU)   ? BITWIDTH : 2*BITWIDTH;
 
 vector<string> run_per_row(vector<string>& samples_row) {
   ac_int<CMUL_IN, false> x = parse_ac_int<CMUL_IN>(samples_row[0]);

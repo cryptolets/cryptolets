@@ -102,7 +102,7 @@ def gen_kernel_top(
     render("kernel.cpp.j2", design_build_dir / 'src' / f'{kernel_name}_top.cpp', **ctx)
 
 def gen_catapult_design_tcl(design, kernel_name, design_name, design_build_dir,
-                            comb_chk=False, combinational=False):
+                            blackboxed=(), comb_chk=False, combinational=False):
     # Catapult supplies some libraries itself, so lib_file can be empty
     tech = RunConfig.load().tech[design['tech_type']].model_dump()
     tech = {k: str(Path(v).expanduser()) if v and k.endswith(('_path', '_file')) else (v or "")
@@ -116,6 +116,9 @@ def gen_catapult_design_tcl(design, kernel_name, design_name, design_build_dir,
         design=design,
         tech=tech,
         comb_chk=comb_chk,
+        # A generated header stands in for its dep only under this flag, and
+        # falls back to the real implementation without it
+        blackboxed=bool(blackboxed),
         top_class=f"{kernel_name}_top" if combinational else kernel_name,
     )
 
@@ -140,7 +143,10 @@ def _stage_bodies(kernel_name, kernel_path, root_dir):
         "options set Input/SearchPath {\n" + include_paths_str + "\n} -append",
         "options set Input/SearchPath [file join $design_build_dir include] -append",
         "solution file add [file join $design_build_dir src " + f"{kernel_name}_top.cpp]",
-        "add_blackbox_rtl $design_build_dir",
+        # A generated header stands in for its dep only under this flag, and
+        # falls back to the real implementation without it
+        "if { $blackboxed } { options set Input/CompilerFlags "
+        "\"[options get Input/CompilerFlags] -DBLACKBOX_FLOW\" }",
         f"solution file add [file join {(Path(kernel_path) / f'{kernel_name}_tb.cpp').resolve()}] -exclude true",
         f"solution file add [file join {(cpp_src_path / 'csvparser.cpp').resolve()}] -exclude true",
         f"solution file add [file join {(cpp_src_path / 'tb_helper.cpp').resolve()}] -exclude true",

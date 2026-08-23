@@ -52,8 +52,9 @@ class Generate(Flow):
 
         gen_params_h(design, design_build_dir)
         gen_kernel_top(design, kernel_ctx.kernel, kernel_ctx.impl_spec, design_build_dir)
-        gen_blackbox_headers(design, kernel_ctx.kernel_path, kernel_ctx.impl_spec,
-                             design_build_dir, kernel_ctx.to == "gen")
+        blackboxed = gen_blackbox_headers(
+            design, kernel_ctx.kernel_path, kernel_ctx.impl_spec,
+            design_build_dir, kernel_ctx.to == "gen")
         gen_catapult_design_tcl(design, kernel_ctx.kernel, design_name,
-                                design_build_dir, comb_chk=True)
+                                design_build_dir, blackboxed, comb_chk=True)
         return True

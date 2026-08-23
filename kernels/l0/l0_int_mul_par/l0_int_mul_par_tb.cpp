@@ -1,11 +1,11 @@
-#include "l2_point_add_top.h"
+#include "l0_int_mul_par_top.h"
 #include "tb_helper.h"
 
 vector<string> run_per_row(vector<string>& samples_row) {
   ac_int<BITWIDTH, false> x = parse_ac_int<BITWIDTH>(samples_row[0]);
   ac_int<BITWIDTH, false> y = parse_ac_int<BITWIDTH>(samples_row[1]);
-  ac_int<BITWIDTH+1, false> result;
-  CCS_DESIGN(l2_point_add_top) dut;
+  ac_int<2*BITWIDTH, false> result;
+  CCS_DESIGN(l0_int_mul_par_top) dut;
   dut.run(x, y, result);
   return {result.to_string(AC_DEC)};
 }

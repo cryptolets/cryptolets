@@ -46,15 +46,16 @@ def gen_blackbox_header(kernel, manifest, rtl, impl_header, include_dir):
 
 def gen_blackbox_headers(design, kernel_path, impl_spec, design_build_dir,
                          deps_unbuilt=False):
+    "Write a header per blackboxed dep, and name the deps that got one"
     # Find the deps that are blackboxed defined in kernel.yaml
     blackboxed = blackboxed_deps(kernel_path, impl_spec, design['tech_type'])
 
-    # The TCL blackboxes whatever this dir holds, so a stale one from an
-    # earlier run would keep blackboxing a dep that is now inlined.
+    # A stale header from an earlier run would keep standing in for a dep that
+    # is now inlined.
     include_dir = design_build_dir / "blackbox"
     shutil.rmtree(include_dir, ignore_errors=True)
     if not blackboxed:
-        return
+        return []
 
     include_dir.mkdir(parents=True, exist_ok=True)
     build_root = Path(design_build_dir).parent.parent
@@ -77,3 +78,5 @@ def gen_blackbox_headers(design, kernel_path, impl_spec, design_build_dir,
         impl = Path(find_kernel(dep["kernel"]), "impl", f"{dep['kernel']}_impl.h")
         gen_blackbox_header(dep["kernel"], manifest,
                             package_dir / manifest["rtl"], impl, include_dir)
+
+    return blackboxed

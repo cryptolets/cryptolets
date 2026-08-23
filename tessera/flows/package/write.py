@@ -7,7 +7,11 @@ import yaml
 from pathlib import Path
 
 from tessera.config import is_fpga
-from tessera.flows.package.verilog import find_modules, module_ports
+from tessera.flows.package.verilog import (find_instance, find_modules,
+                                           module_ports)
+
+# Where SCVerify puts the design under test, relative to its testbench
+SCVERIFY_DUT = "scverify_top/rtl/dut_inst"
 
 
 # ---- Read metrics for ASICs ----
@@ -76,6 +80,21 @@ def read_fpga_metrics(metrics_csv):
             found[name] = float(value) if value else 0.0
 
     return found
+
+def dut_path(rtl, entity):
+    """
+    Where the wrapper holds the module PrimePower links, as SCVerify sees it.
+
+    Catapult names that instance itself and nests it differently per design,
+    so the RTL is walked for it rather than assumed.
+    """
+    path = []
+    while (found := find_instance(rtl, entity)):
+        instance, entity = found
+        path.append(instance)
+
+    return "/".join([SCVERIFY_DUT, *reversed(path)])
+
 
 def manifest_ports(rtl, entity, impl_spec):
     """
@@ -151,6 +170,7 @@ def write_package(kernel, design, design_build_dir, combinational, impl_spec):
         "sdc": f"{kernel}.sdc" if sdc.exists() else None,
         "combinational": combinational,
         "ports": manifest_ports(rtl, entity, impl_spec),
+        "dut_path": dut_path(rtl, entity),
         "params": dict(design),
         **metrics,
     }

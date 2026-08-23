@@ -1,84 +1,61 @@
 """
-Helper functions to patch catapult's makefile for gate level simulation.
+Wrap catapult's makefile so gate level simulation reads the netlist.
 """
-import re
 from pathlib import Path
 
 import yaml
 
-# Catapult names the slot holding the design under test
-DUT_SLOT = "$(TARGET)/rtl.v.vts"
-CELL_SLOT = "$(TARGET)/cells.v.vts"
 
-
-def patch(mk, pattern, replacement, what, count=0):
-    "Edit the makefile, and fail if it does not look the way we expect"
-    patched, made = re.subn(pattern, replacement, mk, count=count)
-    if not made:
-        raise Exception(f"Gate level simulation cannot {what}: no match for {pattern!r}")
-    return patched
-
-
-def gen_gls_makefile(kernel, design_build_dir, gls_dir, lib_verilog, lib_defines=""):
+def gen_gls_makefile(kernel, design_build_dir):
     """
-    Patch catapult's makefile so it simulates the gate netlist.
+    Write a makefile that simulates the netlist against the same testbench.
 
-    Catapult already wrote one that simulates the RTL against the testbench,
-    listing every source SCVerify compiles. Gate level simulation reuses it,
-    so the same testbench and the same goldens check the netlist.
+    Catapult's own makefile lists two sets of sources: the RTL it wrote, and a
+    netlist a synthesis tool produced. Running it with STAGE=gate picks the
+    second set, so all that is left to say is where the netlist is and how to
+    compile it.
 
-    Three things change:
-    1. The design under test becomes Design Compiler's 
-       netlist rather than Catapult's RTL. 
-    2. Any RTL the netlist already holds is dropped, 
-       since verilog keeps the last definition it reads and the
-       behavioural version would win. 
-    3. The standard cell models are added, 
-       since the netlist instantiates cells the RTL never did.
+    Compiling a file leaves nothing to check, so catapult marks it done with a
+    stamp file standing in for the source. Every source below is named that
+    way: the stamp goes in the source list, and the rule under it says which
+    file the stamp came from.
+
+    A combinational kernel is synthesized on its own, so only the kernel
+    becomes gates and the ports around it stay as RTL. That wrapper is added
+    back, since it is what carries the testbench down to the netlist.
     """
-    src = Path(design_build_dir, "Catapult", f"{kernel}.v1",
-               "scverify", "Verify_rtl_v_msim.mk")
-    if not src.exists():
-        raise Exception(f"No SCVerify makefile at {src}, so the RTL was never verified")
+    catapult = Path(design_build_dir, "Catapult", f"{kernel}.v1",
+                    "scverify", "Verify_rtl_v_msim.mk")
+    if not catapult.exists():
+        raise Exception(f"No SCVerify makefile at {catapult}, so the RTL was never verified")
+
+    netlist = Path(design_build_dir, "package", "syn", f"{kernel}_gate.v").resolve()
+    if not netlist.exists():
+        raise Exception(f"No netlist for '{kernel}'. Synthesize it first.\n"
+                        f"  expected: {netlist}")
 
     manifest = yaml.safe_load(Path(design_build_dir, "package", "manifest.yaml").read_text())
-    netlist = Path(design_build_dir, "package", "syn", f"{kernel}_gate.v").resolve()
-    mk = src.read_text()
+    combinational = manifest["combinational"]
 
-    # The netlist already holds this dep, so we drop it.
-    if re.search(r"\.\./\.\./blackbox/\S+\.vts", mk):
-        mk = patch(mk, r"\.\./\.\./blackbox/(\w+)\.v/\1\.v\.vts ?", "",
-                   "drop the blackboxed dependencies")
+    stamp = f"{netlist.name}.vts"
+    sources = {stamp: netlist}
+    if combinational:
+        # Catapult already stamps a cluster as rtl.v, so this one is named for
+        # the kernel to keep the two apart
+        sources[f"{kernel}_wrapper.v.vts"] = Path(catapult.parent.parent, "rtl.v").resolve()
 
-    # And its clusters (cluster refers to the catapult feature)
-    if re.search(r"ccore_cache/\S+\.vts", mk):
-        mk = patch(mk, r"\S*ccore_cache/\S+?\.vts ?", "", "drop the cluster RTL")
+    # The netlist takes the slot catapult leaves for it, and the wrapper joins
+    # the list, which catapult settles as it is read rather than after
+    lines = [f"GATE_VLOG_DEP = {netlist.parent}/{stamp}"]
+    lines += [f"VLOG_SRC += {src.parent}/{name}"
+              for name, src in sources.items() if name != stamp]
+    lines.append(f"include {catapult.resolve()}")
 
-        # A sequential design arrives in a slot of its own
-        mk = patch(mk, r"\./rtl\.v/rtl\.v_\d+\.vts", DUT_SLOT, "find the sequential design")
+    for name, src in sources.items():
+        lines += [f"$(TARGET)/{name}: {src}",
+                  "\t$(VLOG) -work work $(VLOG_OPTS) $<",
+                  "\t@touch $@"]
 
-    # Simulate the netlist rather than the RTL. The slot appears again to
-    # carry per file options, so this matches the line naming a source.
-    mk = patch(mk, rf"{re.escape(DUT_SLOT)}: (?![A-Z_]+=)\S+", f"{DUT_SLOT}: {netlist}",
-               "find the design under test")
-
-    # The cell models, in front of the wrapper that ends the source list
-    mk = patch(mk, r"(\./scverify/ccs_wrapper\.v/ccs_wrapper\.v\.vts)",
-               lambda m: f"{CELL_SLOT} {m[1]}", "add the cell models to the sources")
-
-    # Where those cell models are read from
-    mk = patch(mk, r"(\$\(TARGET\)/ccs_wrapper\.v\.vts: \./scverify/ccs_wrapper\.v)",
-               f"{CELL_SLOT}: {lib_verilog}\n" + r"\1",
-               "give the cell models a source file", count=1)
-
-    # And how the cell models compile. ARM needs its unknown squash, or the cells hold
-    # X and the first transaction reads as a wrong answer.
-    mk = patch(mk, rf"({re.escape(DUT_SLOT)}: HDL_LIB=)",
-               f"{CELL_SLOT}: HDL_LIB=work\n"
-               f"{CELL_SLOT}: VLOG_F_OPTS={lib_defines}\n" + r"\1",
-               "compile the cell models")
-
-    gls_dir.mkdir(parents=True, exist_ok=True)
     makefile = design_build_dir / "gls.mk"
-    makefile.write_text(mk)
-    return makefile, manifest["combinational"]
+    makefile.write_text("\n".join(lines) + "\n")
+    return makefile, combinational

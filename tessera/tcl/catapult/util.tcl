@@ -63,19 +63,6 @@ proc set_ii { ii {multi_word 0} } {
 proc save_table { table_fp } {
     solution table export -file $table_fp
 }
-# Add each packaged RTL and turn the generated headers into blackboxes.
-# Without BLACKBOX_FLOW the headers fall back to the real implementation.
-proc add_blackbox_rtl { design_build_dir } {
-    set rtl_files [glob -nocomplain [file join $design_build_dir blackbox *.v]]
-    if {[llength $rtl_files] == 0} {
-        return
-    }
-    foreach rtl $rtl_files {
-        solution file add $rtl -type verilog -exclude true
-    }
-    options set Input/CompilerFlags "[options get Input/CompilerFlags] -DBLACKBOX_FLOW"
-}
-
 # The scheduled latency is final at the schedule stage, so the design does
 # not have to run to extract to know how many cycles it takes.
 proc latency_is_one { design_build_dir } {

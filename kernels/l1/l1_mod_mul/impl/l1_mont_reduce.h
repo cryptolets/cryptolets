@@ -1,5 +1,5 @@
-#ifndef _L1_MOD_MUL_MONT_H_
-#define _L1_MOD_MUL_MONT_H_
+#ifndef _L1_MONT_REDUCE_H_
+#define _L1_MONT_REDUCE_H_
 
 #include <ac_int.h>
 #include "params.h"
@@ -7,8 +7,9 @@
 #include "l0_int_cmul_impl.h"
 #include "l0_int_sub_impl.h"
 
+// Montgomery reduction, t * R^-1 mod q
 template<class _FIELD>
-class l1_mod_mul_mont {
+class l1_mont_reduce {
     l0_int_mul_impl<_FIELD::W>             int_mul_inst;
     l0_int_cmul_impl<_FIELD, CMUL_Q_PRIME> cmul_q_prime_inst;
     l0_int_cmul_impl<_FIELD, CMUL_Q>       cmul_q_inst;
@@ -16,16 +17,11 @@ class l1_mod_mul_mont {
 
 public:
     void run(
-        const ac_int<_FIELD::W, false> x,
-        const ac_int<_FIELD::W, false> y,
+        const ac_int<2*_FIELD::W, false> t,
         const ac_int<_FIELD::W, false> q,
         const ac_int<_FIELD::W, false> q_prime,
         ac_int<_FIELD::W, false> &z
     ) {
-        // t = x * y
-        ac_int<2*_FIELD::W, false> t;
-        int_mul_inst.run(x, y, t);
-
         ac_int<_FIELD::W, false> t_red = t.template slc<_FIELD::W>(0); // t & (R-1)
 
         // (t_red * q_prime) & (R-1)
@@ -60,4 +56,4 @@ public:
     }
 };
 
-#endif /* _L1_MOD_MUL_MONT_H_ */
+#endif /* _L1_MONT_REDUCE_H_ */

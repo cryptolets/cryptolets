@@ -3,8 +3,9 @@
 
 #include <ac_int.h>
 #include "params.h"
-#include "l1_mod_mul_mont.h"
-#include "l1_mod_mul_barrett.h"
+#include "l0_int_mul_impl.h"
+#include "l1_mont_reduce.h"
+#include "l1_barrett_reduce.h"
 
 // The generated top copies the port types, so the width needs its own name
 template<class _FIELD, int _MRED>
@@ -15,8 +16,9 @@ struct l1_mod_mul_ports {
 
 template<class _FIELD, int _MRED = MRED>
 class l1_mod_mul_impl {
-    l1_mod_mul_mont<_FIELD>    mont_inst;
-    l1_mod_mul_barrett<_FIELD> barrett_inst;
+    l0_int_mul_impl<_FIELD::W> int_mul_inst;
+    l1_mont_reduce<_FIELD>     mont_inst;
+    l1_barrett_reduce<_FIELD>  barrett_inst;
 
 public:
     void run(
@@ -26,10 +28,14 @@ public:
         const ac_int<l1_mod_mul_ports<_FIELD,_MRED>::RC, false> rc,
         ac_int<_FIELD::W, false> &z
     ) {
+        // t = x * y
+        ac_int<2*_FIELD::W, false> t;
+        int_mul_inst.run(x, y, t);
+
         if constexpr (_MRED == MRED_MONT) {
-            mont_inst.run(x, y, q, rc, z);
+            mont_inst.run(t, q, rc, z);
         } else {
-            barrett_inst.run(x, y, q, rc, z);
+            barrett_inst.run(t, q, rc, z);
         }
     }
 };
