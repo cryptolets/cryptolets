@@ -13,7 +13,9 @@ from tessera.helper import archive_run, get_design_dir_name, log_elapsed
 
 
 class DesignCompiler(Flow):
-    "Logic synthesis, RTL to a gate netlist"
+    """
+    Logic synthesis using Design Compiler. RTL to a Gate netlist.
+    """
     name = "Design Compiler"
     stage = "syn"
     license = "dc"

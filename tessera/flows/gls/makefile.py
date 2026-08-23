@@ -1,14 +1,7 @@
 """
-Gate-Level Simulation (GLS): 
-   Run the RTL testbench against the synthesized netlist.
-
-Catapult generates a makefile listing the Verilog that SCVerify compiles. 
-For gate level simulation, we reuse all of it and swap one entry: 
-the design under test becomes the netlist Design Compiler produced.
+Helper functions to patch catapult's makefile for gate level simulation.
 """
-import os
 import re
-import subprocess
 from pathlib import Path
 
 import yaml
@@ -28,11 +21,20 @@ def patch(mk, pattern, replacement, what, count=0):
 
 def gen_gls_makefile(kernel, design_build_dir, gls_dir, lib_verilog, lib_defines=""):
     """
-    Write the makefile that simulates the netlist, and return its path.
+    Patch catapult's makefile so it simulates the gate netlist.
 
-    The dependency line for the design's slot names Catapult's RTL, so pointing
-    it at the DC netlist makes it work for gate level simulation. 
-    For a combinational kernel we use the CCORE's netlist, so the wrapper around it stays RTL.
+    Catapult already wrote one that simulates the RTL against the testbench,
+    listing every source SCVerify compiles. Gate level simulation reuses it,
+    so the same testbench and the same goldens check the netlist.
+
+    Three things change:
+    1. The design under test becomes Design Compiler's 
+       netlist rather than Catapult's RTL. 
+    2. Any RTL the netlist already holds is dropped, 
+       since verilog keeps the last definition it reads and the
+       behavioural version would win. 
+    3. The standard cell models are added, 
+       since the netlist instantiates cells the RTL never did.
     """
     src = Path(design_build_dir, "Catapult", f"{kernel}.v1",
                "scverify", "Verify_rtl_v_msim.mk")
@@ -43,30 +45,34 @@ def gen_gls_makefile(kernel, design_build_dir, gls_dir, lib_verilog, lib_defines
     netlist = Path(design_build_dir, "package", "syn", f"{kernel}_gate.v").resolve()
     mk = src.read_text()
 
-    # A blackboxed dep was synthesized into the netlist, so its RTL would be a
-    # second definition of the same module
+    # The netlist already holds this dep, so we drop it.
     if re.search(r"\.\./\.\./blackbox/\S+\.vts", mk):
         mk = patch(mk, r"\.\./\.\./blackbox/(\w+)\.v/\1\.v\.vts ?", "",
                    "drop the blackboxed dependencies")
 
-    # The netlist defines the design and its clusters as gates, so Catapult's
-    # own RTL for them would be a second definition
+    # And its clusters (cluster refers to the catapult feature)
     if re.search(r"ccore_cache/\S+\.vts", mk):
         mk = patch(mk, r"\S*ccore_cache/\S+?\.vts ?", "", "drop the cluster RTL")
+
+        # A sequential design arrives in a slot of its own
         mk = patch(mk, r"\./rtl\.v/rtl\.v_\d+\.vts", DUT_SLOT, "find the sequential design")
 
-    # The slot appears again to carry per file options, so match the line that
-    # names a source rather than one that sets a variable
+    # Simulate the netlist rather than the RTL. The slot appears again to
+    # carry per file options, so this matches the line naming a source.
     mk = patch(mk, rf"{re.escape(DUT_SLOT)}: (?![A-Z_]+=)\S+", f"{DUT_SLOT}: {netlist}",
                "find the design under test")
 
-    # The netlist instantiates cells, so their models are compiled alongside it.
-    # The wrapper is the last source, so the models go in front of it.
+    # The cell models, in front of the wrapper that ends the source list
     mk = patch(mk, r"(\./scverify/ccs_wrapper\.v/ccs_wrapper\.v\.vts)",
                lambda m: f"{CELL_SLOT} {m[1]}", "add the cell models to the sources")
+
+    # Where those cell models are read from
     mk = patch(mk, r"(\$\(TARGET\)/ccs_wrapper\.v\.vts: \./scverify/ccs_wrapper\.v)",
                f"{CELL_SLOT}: {lib_verilog}\n" + r"\1",
                "give the cell models a source file", count=1)
+
+    # And how the cell models compile. ARM needs its unknown squash, or the cells hold
+    # X and the first transaction reads as a wrong answer.
     mk = patch(mk, rf"({re.escape(DUT_SLOT)}: HDL_LIB=)",
                f"{CELL_SLOT}: HDL_LIB=work\n"
                f"{CELL_SLOT}: VLOG_F_OPTS={lib_defines}\n" + r"\1",
@@ -76,35 +82,3 @@ def gen_gls_makefile(kernel, design_build_dir, gls_dir, lib_verilog, lib_defines
     makefile = design_build_dir / "gls.mk"
     makefile.write_text(mk)
     return makefile, manifest["combinational"]
-
-
-def run_gls(kernel, design_build_dir, gls_dir, makefile, questa_home):
-    """
-    Simulate the netlist, and return whether it matched the golden outputs.
-    """
-    env = {
-        **os.environ,
-        # Questa reads its own license variable, which the Catapult flow sets for us
-        "SALT_LICENSE_SERVER": os.environ.get("MGLS_LICENSE_FILE", ""),
-        "QSIM_HOME": str(Path(questa_home).expanduser()),
-    }
-
-    # TARGET is where the compiled libraries land. Overriding it keeps them out
-    # of the Catapult project, so a run always compiles the netlist it was given.
-    solution = Path(design_build_dir, "Catapult", f"{kernel}.v1")
-    target = os.path.relpath(gls_dir.resolve(), solution.resolve())
-
-    log_path = design_build_dir / "logs" / "gls.tessera.log"
-    log_path.parent.mkdir(parents=True, exist_ok=True)
-    with log_path.open("w") as log:
-        subprocess.run(
-            ["make", "-f", str(makefile.resolve()), "SIMTOOL=msim", f"TARGET={target}",
-             f"CCS_VCD_FILE={(gls_dir / 'gate.vcd').resolve()}", "sim"],
-            cwd=solution,
-            env=env,
-            stdout=log,
-            stderr=subprocess.STDOUT,
-        )
-
-    # SCVerify reports the comparison itself, and make exits 0 either way
-    return "Simulation PASSED" in log_path.read_text()
