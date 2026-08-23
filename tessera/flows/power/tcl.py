@@ -2,9 +2,8 @@
 Measure power with PrimePower, from the activity recorded in GLS.
 """
 import re
-from pathlib import Path
-
 import yaml
+from pathlib import Path
 
 from tessera.config import RunConfig
 from tessera.templating import render
@@ -12,9 +11,8 @@ from tessera.templating import render
 # Where SCVerify puts the design under test, relative to its testbench
 DUT_INST = "scverify_top/rtl/dut_inst"
 
-# A combinational kernel is a CCORE inside a wrapper, so the wrapper is the
-# instance SCVerify drives and the kernel itself sits one level below it
-CCORE_INST = "core_run_cmp"
+# A combinational kernel sits two levels below the instance SCVerify drives
+CCORE_INST = "{kernel}_top_run_inst/core_run_rg"
 
 
 def gen_power_tcl(design, kernel, design_build_dir, power_dir, max_cores):
@@ -31,7 +29,8 @@ def gen_power_tcl(design, kernel, design_build_dir, power_dir, max_cores):
             f"No switching activity for '{kernel}'. Build it with gls enabled "
             f"first.\n  expected: {vcd}")
 
-    dut_path = f"{DUT_INST}/{CCORE_INST}" if manifest["combinational"] else DUT_INST
+    dut_path = (f"{DUT_INST}/{CCORE_INST.format(kernel=kernel)}"
+                if manifest["combinational"] else DUT_INST)
     sdc = Path(package_dir, manifest["sdc"])
 
     power_dir.mkdir(parents=True, exist_ok=True)

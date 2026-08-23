@@ -26,6 +26,10 @@ def run_catapult(kernel_build_dir, design_build_dir):
 class Catapult(Flow):
     """
     High level synthesis with Catapult HLS Ultra, C++ to RTL
+
+    A design that schedules in one cycle can be built as a combinational CCORE: 
+    Doing so reduces the latency. combinational CCOREs don't have a top level wrapper.
+    Therefore, throughout the framework combinational designs are accounted for differently.
     """
     name = "Catapult"
     stage = "hls"
@@ -47,8 +51,6 @@ class Catapult(Flow):
                          and int(latency_fp.read_text()) <= 1)
         mark_combinational(design_build_dir, combinational)
 
-        # A design that schedules in one cycle is rebuilt as a combinational
-        # CCORE, which gives a lower latency design than a sequential one
         if combinational:
             logging.info(f"{design_name} schedules in one cycle, "
                          f"rebuilding as combinational")

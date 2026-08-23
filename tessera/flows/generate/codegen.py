@@ -87,8 +87,7 @@ def gen_kernel_top(
 ):
     """
     Generate the top header and the source file Catapult synthesizes.
-    A combinational kernel is a CCORE inside a wrapper.
-    A sequential kernel is the top itself.
+    A combinational kernel is wrapped, a sequential one is the top itself.
     """
     ports, args = _top_ports(impl_spec, design)
     ctx = dict(
@@ -117,7 +116,6 @@ def gen_catapult_design_tcl(design, kernel_name, design_name, design_build_dir,
         design=design,
         tech=tech,
         comb_chk=comb_chk,
-        # A combinational kernel is a CCORE inside a top of its own
         top_class=f"{kernel_name}_top" if combinational else kernel_name,
     )
 
@@ -149,7 +147,7 @@ def _stage_bodies(kernel_name, kernel_path, root_dir):
     ]
 
     compile_stage = [
-        # A combinational kernel wraps its CCORE, so the top class differs
+        # A combinational kernel is wrapped, so the top class differs
         "solution design set $top_class.run -top",
         "directive set -CCORE_POINTS 1",
         "directive set -DESIGN_GOAL latency",
