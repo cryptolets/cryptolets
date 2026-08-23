@@ -7,14 +7,16 @@
 #include <ac_blackbox.h>
 #include "params.h"
 
-template<int _BITWIDTH>
+// A caller sees the implementation's own interface, so this declares the same
+// template and the same run. Only the body differs, naming the packaged RTL.
+template<{{ template_decl | join(', ') }}>
 class {{ kernel }}_impl {
 public:
     {{ kernel }}_impl() {}
 
     #pragma hls_design interface ccore blackbox
     void run(
-{% for p in ports %}        ac_int<{{ p.width }}, {{ "true" if p.signed else "false" }}> {{ "&" if p.dir == "output" }}{{ p.name }}{{ "," if not loop.last }}
+{% for p in params %}        {{ p.type }} {{ "&" if p.is_output }}{{ p.name }}{{ "," if not loop.last }}
 {% endfor %}    ) {
         ac_blackbox()
             .entity("{{ entity }}")

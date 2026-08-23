@@ -1,13 +1,14 @@
 from pathlib import Path
 
-from tessera.blackbox import gen_blackbox_headers
-from tessera.flows.generate.codegen import (gen_catapult_design_tcl,
-                                            gen_catapult_kernel_tcl,
-                                            gen_kernel_top, gen_params_h)
+from tessera.flows.generate.blackbox import gen_blackbox_headers
 from tessera.flows.base import Flow
 from tessera.helper import archive_design, get_design_dir_name
 from tessera.samples import call_gen_samples
 from tessera.flows.base import has_stage
+from tessera.flows.generate.codegen import (gen_catapult_design_tcl,
+                                            gen_catapult_kernel_tcl,
+                                            gen_kernel_top, gen_params_h)
+
 
 def catapult_flags(kernel_ctx):
     "What the kernel tcl reads, which the range decides rather than the sweep"
@@ -20,6 +21,7 @@ def catapult_flags(kernel_ctx):
         "test_cpp_only": kernel_ctx.to == "cpp",
         "verify_rtl": has_stage("rtl", kernel_ctx.frm, kernel_ctx.to),
     }
+
 
 class Generate(Flow):
     "Generate all the files a design needs before other flows run"

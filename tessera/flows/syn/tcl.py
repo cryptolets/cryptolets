@@ -10,7 +10,7 @@ from pathlib import Path
 
 import yaml
 
-from tessera.blackbox import blackboxed_deps, dep_design, find_package
+from tessera.deps import blackboxed_deps, dep_design, find_package
 from tessera.helper import require_built
 from tessera.config import RunConfig
 from tessera.templating import render

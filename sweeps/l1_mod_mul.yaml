@@ -3,7 +3,7 @@ sweep:
   tech_type: [gf12_highperf]
   period: [1]
   ii: [1]
-  mul_type: [mul_nor, mul_kar, mul_sb]
+  mul_type: [mul_kar]
   dep_period_ratio: [1]
 
   base_mul_width:
@@ -22,14 +22,14 @@ sweep:
     762: [381, 190, 95, 47]
 
   # fixed bakes the constant into the hardware, var takes it as a port
-  q_type: [var_q, fixed_q]
+  q_type: [var_q]
   redc_type: [var_rc]
 
   # Which modular reduction the multiply uses
-  mred: [mred_mont, mred_bar]
+  mred: [mred_mont]
 
   # Field modulus. Omit both to get a random prime of width bitwidth.
-  curve: [bn254]   # name from reference/curves.yaml
+  curve: [arb_curve]   # name from reference/curves.yaml
   field: [base]               # which modulus of that curve to use
 
 flags:

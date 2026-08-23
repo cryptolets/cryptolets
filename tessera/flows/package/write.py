@@ -1,18 +1,16 @@
 """
-Package a synthesized kernel as reusable RTL.
-
-The kernel is built as a combinational CCORE inside a wrapper, so Catapult
-writes the kernel's own RTL to td_ccore_solutions and the wrapper carries the
-clock and the testbench. The package holds that CCORE RTL and a manifest
-describing how to blackbox it.
+Package a synthesized kernel as reusable RTL along with a manifest
+with metrics describing how to blackbox it for Catapult.
 """
 import re
 import yaml
 from pathlib import Path
 
 from tessera.config import is_fpga
+from tessera.flows.package.verilog import find_modules, module_ports
 
 
+# ---- Read metrics for ASICs ----
 def read_ccore_metrics(report, kernel):
     """
     Parse the kernel's row in the report's bill of materials, as {area, delay}.
@@ -33,54 +31,24 @@ def read_ccore_metrics(report, kernel):
     raise Exception(f"No bill of materials row for '{kernel}' in {report}")
 
 
-def parse_module_ports(header, body):
-    "Parse the module's ports, as {name, dir, width}, in declaration order."
-    names = [n.strip() for n in header.split(",")]
-    found = {}
+def read_metrics(kernel, design, design_build_dir, combinational):
+    "The area, delay and latency the high level run reported"
+    reports = design_build_dir / "reports"
 
-    for direction, width, declared in re.findall(
-            r"^\s*(input|output)\s*(\[[^\]]*\])?\s*([^;]+);", body, re.M):
-        for name in (n.strip() for n in declared.split(",")):
-            if name in names:
-                found[name] = {"name": name, "dir": direction, "width": port_width(width)}
+    # A CCORE reports its own row, apart from the wrapper's totals
+    if combinational:
+        return read_ccore_metrics(reports / "ccore.rpt", kernel)
 
-    return [found[n] for n in names]
-
-
-def port_width(text):
-    "[31:0] is 32 bits, a bare port is 1"
-    if not text: return 1
-    high, low = (int(n) for n in text.strip("[]").split(":"))
-    return high - low + 1
-
-
-def manifest_ports(header, body, impl_spec):
-    """
-    The module's ports, each carrying the sign its parameter was declared with.
-
-    Verilog holds no sign, and Catapult renames a port to carry its handshake,
-    so the name a parameter took is the prefix of the ones built from it.
-    """
-    signs = port_signs(impl_spec)
-
-    ports = []
-    for port in parse_module_ports(header, body):
-        name = next((n for n in signs if port["name"].startswith(n)), None)
-        ports.append({**port, "signed": bool(name and signs[name])})
-    return ports
-
-
-def read_design_metrics(metrics_csv, period):
-    "The design's own area, latency and delay, from the metrics table"
-    row = metrics_csv.read_text().splitlines()[2].split(",")
+    row = (reports / "metrics.csv").read_text().splitlines()[2].split(",")
     return {
         "area": float(row[7]),
         "latency": int(row[2]),
-        "delay": round(period - float(row[6]), 4),
+        "delay": round(design["period"] - float(row[6]), 4),
     }
 
 
-# What an FPGA design is measured in, since it holds parts rather than cells
+# ---- Read metrics for FPGAs ----
+# FPGA uses resource counts not area in like ASICs
 FPGA_METRICS = {
     "luts": "Area(LUTs)",
     "ffs": "Area(FFs)",
@@ -89,13 +57,9 @@ FPGA_METRICS = {
     "carry": "Area(CARRY8)",
 }
 
-
 def read_fpga_metrics(metrics_csv):
     """
-    What Vivado reported, as {luts, ffs, dsps, brams, carry}.
-
-    The table holds a section per tool, and Catapult writes Vivado's once it
-    has run. The first row of that section is the design's own total.
+    Reads the metrics.csv file for FPGA metrics
     """
     lines = metrics_csv.read_text().splitlines()
     start = next((i for i, line in enumerate(lines) if line.strip() == "Vivado"), None)
@@ -113,37 +77,43 @@ def read_fpga_metrics(metrics_csv):
 
     return found
 
-
-def find_rtl(kernel, design, design_build_dir, combinational):
+def manifest_ports(rtl, entity, impl_spec):
     """
-    The RTL to package, the constraints for it, and the metrics describing it.
-
-    concat_rtl.v is the whole design in one file, defining the datapath and IO
-    components the kernel only instantiates, so the package stands alone.
+    Use the verilog funcs to parse the ports definition from the RTL file.
+    This will be added to the manifest file.
     """
-    rtl = design_build_dir / "Catapult" / f"{kernel}.v1" / "concat_rtl.v"
+    # Verilog has no knowledge of sign so we need to parse the impl header file
+    signs = {p["name"]: p["type"].rstrip("> ").endswith("true")
+             for p in impl_spec["params"]}
 
-    if combinational:
-        # The kernel here is a CCORE inside a clocked wrapper, and only the
-        # CCORE's own constraints name its ports. The wrapper's name the clock.
-        catapult_dir = design_build_dir / "Catapult"
-        solutions = sorted((catapult_dir / "td_ccore_solutions").glob(f"{kernel}_*"))
-        if not solutions:
-            raise Exception(f"No CCORE solution for '{kernel}' in {catapult_dir}")
-        return (rtl, solutions[0] / "rtl.v.dc.sdc",
-                read_ccore_metrics(design_build_dir / "reports" / "ccore.rpt", kernel))
+    ports = []
+    for port in module_ports(rtl, entity):
+        name = next((n for n in signs if port["name"].startswith(n)), None)
+        ports.append({**port, "signed": bool(name and signs[name])})
+    return ports
 
-    return (rtl, Path(f"{rtl}.dc.sdc"),
-            read_design_metrics(design_build_dir / "reports" / "metrics.csv", design["period"]))
+# ---- Find the RTL and SDC files ----
+def find_rtl(kernel, design_build_dir):
+    "The whole design in one file, so the package stands alone"
+    return design_build_dir / "Catapult" / f"{kernel}.v1" / "concat_rtl.v"
 
 
+def find_sdc(kernel, design_build_dir, combinational):
+    "The constraints naming the packaged module's own ports"
+    if not combinational:
+        return Path(f"{find_rtl(kernel, design_build_dir)}.dc.sdc")
+
+    # A CCORE sits inside a clocked wrapper, whose constraints name the clock
+    catapult_dir = design_build_dir / "Catapult"
+    solutions = sorted((catapult_dir / "td_ccore_solutions").glob(f"{kernel}_*"))
+    if not solutions:
+        raise Exception(f"No CCORE solution for '{kernel}' in {catapult_dir}")
+    return solutions[0] / "rtl.v.dc.sdc"
+
+
+# ---- Top level function to write the package ----
 def update_manifest(design_build_dir, **results):
-    """
-    Add a later stage's results to the package.
-
-    Catapult writes the manifest when it packages the RTL, and synthesis and
-    power add what they measured, so one file describes the finished design.
-    """
+    "Called by Synthesis and Power flows to add their metrics to the package"
     path = Path(design_build_dir, "package", "manifest.yaml")
     manifest = yaml.safe_load(path.read_text())
     manifest.update(results)
@@ -151,33 +121,26 @@ def update_manifest(design_build_dir, **results):
     return manifest
 
 
-def port_signs(impl_spec):
-    "Whether each of the run parameters is signed, keyed by its name"
-    return {p["name"]: p["type"].rstrip("> ").endswith("true")
-            for p in impl_spec["params"]}
-
-
 def write_package(kernel, design, design_build_dir, combinational, impl_spec):
     "Write the kernel's RTL and manifest into the design's package dir"
-    rtl_path, sdc, metrics = find_rtl(kernel, design, design_build_dir, combinational)
-    rtl = rtl_path.read_text()
+    # Make the package directory
+    package_dir = design_build_dir / "package"
+    package_dir.mkdir(parents=True, exist_ok=True)
+    
+    sdc     = find_sdc(kernel, design_build_dir, combinational)
+    metrics = read_metrics(kernel, design, design_build_dir, combinational)
+    rtl     = find_rtl(kernel, design_build_dir).read_text()
+    (package_dir / f"{kernel}.v").write_text(rtl)
 
-    # An FPGA holds parts rather than cells, so Vivado's counts describe it
-    # better than the area the high level run estimated
+    # FPGA is is handled differently because
     if is_fpga(design["tech_type"]):
         metrics = {**metrics, **read_fpga_metrics(design_build_dir / "reports" / "metrics.csv")}
 
     # A CCORE is wrapped, so the kernel is named rather than last. Elsewhere
     # the design is the top, whose children are declared before it.
-    entity = kernel if combinational else re.findall(r"^module (\S+)", rtl, re.M)[-1]
-    header, body = re.search(rf"^module {entity} \((.*?)\);(.*?)^endmodule",
-                             rtl, re.S | re.M).groups()
+    entity = kernel if combinational else find_modules(rtl)[-1]
 
-    package_dir = design_build_dir / "package"
-    package_dir.mkdir(parents=True, exist_ok=True)
-    (package_dir / f"{kernel}.v").write_text(rtl)
-
-    # Only the ASIC flow writes constraints, since they are for Design Compiler
+    # Store SDC constraints for Synthesis
     if sdc.exists():
         (package_dir / f"{kernel}.sdc").write_text(sdc.read_text())
 
@@ -187,7 +150,7 @@ def write_package(kernel, design, design_build_dir, combinational, impl_spec):
         "rtl": f"{kernel}.v",
         "sdc": f"{kernel}.sdc" if sdc.exists() else None,
         "combinational": combinational,
-        "ports": manifest_ports(header, body, impl_spec),
+        "ports": manifest_ports(rtl, entity, impl_spec),
         "params": dict(design),
         **metrics,
     }

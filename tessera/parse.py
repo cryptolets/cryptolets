@@ -40,7 +40,7 @@ def _parameter(node):
 def parse_kernel(header):
     """
     The kernel class in this header, as
-    {name, template_params, params, deps}.
+    {name, template_params, template_decl, params, deps}.
 
     deps are the member instances, as {kernel, args, name}.
     """
@@ -65,6 +65,7 @@ def parse_kernel(header):
         return {
             "name": _text(cls.child_by_field_name("name")),
             "template_params": [_template_param(p) for p in tparams.named_children],
+            "template_decl": [_text(p) for p in tparams.named_children],
             "params": [_parameter(p) for p in params.named_children],
             "deps": list(deps.values()),
         }

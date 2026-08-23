@@ -8,7 +8,7 @@ import logging
 from graphlib import TopologicalSorter
 from pathlib import Path
 
-from tessera.blackbox import blackboxed_deps, dep_design
+from tessera.deps import blackboxed_deps, dep_design
 from tessera.parse import parse_impl_spec
 from tessera.helper import get_design_dir_name, missing_products
 from tessera.kernel import find_kernel

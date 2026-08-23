@@ -2,7 +2,7 @@ import logging
 from pathlib import Path
 
 from tessera.flows.base import Flow
-from tessera.flows.catapult.tool import is_combinational
+from tessera.flows.catapult.comb import is_combinational
 from tessera.helper import get_design_dir_name
 from tessera.flows.package.write import write_package
 

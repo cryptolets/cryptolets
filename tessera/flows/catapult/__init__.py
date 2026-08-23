@@ -1,13 +1,26 @@
 import logging
 import time
+import subprocess
 from pathlib import Path
 
 from tessera.flows.base import Flow
-from tessera.flows.catapult.tool import (COMB_CHK_EXIT, mark_combinational,
-                                            run_catapult)
-from tessera.flows.generate.codegen import (gen_catapult_design_tcl,
-                                            gen_kernel_top)
 from tessera.helper import archive_run, get_design_dir_name, log_elapsed
+from tessera.flows.catapult.comb import COMB_CHK_EXIT, mark_combinational
+from tessera.flows.generate.codegen import \
+        gen_catapult_design_tcl, gen_kernel_top
+
+
+def run_catapult(kernel_build_dir, design_build_dir):
+    log_path = design_build_dir / "logs" / "catapult.tessera.log"
+    log_path.parent.mkdir(parents=True, exist_ok=True)
+    with log_path.open("w") as log:
+        result = subprocess.run(
+            ["catapult", "-shell", "-file", str(Path(kernel_build_dir, 'kernel.tcl').resolve())],
+            cwd=design_build_dir,
+            stdout=log,
+            stderr=subprocess.STDOUT,
+        )
+        return result.returncode
 
 
 class Catapult(Flow):
