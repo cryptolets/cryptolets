@@ -93,6 +93,12 @@ def run(kernel, threads, threads_per_process, sweep, frm, to, only):
     if has_stage("hls", frm, to) and not has_stage("rtl", frm, to):
         logging.warning("SKIPPING rtl verification")
 
+    # And verification without it has nothing to check, since both run inside
+    # the Catapult run rather than on their own
+    for stage in ("cpp", "rtl"):
+        if has_stage(stage, frm, to) and not has_stage("hls", frm, to):
+            logging.warning(f"{stage} verification cannot be run without HLS flow")
+
     # A dependency is built before the kernel that blackboxes it, so each
     # kernel goes through every flow before the next one starts.
     for dep_kernel, dep_designs in schedule:
