@@ -1,32 +1,18 @@
 """
-Synthesize a packaged kernel with Design Compiler.
-
-A blackboxed dep was already synthesized on its own, so the parent reads that
-result instead of compiling the dep again. This keeps a large design within
-what DC can handle, and keeps its runtime close to the parent's own logic.
+Generate the Design Compiler TCL script and
+link the child designs that are blackboxed.
 """
-import re
-from pathlib import Path
-
 import yaml
+from pathlib import Path
 
 from tessera.deps import blackboxed_deps, dep_design, find_package
 from tessera.helper import require_built
 from tessera.config import RunConfig
 from tessera.templating import render
 
-def syn_dir(package_dir):
-    "Where a package keeps its Design Compiler results"
-    return Path(package_dir, "syn")
-
-
 def child_designs(design, impl_spec, kernel_path, build_root, require=True):
     """
-    The synthesized deps this design links, as {entity, ddc}.
-
-    A dep is only linked when it was blackboxed, since otherwise its logic is
-    already part of this design's own RTL. A dry run names where each result
-    will be without asking for it, since nothing has been synthesized yet.
+    Link the child designs' .ddc files to the script
     """
     children = []
     for dep in blackboxed_deps(kernel_path, impl_spec, design['tech_type']):
@@ -34,15 +20,13 @@ def child_designs(design, impl_spec, kernel_path, build_root, require=True):
         if require:
             require_built(dep["kernel"], dep_design(dep, design), "syn", build_root)
 
-        ddc = syn_dir(package_dir) / f"{dep['kernel']}.ddc"
+        ddc = package_dir / "syn" / f"{dep['kernel']}.ddc"
         children.append({"entity": manifest["entity"], "ddc": str(ddc.resolve())})
 
     return children
 
 
-def gen_dc_tcl(design, kernel, impl_spec, kernel_path, design_build_dir, max_cores,
-               dry_run=False):
-    "Write the Design Compiler script for one design"
+def gen_dc_tcl(design, kernel, impl_spec, kernel_path, design_build_dir, max_cores):
     conf = RunConfig.load()
     tech = conf.tech[design["tech_type"]]
 
@@ -54,7 +38,7 @@ def gen_dc_tcl(design, kernel, impl_spec, kernel_path, design_build_dir, max_cor
 
     report_dir = design_build_dir / "reports" / "dc"
     report_dir.mkdir(parents=True, exist_ok=True)
-    syn_dir(package_dir).mkdir(parents=True, exist_ok=True)
+    (package_dir / "syn").mkdir(parents=True, exist_ok=True)
 
     render(
         "dc.tcl.j2",
@@ -64,10 +48,9 @@ def gen_dc_tcl(design, kernel, impl_spec, kernel_path, design_build_dir, max_cor
         rtl=str(Path(package_dir, manifest["rtl"]).resolve()),
         sdc=str(Path(package_dir, manifest["sdc"]).resolve()),
         target_library=str(Path(tech.lib_db).expanduser()),
-        children=child_designs(design, impl_spec, kernel_path, build_root,
-                               require=not dry_run),
+        children=child_designs(design, impl_spec, kernel_path, build_root),
         max_cores=max_cores,
-        syn_dir=str(syn_dir(package_dir).resolve()),
+        syn_dir=str((package_dir / "syn").resolve()),
         report_dir=str(report_dir.resolve()),
     )
     return manifest["entity"]

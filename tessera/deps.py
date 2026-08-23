@@ -1,9 +1,5 @@
 """
-Resolve what a kernel depends on.
-
-A dep is instantiated at its own width, so l0_int_sub<_FIELD::W+1> inside a
-32 bit parent needs the 33 bit design. Its template arguments say how it
-differs from the parent, and the kernel says which ones are packaged.
+Helper functions for dependent kernels.
 """
 import re
 from pathlib import Path
@@ -17,7 +13,7 @@ from tessera.parse import parse_kernel
 
 
 def dep_field(arg):
-    "A field names a curve and one of its fields, so BN254_BASE gives both"
+    "Special case parsing for field parameters"
     if arg == "_FIELD":
         return {}  # the parent's own field, which the dep design already holds
 
