@@ -1,6 +1,7 @@
 """
 Helper functions for dependent kernels.
 """
+import logging
 import re
 from pathlib import Path
 
@@ -34,7 +35,7 @@ def dep_arg(arg, design):
     parameter it stands for.
     """
     if arg == "_FIELD" or re.fullmatch(r"[A-Za-z_]\w*_(base|scalar)", arg, re.I):
-        return dep_field(arg, design)
+        return dep_field(arg)
 
     expr = re.sub(r"\b_FIELD::W\b|\b_BITWIDTH\b", str(design["bitwidth"]), arg).strip()
     if re.fullmatch(r"[A-Za-z_]\w*", expr):
@@ -100,11 +101,11 @@ def blackboxed_deps(kernel_path, impl_spec, tech_type=None):
 
     wanted = KernelConfig.load(kernel_path).blackbox
 
-    # Validates that the defined deps are valid kernel names 
-    unknown = set(wanted) - {dep["kernel"] for dep in impl_spec["deps"]}
-    if unknown:
-        raise Exception(
-            f"'{impl_spec['name']}' does not use {', '.join(sorted(unknown))}, "
-            f"so they cannot be blackboxed")
+    # A name the kernel does not instantiate is a stale entry, so it is worth
+    # saying rather than stopping. One that names no kernel at all is a typo.
+    for name in sorted(set(wanted) - {dep["kernel"] for dep in impl_spec["deps"]}):
+        find_kernel(name)
+        logging.warning(f"'{impl_spec['name']}' does not use {name}, "
+                        f"so it is not blackboxed")
 
     return [dep for dep in impl_spec["deps"] if dep["kernel"] in wanted]
