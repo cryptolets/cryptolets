@@ -115,7 +115,7 @@ def blackboxed_deps(kernel_path, impl_spec, tech_type=None):
 def find_package(dep, design, build_root):
     "The dep's package dir and manifest, or an error naming what is missing"
     wanted = dep_design(dep, design)
-    require_built(dep["kernel"], wanted, "catapult", build_root)
+    require_built(dep["kernel"], wanted, "hls", build_root)
 
     package_dir = Path(build_root, dep["kernel"],
                        get_design_dir_name(wanted, dep["kernel"]), "package")
@@ -149,7 +149,8 @@ def gen_blackbox_header(kernel, manifest, rtl, impl_header, include_dir):
     )
 
 
-def gen_blackbox_headers(design, kernel_path, impl_spec, design_build_dir, dry_run=False):
+def gen_blackbox_headers(design, kernel_path, impl_spec, design_build_dir,
+                         deps_unbuilt=False):
     "Generate a header and copy the RTL per dep, into a dir that shadows impl"
     blackboxed = blackboxed_deps(kernel_path, impl_spec, design['tech_type'])
 
@@ -164,10 +165,10 @@ def gen_blackbox_headers(design, kernel_path, impl_spec, design_build_dir, dry_r
     build_root = Path(design_build_dir).parent.parent
 
     for dep in blackboxed:
-        # A dry run stops before the tool, so a dep it would have built is
+        # A run that stops before the tool leaves its deps unbuilt, so one is
         # named rather than described
-        if dry_run and missing_products(dep["kernel"], dep_design(dep, design),
-                                        "catapult", build_root):
+        if deps_unbuilt and missing_products(dep["kernel"], dep_design(dep, design),
+                                        "hls", build_root):
             render("blackbox_todo.h.j2",
                    Path(include_dir, f"{dep['kernel']}_impl.h"),
                    kernel=dep["kernel"],

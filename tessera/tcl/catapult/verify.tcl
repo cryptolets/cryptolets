@@ -2,9 +2,9 @@ proc run_osci_test {test test_cpp_only design_build_dir} {
     # run c++ tests with osci
     if {$test} {
         puts "Running C++ tests with osci"
-        set sample_fp [file join $design_build_dir samples.csv]
-        set output_fp [file join $design_build_dir outputs_cpp.csv]
-        set golden_fp [file join $design_build_dir goldens.csv]
+        set sample_fp [file join $design_build_dir test samples.csv]
+        set output_fp [file join $design_build_dir test outputs_cpp.csv]
+        set golden_fp [file join $design_build_dir test goldens.csv]
 
         flow package require /SCVerify
         flow package option set /SCVerify/INVOKE_ARGS "$sample_fp $output_fp"
@@ -32,9 +32,9 @@ proc run_verify_rtl {verify_rtl design_build_dir} {
     # Run VSC RTL Simulation and Verification
     if {$verify_rtl} {
         puts "Running Questa RTL simulation and verification"
-        set sample_fp [file join $design_build_dir samples.csv]
-        set output_fp [file join $design_build_dir outputs_rtl.csv]
-        set golden_fp [file join $design_build_dir goldens.csv]
+        set sample_fp [file join $design_build_dir test samples.csv]
+        set output_fp [file join $design_build_dir test outputs_rtl.csv]
+        set golden_fp [file join $design_build_dir test goldens.csv]
 
         flow package require /SCVerify
         flow package option set /SCVerify/INVOKE_ARGS "$sample_fp $output_fp"

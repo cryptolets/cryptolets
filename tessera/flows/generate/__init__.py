@@ -1,0 +1,57 @@
+from pathlib import Path
+
+from tessera.blackbox import gen_blackbox_headers
+from tessera.flows.generate.codegen import (gen_catapult_design_tcl,
+                                            gen_catapult_kernel_tcl,
+                                            gen_kernel_top, gen_params_h)
+from tessera.flows.base import Flow
+from tessera.helper import archive_design, get_design_dir_name
+from tessera.samples import call_gen_samples
+from tessera.flows.base import has_stage
+
+def catapult_flags(kernel_ctx):
+    "What the kernel tcl reads, which the range decides rather than the sweep"
+    return {
+        **kernel_ctx.sweep_flags,
+        # The test runs inside catapult and is cheap, so a range that
+        # synthesizes always includes it
+        "test_cpp": has_stage("cpp", "gen", kernel_ctx.to),
+        # Stopping at cpp leaves catapult nothing to do after the test
+        "test_cpp_only": kernel_ctx.to == "cpp",
+        "verify_rtl": has_stage("rtl", kernel_ctx.frm, kernel_ctx.to),
+    }
+
+class Generate(Flow):
+    "Generate all the files a design needs before other flows run"
+    name = "Generation"
+    stage = "gen"
+
+    def designs(self, designs, kernel_ctx):
+        # One tcl drives every design of a kernel, so it is written once
+        kernel_ctx.kernel_build_dir.mkdir(parents=True, exist_ok=True)
+        gen_catapult_kernel_tcl(catapult_flags(kernel_ctx), kernel_ctx.kernel, kernel_ctx.kernel_path,
+                                kernel_ctx.kernel_build_dir, kernel_ctx.root_dir,
+                                kernel_ctx.threads_per_process)
+        return designs
+
+    def run(self, design, kernel_ctx):
+        design_name = get_design_dir_name(design, kernel_ctx.kernel)
+        design_build_dir = Path(kernel_ctx.kernel_build_dir, design_name)
+
+        # A finished run is kept, so the next one starts from clean sources
+        if design_build_dir.exists():
+            archive_design(design_build_dir)
+        else:
+            design_build_dir.mkdir(parents=True, exist_ok=True)
+
+        if catapult_flags(kernel_ctx)["test_cpp"]:
+            call_gen_samples(design, kernel_ctx.sweep_flags, kernel_ctx.kernel_path,
+                             design_build_dir)
+
+        gen_params_h(design, design_build_dir)
+        gen_kernel_top(design, kernel_ctx.kernel, kernel_ctx.impl_spec, design_build_dir)
+        gen_blackbox_headers(design, kernel_ctx.kernel_path, kernel_ctx.impl_spec,
+                             design_build_dir, kernel_ctx.to == "gen")
+        gen_catapult_design_tcl(design, kernel_ctx.kernel, design_name,
+                                design_build_dir, comb_chk=True)
+        return True

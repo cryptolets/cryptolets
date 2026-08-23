@@ -1,26 +1,35 @@
 import subprocess
 import re
+import uuid
+import time
+import logging
 from pathlib import Path
 
 BUILD_DIR = Path('build')
 
-# What a flow writes for a design, and so what a parent reads from a dep it
-# blackboxes. A design holding all of a flow's files is built.
+# What a stage writes for a design, and so what a parent reads from a dep it
+# blackboxes. A design holding all of a stage's files is built.
 PRODUCTS = {
-    "catapult": [
+    "hls": [
         "package/manifest.yaml",   # its ports, area, delay and latency
         "package/{kernel}.v",      # the RTL the blackbox header points at
     ],
-    "dc": [
+    "syn": [
         "package/syn/{kernel}.ddc",   # the synthesized block DC links
     ],
 }
 
+# A stage naming no product leaves nothing to reuse, so it always runs
+ALWAYS_RUNS = object()
 
-def missing_products(kernel, design, flow, build_root=BUILD_DIR):
-    "The files a flow should have written for this design, and did not"
+
+def missing_products(kernel, design, stage, build_root=BUILD_DIR):
+    "The files a stage should have written for this design, and did not"
+    if stage not in PRODUCTS:
+        return [ALWAYS_RUNS]
+
     design_dir = Path(build_root, kernel, get_design_dir_name(design, kernel))
-    wanted = (design_dir / p.format(kernel=kernel) for p in PRODUCTS[flow])
+    wanted = (design_dir / p.format(kernel=kernel) for p in PRODUCTS[stage])
     return [p for p in wanted if not p.exists()]
 
 
@@ -89,7 +98,40 @@ def get_license_info(product="catapult_ultra"):
     in_use = int(m.group(2))
     return {"issued": issued, "in_use": in_use, "available": issued - in_use}
 
-if __name__ == "__main__":
-    print("CatapultUltra_c: ", get_license_info())
-    print("Design-Compiler: ", get_license_info("dc"))
-    print("PrimePower: ", get_license_info("prime_power"))
+
+def log_elapsed(tool, design_name, return_code, start_time):
+    elapsed = time.time() - start_time
+    hrs, mins, secs = int(elapsed // 3600), int((elapsed % 3600) // 60), elapsed % 60
+    status = "COMPLETED" if return_code == 0 else "FAILED"
+    log = logging.info if return_code == 0 else logging.error
+    log(f"{tool} {status} for {design_name} in {hrs:d} hrs {mins:d} mins {secs:05.2f} secs")
+    return return_code == 0
+
+
+# ---- archive design helper functions ----
+KEEP = ("prior", "ccore_cache", "dware_cache") # these don't get archived
+
+def _move(design_build_dir, names, label):
+    if not names:
+        return
+
+    run_dir = design_build_dir / "prior" / f"run_{label}{uuid.uuid4().hex[:8]}"
+    run_dir.mkdir(parents=True, exist_ok=True)
+    for name in names:
+        (design_build_dir / name).rename(run_dir / name)
+
+
+def archive_run(design_build_dir, label="", dirs=("Catapult", "dc")):
+    "Move a finished run's tool directories aside, so the next one starts clean"
+    if "Catapult" in dirs:
+        dirs = (*dirs, "Catapult.ccs")
+
+    _move(design_build_dir, [d for d in dirs if (design_build_dir / d).exists()],
+          label)
+
+
+def archive_design(design_build_dir, label=""):
+    "Move a whole finished run aside, the sources it was built from included"
+    _move(design_build_dir,
+          [p.name for p in design_build_dir.iterdir() if p.name not in KEEP],
+          label)

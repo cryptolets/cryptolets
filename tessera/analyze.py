@@ -8,6 +8,9 @@ those columns empty.
 import csv
 from pathlib import Path
 
+from tessera.config import KernelConfig
+from tessera.kernel import find_kernel
+
 import yaml
 
 # The order results are shown in, after the parameters that the sweep varied
@@ -80,7 +83,7 @@ def collect(kernel_build_dir, design_key=None):
     return rows
 
 
-def where(rows, filters):
+def where_rows(rows, filters):
     """
     Keep the rows whose parameters match, as {name: value}.
 
@@ -162,3 +165,19 @@ def write_csv(rows, path):
         writer = csv.DictWriter(f, fieldnames=list(rows[0].keys()))
         writer.writeheader()
         writer.writerows(rows)
+
+
+def run(kernel, where=(), csv_path=None, all_columns=False, build="build"):
+    "Every design's results, as rows ready to print"
+    filters = dict(pair.split("=", 1) for pair in where)
+
+    design_key = KernelConfig.load(find_kernel(kernel)).design_key
+    rows = where_rows(collect(Path(build, kernel), design_key), filters)
+
+    if not all_columns:
+        rows = drop_empty_columns(rows)
+    rows = order_columns(rows)
+
+    if csv_path:
+        write_csv(rows, csv_path)
+    return rows

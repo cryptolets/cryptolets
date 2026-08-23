@@ -6,14 +6,15 @@ from pathlib import Path
 
 from tessera.field import SEED, get_modulus
 
-SAMPLES_PATH = Path("samples.csv")
-GOLDENS_PATH = Path("goldens.csv")
+SAMPLES_PATH = Path("test/samples.csv")
+GOLDENS_PATH = Path("test/goldens.csv")
 
 def get_rng(seed=SEED):
     return random.Random(seed)
 
 
 def _write_csv(path, header, rows):
+    path.parent.mkdir(parents=True, exist_ok=True)
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("w", newline="") as f:
         w = csv.writer(f, lineterminator="\n")

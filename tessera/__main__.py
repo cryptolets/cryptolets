@@ -3,10 +3,9 @@ import click
 import yaml
 import logging
 
-from tessera.config import KernelConfig
-from tessera.kernel import find_kernel
 from tessera import analyze as analysis
 from tessera import core
+from tessera.flows import STAGES
 from tessera import scaffold
 
 # Use defaults from config.yaml
@@ -32,25 +31,21 @@ def app():
 @click.option('--threads', '-t', default=run_conf.get('total_threads', 8), type=int, help='Total number of threads.')
 @click.option('--threads-per-process', '-p', default=run_conf.get('threads_per_process', 1), type=int, help='Threads per process.')
 @click.option('--sweep', '-s', type=str, required=True, help='Sweep file.')
-@click.option('--run-only', is_flag=True, default=run_conf.get('run_only', False), help='Run using existing flattened sweep configuration from build dir.')
-@click.option('--dry-run', is_flag=True, default=run_conf.get('dry_run', False), help='Only generate flattened sweep configuration and exit.')
-@click.option('--dc-only', 'only', flag_value='dc', default=None,
-              help='Only synthesize, reusing an existing Catapult build.')
-@click.option('--gls-only', 'only', flag_value='gls',
-              help='Only simulate the netlist, reusing an existing synthesis.')
-@click.option('--power-only', 'only', flag_value='power',
-              help='Only measure power, reusing an existing simulation.')
-@click.option('--gui-mode', is_flag=True, default=run_conf.get('gui_mode', False), help='Interactive GUI mode.')
-def run(kernel, threads, threads_per_process, sweep, run_only, dry_run, only, gui_mode):
+@click.option('--from', 'frm', type=click.Choice(STAGES), default=run_conf.get('frm', 'gen'),
+              help='The stage to start at, reusing what an earlier run built.')
+@click.option('--to', type=click.Choice(STAGES), default=run_conf.get('to', 'rtl'),
+              help='The stage to stop after.')
+@click.option('--only', type=click.Choice(STAGES), default=None,
+              help='Run one stage alone, reusing what an earlier run built.')
+def run(kernel, threads, threads_per_process, sweep, frm, to, only):
     core.run(
         kernel=kernel,
         threads=threads,
         threads_per_process=threads_per_process,
         sweep=sweep,
-        run_only=run_only,
-        dry_run=dry_run,
+        frm=frm,
+        to=to,
         only=only,
-        gui_mode=gui_mode,
     )
 
 @app.command()
@@ -63,21 +58,14 @@ def run(kernel, threads, threads_per_process, sweep, run_only, dry_run, only, gu
               help='Build directory to read, for keeping older runs aside.')
 def analyze(kernel, where, csv, all_columns, build):
     "Show what a sweep measured, one row per design"
-    filters = dict(pair.split('=', 1) for pair in where)
-
-    design_key = KernelConfig.load(find_kernel(kernel)).design_key
-    rows = analysis.where(
-        analysis.collect(Path(build, kernel), design_key), filters)
-    if not all_columns:
-        rows = analysis.drop_empty_columns(rows)
-    rows = analysis.order_columns(rows)
+    rows = analysis.run(kernel, where, csv, all_columns, build)
 
     click.echo(analysis.table(rows))
     if rows:
         click.echo(f"\n{len(rows)} design{'s' if len(rows) > 1 else ''}")
     if csv:
-        analysis.write_csv(rows, csv)
         click.echo(f"CSV written to {csv}")
+
 
 @app.command()
 @click.argument('kernel')

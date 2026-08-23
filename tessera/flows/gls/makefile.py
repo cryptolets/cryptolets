@@ -94,7 +94,8 @@ def run_gls(kernel, design_build_dir, gls_dir, makefile, questa_home):
     solution = Path(design_build_dir, "Catapult", f"{kernel}.v1")
     target = os.path.relpath(gls_dir.resolve(), solution.resolve())
 
-    log_path = design_build_dir / "gls.tessera.log"
+    log_path = design_build_dir / "logs" / "gls.tessera.log"
+    log_path.parent.mkdir(parents=True, exist_ok=True)
     with log_path.open("w") as log:
         subprocess.run(
             ["make", "-f", str(makefile.resolve()), "SIMTOOL=msim", f"TARGET={target}",

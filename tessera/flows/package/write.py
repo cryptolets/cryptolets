@@ -7,9 +7,8 @@ clock and the testbench. The package holds that CCORE RTL and a manifest
 describing how to blackbox it.
 """
 import re
-from pathlib import Path
-
 import yaml
+from pathlib import Path
 
 from tessera.config import is_fpga
 
@@ -132,10 +131,10 @@ def find_rtl(kernel, design, design_build_dir, combinational):
         if not solutions:
             raise Exception(f"No CCORE solution for '{kernel}' in {catapult_dir}")
         return (rtl, solutions[0] / "rtl.v.dc.sdc",
-                read_ccore_metrics(design_build_dir / "ccore.rpt", kernel))
+                read_ccore_metrics(design_build_dir / "reports" / "ccore.rpt", kernel))
 
     return (rtl, Path(f"{rtl}.dc.sdc"),
-            read_design_metrics(design_build_dir / "metrics.csv", design["period"]))
+            read_design_metrics(design_build_dir / "reports" / "metrics.csv", design["period"]))
 
 
 def update_manifest(design_build_dir, **results):
@@ -166,7 +165,7 @@ def write_package(kernel, design, design_build_dir, combinational, impl_spec):
     # An FPGA holds parts rather than cells, so Vivado's counts describe it
     # better than the area the high level run estimated
     if is_fpga(design["tech_type"]):
-        metrics = {**metrics, **read_fpga_metrics(design_build_dir / "metrics.csv")}
+        metrics = {**metrics, **read_fpga_metrics(design_build_dir / "reports" / "metrics.csv")}
 
     # A CCORE is wrapped, so the kernel is named rather than last. Elsewhere
     # the design is the top, whose children are declared before it.

@@ -123,3 +123,13 @@ def _walk(node):
     yield node
     for child in node.children:
         yield from _walk(child)
+
+
+def parse_impl_spec(kernel_name, kernel_path):
+    "The kernel class the author wrote, parsed once for every generator"
+    header = kernel_path / 'impl' / f"{kernel_name}_impl.h"
+    impl_spec = parse_kernel(header)
+    if impl_spec['name'] != f"{kernel_name}_impl":
+        raise Exception(
+            f"{header} defines '{impl_spec['name']}', expected '{kernel_name}_impl'")
+    return impl_spec

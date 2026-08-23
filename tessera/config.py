@@ -23,33 +23,10 @@ def is_fpga(tech_type):
 
 
 class Flags(BaseModel):
-    syn: bool = False
     # Which designs are worth synthesizing, since synthesis costs far more than
     # the high level run that estimated them
     syn_sel: Literal["all", "pareto", "small_fast"] = "all"
-    gls: bool = False
-    power: bool = False
-    test_cpp: bool = True
-    verify_rtl: bool = False
-    test_cpp_only: bool = False
     num_test_samples: int = 10
-
-    @model_validator(mode="after")
-    def _enable_what_each_stage_needs(self):
-        # Power is measured from the activity a gate level simulation records
-        if self.power:
-            self.gls = True
-
-        # Gate level simulation runs the RTL testbench against the synthesized
-        # netlist, so it needs both a netlist and that testbench
-        if self.gls:
-            self.syn = True
-            self.verify_rtl = True
-
-        # RTL verification reuses the samples and goldens that the C++ test generates
-        if self.verify_rtl:
-            self.test_cpp = True
-        return self
 
 
 class Sweep(BaseModel):
@@ -126,19 +103,8 @@ class SweepConfig(BaseModel):
         return _load(cls, path)
 
     @model_validator(mode="after")
-    def _fpga_runs_inside_catapult(self):
-        """
-        An FPGA design is synthesized by Vivado during the Catapult run, so the
-        stages that follow one belong to the ASIC flow alone.
-        """
-        if not any(is_fpga(name) for name in self.sweep.tech_type):
-            return self
-
-        asked = [name for name in ("syn", "gls", "power") if getattr(self.flags, name)]
-        if asked:
-            raise ValueError(
-                f"an FPGA sweep cannot {', '.join(asked)}, since Vivado runs "
-                f"inside Catapult and the rest is the ASIC flow")
+    def _fpga_is_asic_only(self):
+        "An FPGA design is synthesized by Vivado during the Catapult run"
         return self
 
 
@@ -192,10 +158,11 @@ class Tech(BaseModel):
 class RunConfig(BaseModel):
     total_threads: int = 8
     threads_per_process: int = 1
-    run_only: bool = False
-    dry_run: bool = False
     rtl_file: str = "rtl"
-    gui_mode: bool = False
+
+    # How far a run goes, which a --from or --to overrides
+    frm: str = "gen"
+    to: str = "rtl"
 
     tools: dict[str, str] = {}
     tech: dict[str, Tech] = {}

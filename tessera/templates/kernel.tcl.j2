@@ -14,6 +14,8 @@ source design.tcl
 set {{ flag }} {{ value | tcl }}
 {% endfor %}
 init_options $tool_questa $tool_dc $tool_vivado {{ threads_per_process }}
+file mkdir [file join $design_build_dir reports]
+
 # Cache per design. The shared cache keys a CCORE on its C++ alone, so two
 # designs that differ only in which RTL they blackbox reuse the same core.
 options set Cache/UserCacheHome [file join $design_build_dir ccore_cache]
@@ -25,7 +27,7 @@ solution rename $kernel_name
 {% if stage.body %}{{ stage.body }}
 {% endif %}
 go {{ stage.name }}
-{% if stage.save_table %}save_table [file join $design_build_dir metrics.csv]
+{% if stage.save_table %}save_table [file join $design_build_dir reports metrics.csv]
 {% endif %}
 {% if stage.name == "schedule" %}# A kernel that schedules in one cycle holds no state, so it is worth
 # rebuilding as a combinational CCORE. Anything else continues as it is.
@@ -35,12 +37,12 @@ project save
 {% endfor %}
 # The BOM carries the CCORE's own area and delay. The metrics table reports
 # the wrapper's totals instead.
-solution report -filename [file join $design_build_dir ccore.rpt] -window false -bom true -timing true
+solution report -filename [file join $design_build_dir reports ccore.rpt] -window false -bom true -timing true
 run_verify_rtl $verify_rtl $design_build_dir
 
 # An FPGA design is synthesized here rather than in a phase of its own. The
 # table is written again, since Vivado's numbers only exist once it has run.
 if {[is_fpga $tech_type]} {
     run_fpga_syn $tech_type {{ threads_per_process }}
-    save_table [file join $design_build_dir metrics.csv]
+    save_table [file join $design_build_dir reports metrics.csv]
 }

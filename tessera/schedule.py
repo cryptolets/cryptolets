@@ -9,7 +9,7 @@ from graphlib import TopologicalSorter
 from pathlib import Path
 
 from tessera.blackbox import blackboxed_deps, dep_design
-from tessera.codegen import read_impl_spec
+from tessera.parse import parse_impl_spec
 from tessera.helper import get_design_dir_name, missing_products
 from tessera.kernel import find_kernel
 
@@ -35,7 +35,7 @@ def _walk(kernel, designs, graph, needed):
 
     kernel_path = find_kernel(kernel)
     tech_type = designs[0]["tech_type"] if designs else None
-    deps = blackboxed_deps(kernel_path, read_impl_spec(kernel, kernel_path), tech_type)
+    deps = blackboxed_deps(kernel_path, parse_impl_spec(kernel, kernel_path), tech_type)
     graph.setdefault(kernel, set()).update(dep["kernel"] for dep in deps)
 
     # Recursing on the new designs alone terminates the walk: a node revisited

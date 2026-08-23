@@ -32,70 +32,12 @@ def child_designs(design, impl_spec, kernel_path, build_root, require=True):
     for dep in blackboxed_deps(kernel_path, impl_spec, design['tech_type']):
         package_dir, manifest = find_package(dep, design, build_root)
         if require:
-            require_built(dep["kernel"], dep_design(dep, design), "dc", build_root)
+            require_built(dep["kernel"], dep_design(dep, design), "syn", build_root)
 
         ddc = syn_dir(package_dir) / f"{dep['kernel']}.ddc"
         children.append({"entity": manifest["entity"], "ddc": str(ddc.resolve())})
 
     return children
-
-
-def read_dc_area(design_build_dir):
-    "The cell area Design Compiler built, in square micrometres"
-    report = Path(design_build_dir, "dc_reports", "qor.rpt")
-    if not report.exists():
-        return None
-
-    area = re.search(r"Cell Area:\s+(\S+)", report.read_text())
-    return round(float(area.group(1)), 4) if area else None
-
-
-def read_dc_delay(design_build_dir):
-    """
-    The critical path Design Compiler achieved, in nanoseconds.
-
-    The high level run estimates this before synthesis, so the two together say
-    whether the design still meets its clock once it is built from real cells.
-    """
-    report = Path(design_build_dir, "dc_reports", "qor.rpt")
-    if not report.exists():
-        return None
-
-    period = re.search(r"Critical Path Clk Period:\s+(\S+)", report.read_text())
-    slack = re.search(r"Critical Path Slack:\s+(\S+)", report.read_text())
-    if not period or not slack or "uninit" in slack.group(1):
-        return None
-
-    return round(float(period.group(1)) - float(slack.group(1)), 4)
-
-
-def read_dc_power(design_build_dir, entity):
-    """
-    The power Design Compiler estimated, in watts.
-
-    This is what the design would use if every net switched as often as the tool
-    assumes. A power run measures the real figure instead. The report mixes its
-    units, giving dynamic power in mW and leakage in uW.
-    """
-    report = Path(design_build_dir, "dc_reports", "power.rpt")
-    if not report.exists():
-        return None
-
-    # The entity also names a row in the wire load table, so match the one
-    # whose columns are numbers
-    row = re.search(rf"^{re.escape(entity)}\s+([\d.e+-]+)\s+([\d.e+-]+)\s+([\d.e+-]+)\s",
-                    report.read_text(), re.M)
-    if not row:
-        return None
-
-    switching, internal, leakage = (float(v) for v in row.groups())
-    return {
-        "switching": switching * 1e-3,
-        "internal": internal * 1e-3,
-        "leakage": leakage * 1e-6,
-        # The reported total rounds the mixed units, so it is summed here instead
-        "total": (switching + internal) * 1e-3 + leakage * 1e-6,
-    }
 
 
 def gen_dc_tcl(design, kernel, impl_spec, kernel_path, design_build_dir, max_cores,
@@ -105,12 +47,12 @@ def gen_dc_tcl(design, kernel, impl_spec, kernel_path, design_build_dir, max_cor
     tech = conf.tech[design["tech_type"]]
 
     build_root = Path(design_build_dir).parent.parent
-    require_built(kernel, design, "catapult", build_root)
+    require_built(kernel, design, "hls", build_root)
 
     package_dir = design_build_dir / "package"
     manifest = yaml.safe_load(Path(package_dir, "manifest.yaml").read_text())
 
-    report_dir = design_build_dir / "dc_reports"
+    report_dir = design_build_dir / "reports" / "dc"
     report_dir.mkdir(parents=True, exist_ok=True)
     syn_dir(package_dir).mkdir(parents=True, exist_ok=True)
 

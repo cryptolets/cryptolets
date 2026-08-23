@@ -5,11 +5,5 @@ sweep:
   ii: [1]
 
 flags:
-  test_cpp: true          # test C++ code
-  test_cpp_only: false    # only test C++ code with osci
   num_test_samples: 100
-  verify_rtl: true        # verify RTL
-  syn: false               # synthesize the RTL
   syn_sel: all            # all, pareto, small_fast (smallest and fastest)
-  gls: false              # simulate the gate netlist, needs syn
-  power: false            # measure power, needs gls

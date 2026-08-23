@@ -9,7 +9,6 @@ from tessera.config import RunConfig, Sweep
 from tessera.field import design_fields, FIELD_CONSTANTS
 from tessera.kernel import resolve_deps
 from tessera.templating import render
-from tessera.parse import parse_kernel
 
 catapult_stages = [
     "new",
@@ -80,16 +79,6 @@ def _top_ports(impl, design):
             })
             args.append(param['name'])
     return ports, args
-
-
-def read_impl_spec(kernel_name, kernel_path):
-    "The kernel class the author wrote, parsed once for every generator"
-    header = kernel_path / 'impl' / f"{kernel_name}_impl.h"
-    impl_spec = parse_kernel(header)
-    if impl_spec['name'] != f"{kernel_name}_impl":
-        raise Exception(
-            f"{header} defines '{impl_spec['name']}', expected '{kernel_name}_impl'")
-    return impl_spec
 
 
 def gen_kernel_top(
