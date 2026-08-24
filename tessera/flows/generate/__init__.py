@@ -2,8 +2,7 @@ from pathlib import Path
 
 from tessera.flows.generate.blackbox import gen_blackbox_headers
 from tessera.flows.base import Flow
-from tessera.helper import (archive_design, get_design_dir_name,
-                            missing_products)
+from tessera.helper import archive_design, get_design_dir_name
 from tessera.samples import call_gen_samples
 from tessera.flows.base import has_stage
 from tessera.flows.generate.codegen import (gen_catapult_design_tcl,
@@ -41,12 +40,8 @@ class Generate(Flow):
         design_name = get_design_dir_name(design, kernel_ctx.kernel)
         design_build_dir = Path(kernel_ctx.kernel_build_dir, design_name)
 
-        # A finished run is kept, so the next one starts from clean sources.
-        # A dependency that is only being reused built nothing, so there is
-        # nothing of its own to keep.
-        reused = (kernel_ctx.kernel != kernel_ctx.parent
-                  and not missing_products(kernel_ctx.kernel, design, "hls"))
-        if design_build_dir.exists() and not reused:
+        # A finished run is kept, so the next one starts from clean sources
+        if design_build_dir.exists():
             archive_design(design_build_dir)
         else:
             design_build_dir.mkdir(parents=True, exist_ok=True)

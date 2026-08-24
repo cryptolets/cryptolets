@@ -10,6 +10,13 @@ BUILD_DIR = Path('build')
 # What a stage writes for a design, and so what a parent reads from a dep it
 # blackboxes. A design holding all of a stage's files is built.
 PRODUCTS = {
+    "gen": [
+        "include/params.h",
+        "include/{kernel}_top.h",
+        "src/{kernel}_top.cpp",
+        "design.tcl",
+        "test/samples.csv",   # only written when the c++ test runs
+    ],
     "hls": [
         "package/manifest.yaml",   # its ports, area, delay and latency
         "package/{kernel}.v",      # the RTL the blackbox header points at
