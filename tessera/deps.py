@@ -1,6 +1,7 @@
 """
 Helper functions for dependent kernels.
 """
+import hashlib
 import logging
 import re
 from pathlib import Path
@@ -82,6 +83,20 @@ def dep_design(dep, design):
         **dep_params(dep, design),
         "period": round(design["period"] * ratio, 4),
     }
+
+def dep_entity(dep, design):
+    """
+    What a dep's top module is called inside its parent.
+
+    A parent can hold the same kernel more than once, at different arguments,
+    and each one is a different package. The name is taken from what the kernel
+    computes, so two that compute the same thing are the same module.
+    """
+    wanted = dep_design(dep, design)
+    keys = KernelConfig.load(find_kernel(dep["kernel"])).kernel_key
+    named = "__".join(f"{k}_{wanted[k]}" for k in keys if k in wanted)
+    return f"{dep['kernel']}_{hashlib.sha1(named.encode()).hexdigest()[:6]}"
+
 
 def find_package(dep, design, build_root):
     "The dep's package dir and manifest, or an error naming what is missing"

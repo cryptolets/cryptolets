@@ -7,28 +7,31 @@
 #include <ac_blackbox.h>
 #include "params.h"
 
-// A caller sees the implementation's own interface, so this declares the same
-// template and the same run. The widths are the ones the packaged RTL was
-// built with, since the implementation derives them from itself.
-template<{{ template_decl | join(', ') }}>
-class {{ kernel }}_impl {
+// The implementation itself, which a design that was not packaged still uses
+#include "{{ impl }}"
+
+{% for v in variants %}
+// One packaged design, standing in for the implementation at these arguments.
+// The widths are the ones its RTL was built with.
+template<>
+class {{ kernel }}_impl<{{ v.args }}> {
 public:
     {{ kernel }}_impl() {}
 
     #pragma hls_design interface ccore blackbox
     void run(
-{% for p in params %}        {{ p.type }} {{ "&" if p.is_output }}{{ p.name }}{{ "," if not loop.last }}
+{% for p in v.params %}        {{ p.type }} {{ "&" if p.is_output }}{{ p.name }}{{ "," if not loop.last }}
 {% endfor %}    ) {
         ac_blackbox()
-            .entity("{{ entity }}")
-            .verilog_files("{{ rtl }}")
-            .outputs("{{ outputs }}")
-            .area({{ area }})
-            {{ timing }}
+            .entity("{{ v.entity }}")
+            .verilog_files("{{ v.rtl }}")
+            .outputs("{{ v.outputs }}")
+            .area({{ v.area }})
+            {{ v.timing }}
             .end();
     }
 };
-
+{% endfor %}
 #else
 #include "{{ impl }}"
 #endif

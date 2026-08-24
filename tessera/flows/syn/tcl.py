@@ -5,7 +5,8 @@ link the child designs that are blackboxed.
 import yaml
 from pathlib import Path
 
-from tessera.deps import blackboxed_deps, dep_design, find_package
+from tessera.deps import (blackboxed_deps, dep_design, dep_entity,
+                          find_package)
 from tessera.helper import require_built
 from tessera.config import RunConfig
 from tessera.templating import render
@@ -21,7 +22,11 @@ def child_designs(design, impl_spec, kernel_path, build_root, require=True):
             require_built(dep["kernel"], dep_design(dep, design), "syn", build_root)
 
         ddc = package_dir / "syn" / f"{dep['kernel']}.ddc"
-        children.append({"entity": manifest["entity"], "ddc": str(ddc.resolve())})
+        # The RTL calls the dep by the name its package was given, so the
+        # synthesized design is renamed to match before it is linked
+        children.append({"entity": manifest["entity"],
+                         "renamed": dep_entity(dep, design),
+                         "ddc": str(ddc.resolve())})
 
     return children
 
