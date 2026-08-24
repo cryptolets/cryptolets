@@ -10,7 +10,7 @@
 // The generated top copies the port types, so the width needs its own name
 template<class _FIELD, int _MRED>
 struct l2_point_add_te_ports {
-    static constexpr int RC = l1_mod_mul_ports<_FIELD,_MRED>::RC;
+    static constexpr int RC = l1_mod_mul_impl<_FIELD,_MRED>::RC;
 };
 
 template<class _FIELD, int _MRED = MRED, int _PADD_TE_FORM = PADD_TE_FORM>

@@ -1,5 +1,5 @@
 # Deps to reuse as packaged RTL. The rest are inlined.
-blackbox: []
+blackbox: [l0_int_mul, l0_int_cmul]
 
 # The parameters that change the hardware, which name a design's build directory
 design_key: [bitwidth, tech_type, period, ii, dep_period_ratio, curve, field,

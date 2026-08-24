@@ -62,6 +62,19 @@ def to_macro(text):
     return re.sub(r"\b_([A-Z][A-Z0-9_]*)\b", r"\1", text)
 
 
+def qualify(text, impl, template_args):
+    """
+    Name a width the impl declares, from outside the impl.
+
+    A port type is copied into the top as it is written, so a width the impl
+    holds as its own member has to be named through the class that holds it.
+    """
+    return re.sub(r"\b([A-Z][A-Z0-9_]*)\b",
+                  lambda m: f"{impl['name']}<{template_args}>::{m[1]}"
+                            if m[1] in impl.get("widths", ()) else m[1],
+                  text)
+
+
 def _top_ports(impl, design):
     "The top's ports and the arguments it forwards to the impl"
     # With a fixed modulus the descriptor supplies q, so it is not a port
@@ -90,6 +103,9 @@ def gen_kernel_top(
     A combinational kernel is wrapped, a sequential one is the top itself.
     """
     ports, args = _top_ports(impl_spec, design)
+    template_args = ", ".join(to_macro(p) for p in impl_spec['template_params'])
+    for port in ports:
+        port['type'] = qualify(port['type'], impl_spec, template_args)
     ctx = dict(
         kernel=kernel_name,
         ports=ports,

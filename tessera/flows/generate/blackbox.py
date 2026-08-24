@@ -14,6 +14,24 @@ from tessera.parse import parse_kernel
 from tessera.templating import render
 
 
+def resolved_params(impl_spec, manifest):
+    """
+    The implementation's parameters, sized by the RTL that was built.
+
+    A parameter's width is written as the implementation derives it, which
+    only reads outside the implementation. The package records what each port
+    came out as, so the widths are taken from there instead.
+    """
+    widths = {port["name"]: port["width"] for port in manifest["ports"]}
+    params = []
+    for param in impl_spec["params"]:
+        signed = str(param["type"]).rstrip("> ").endswith("true")
+        params.append({**param,
+                       "type": f"ac_int<{widths[param['name']]}, "
+                               f"{'true' if signed else 'false'}>"})
+    return params
+
+
 def gen_blackbox_header(kernel, manifest, rtl, impl_header, include_dir):
     """
     Generate the header file that blackboxes the package and branches
@@ -37,7 +55,7 @@ def gen_blackbox_header(kernel, manifest, rtl, impl_header, include_dir):
         rtl=str(Path(rtl).resolve()),
         impl=str(Path(impl_header).resolve()),
         template_decl=impl_spec["template_decl"],
-        params=impl_spec["params"],
+        params=resolved_params(impl_spec, manifest),
         outputs=" ".join(outputs),
         area=manifest["area"],
         timing=timing,

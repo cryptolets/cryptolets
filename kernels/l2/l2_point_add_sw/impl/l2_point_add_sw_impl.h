@@ -12,7 +12,7 @@
 // The generated top copies the port types, so the width needs its own name
 template<class _FIELD, int _MRED>
 struct l2_point_add_sw_ports {
-    static constexpr int RC = l1_mod_mul_ports<_FIELD,_MRED>::RC;
+    static constexpr int RC = l1_mod_mul_impl<_FIELD,_MRED>::RC;
 };
 
 // Jacobian point addition, add-2007-bl. Two equal points have no chord, so

@@ -8,7 +8,8 @@
 #include "params.h"
 
 // A caller sees the implementation's own interface, so this declares the same
-// template and the same run. Only the body differs, naming the packaged RTL.
+// template and the same run. The widths are the ones the packaged RTL was
+// built with, since the implementation derives them from itself.
 template<{{ template_decl | join(', ') }}>
 class {{ kernel }}_impl {
 public:

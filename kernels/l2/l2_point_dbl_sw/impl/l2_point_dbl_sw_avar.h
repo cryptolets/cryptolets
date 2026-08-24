@@ -18,7 +18,7 @@ class l2_point_dbl_sw_avar {
     l1_mod_cmul_impl<_FIELD, _MRED, CMUL_A> cmul_a_inst;
 
     typedef ac_int<_FIELD::W, false> fe;
-    typedef ac_int<l1_mod_mul_ports<_FIELD,_MRED>::RC, false> rc_t;
+    typedef ac_int<l1_mod_mul_impl<_FIELD,_MRED>::RC, false> rc_t;
 
 public:
     void run(

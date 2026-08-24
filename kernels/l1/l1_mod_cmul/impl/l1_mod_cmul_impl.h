@@ -20,7 +20,7 @@ public:
     void run(
         const ac_int<_FIELD::W, false> x,
         const ac_int<_FIELD::W, false> q,
-        const ac_int<l1_mod_mul_ports<_FIELD,_MRED>::RC, false> rc,
+        const ac_int<l1_mod_mul_impl<_FIELD,_MRED>::RC, false> rc,
         ac_int<_FIELD::W, false> &z
     ) {
         // t = x * const

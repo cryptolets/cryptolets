@@ -11,7 +11,7 @@
 // The generated top copies the port types, so the width needs its own name
 template<class _FIELD, int _MRED>
 struct l2_point_dbl_sw_ports {
-    static constexpr int RC = l1_mod_mul_ports<_FIELD,_MRED>::RC;
+    static constexpr int RC = l1_mod_mul_impl<_FIELD,_MRED>::RC;
 };
 
 template<class _FIELD, int _MRED = MRED, int _PDBL_FORM = PDBL_FORM>

@@ -109,7 +109,7 @@ def log_elapsed(tool, design_name, return_code, start_time):
 
 
 # ---- archive design helper functions ----
-KEEP = ("prior", "package", "ccore_cache", "dware_cache") # these don't get archived
+KEEP = ("prior", "ccore_cache", "dware_cache") # these don't get archived
 
 def _move(design_build_dir, names, label):
     if not names:

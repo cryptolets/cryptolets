@@ -67,10 +67,24 @@ def parse_kernel(header):
             "template_params": [_template_param(p) for p in tparams.named_children],
             "template_decl": [_text(p) for p in tparams.named_children],
             "params": [_parameter(p) for p in params.named_children],
+            # Widths the class declares itself, which a port may be sized by
+            "widths": _widths(body),
             "deps": list(deps.values()),
         }
 
     raise Exception(f"No kernel class with a 'run' method in {header}")
+
+
+def _widths(body):
+    "The names of the constants the class declares, in declaration order"
+    names = []
+    for node in body.named_children:
+        if node.type == "field_declaration" and "constexpr" in _text(node):
+            declarator = node.child_by_field_name("declarator")
+            if declarator is not None:
+                names.append(_text(declarator.child_by_field_name("declarator")
+                                   or declarator))
+    return names
 
 
 def _method_name(node):
