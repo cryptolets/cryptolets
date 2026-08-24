@@ -1,7 +1,6 @@
-# Cryptolets
-Framework for Cryptographic Hardware Modules
+# Locus - A Framework for Exploring and Optimizing Point Addition Hardware for Zero-Knowledge Proofs
 
-[Click for Docs and Tutorial](https://docs.google.com/presentation/d/1ThGcEfQ-Ab83TFm7nNJdkfdwXHvWUls-Yth4JiNCh0w/edit?usp=sharing)
+_Locus_ enables Design Space Exploration (DSE) and sweep generation for optimized point addition, modular multiplication (modmul), and all other hardware units in isolation. Quickly run large sweeps over a number of design parameters in parallel.
 
 ## Setup
 ```
@@ -22,23 +21,37 @@ python3 run.py modadd --threads 16 --tp 4 --gen-only
 python3 run.py modadd --threads 16 --tp 4
 ```
 
-For running Modmul Montgomery and Barrett: 
+For running __Modmul Montgomery__ and __Barrett__: 
 ```
 python3 run.py modmul_mont --threads 8 --tp 2
 python3 run.py modmul_barrett --threads 8 --tp 2
+```
+
+For running __Point Addition__: Short Weierstrass Addition, Doubling, Twisted Edwards Unified Addition, and CycloneMSM implementation: 
+```
+python3 run.py point_add --threads 16 --tp 4
+python3 run.py point_double --threads 16 --tp 4
+python3 run.py point_double_te --threads 16 --tp 4
+python3 run.py point_add_cyclonemsm --threads 16 --tp 4
 ```
 
 ## Monitor and Analyze Design Sweeps
 Script to monitor sweep progress and get performance metrics.
 
 ```bash
-python3 analyze.py <KERNEL_PATH> [--mp] [-a] [-o] [-c] [-t]
+python3 analyze.py <KERNEL_PATH> [--mp] [-a] [-o] [-c] [-t] [--find-optimal <CURVE>]
 ```
 
 `--mp` - show only multi-precision designs, by default _anaylze_ shows single-precision design. \
 `-a` - Show ASIC designs, by default _anaylze_ shows FPGA designs. \
 `-c` and `-o` - Output metrics table to CSV and TXT files, respectively. \
-`-t` - Show technology node.
+`-t` - Show technology node. \
+`--find-optimal` - Additionally, returns pareto optimal, fastest, and smallest designs.
+
+## Reproduce Full Sweep
+```
+./reproduce.sh
+```
 
 ## Tips for running FPGA Sweeps
 - Set `CCORE_PERIOD_RATIO = 0.90`, allows for ccore's to meet parent module's timing in FGPA.
