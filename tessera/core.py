@@ -1,11 +1,14 @@
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor
+import threading
 from dataclasses import replace
 import json
 import logging
 
-from tessera.config import SweepConfig
-from tessera.helper import get_design_dir_name, get_license_info
+from tessera.config import RunConfig, SweepConfig
+from tessera.helper import (get_design_dir_name, 
+                            get_license_info,
+                            watch_memory)
 from tessera.kernel import find_kernel
 from tessera.parse import parse_impl_spec
 from tessera.sweep import flatten_sweep
@@ -99,6 +102,11 @@ def run(kernel, threads, threads_per_process, sweep, frm, to, only):
         if has_stage(stage, frm, to) and not has_stage("hls", frm, to):
             logging.warning(f"{stage} verification cannot be run without HLS flow")
 
+    # An unblackboxed design can grow until the machine has nothing left
+    stop = threading.Event()
+    threading.Thread(target=watch_memory, daemon=True,
+                     args=(stop, RunConfig.load().min_free_gb)).start()
+
     # A dependency is built before the kernel that blackboxes it, so each
     # kernel goes through every flow before the next one starts.
     for dep_kernel, dep_designs in schedule:
@@ -120,3 +128,5 @@ def run(kernel, threads, threads_per_process, sweep, frm, to, only):
 
             if designs:
                 run_flow(flow, designs, kernel_ctx)
+
+    stop.set()

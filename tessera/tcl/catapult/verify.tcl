@@ -29,6 +29,7 @@ proc run_osci_test {test test_cpp_only design_build_dir} {
 }
 
 proc run_verify_rtl {verify_rtl design_build_dir} {
+    global blackboxed
     # Run VSC RTL Simulation and Verification
     if {$verify_rtl} {
         puts "Running Questa RTL simulation and verification"
@@ -38,10 +39,15 @@ proc run_verify_rtl {verify_rtl design_build_dir} {
 
         flow package require /SCVerify
         flow package option set /SCVerify/INVOKE_ARGS "$sample_fp $output_fp"
-        flow run /SCVerify/launch_make ./scverify/Verify_rtl_v_msim.mk {} SIMTOOL=msim sim
-        # set dw /home/gk2657/cryptolets_rehaul/build/l0_int_mul/bitwidth_32__tech_type_gf12_highperf__period_1.0__ii_1__mul_type_mul_kar__base_mul_width_32__kar_base_mul_width_32/dware_cache
-        # flow run /SCVerify/launch_make ./scverify/Verify_concat_sim_rtl_v_msim.mk {} SIMTOOL=msim \
-        #     "ADDED_VLOGLIBS=$dw/DW01_ver $dw/DW02_ver $dw/DW03_ver $dw/DWARE_ver" sim
+        # A blackboxed dependency arrives as RTL that already names the vendor
+        # arithmetic, and catapult only builds models for arithmetic it mapped
+        # itself, so the models built for the kernel are named here
+        set args SIMTOOL=msim
+        if { $blackboxed } {
+            set dw [file normalize [file join $design_build_dir .. dware_cache]]
+            lappend args "ADDED_VLOGLIBS=$dw/DW01_ver $dw/DW02_ver $dw/DW03_ver $dw/DWARE_ver"
+        }
+        flow run /SCVerify/launch_make ./scverify/Verify_rtl_v_msim.mk {} {*}$args sim
 
         if {[catch {exec diff -q $golden_fp $output_fp}]} {
             puts "ERROR: Verifying with SCVerify"

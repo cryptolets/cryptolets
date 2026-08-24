@@ -1,11 +1,31 @@
-import subprocess
+import os
 import re
+import signal
+import subprocess
 import uuid
 import time
 import logging
 from pathlib import Path
 
 BUILD_DIR = Path('build')
+
+
+def free_gb():
+    "Memory the machine can still hand out, cache it would reclaim included"
+    for line in Path("/proc/meminfo").read_text().splitlines():
+        if line.startswith("MemAvailable:"):
+            return int(line.split()[1]) / 1024**2
+    return float("inf")
+
+
+def watch_memory(stop, min_free_gb):
+    "Stop every tool, and this run, when the machine is nearly out of memory"
+    while not stop.wait(5):
+        if free_gb() < min_free_gb:
+            logging.error(f"Less than {min_free_gb}G of memory left, "
+                          f"stopping every tool")
+            os.killpg(os.getpgid(0), signal.SIGTERM)
+            return
 
 # What a stage writes for a design, and so what a parent reads from a dep it
 # blackboxes. A design holding all of a stage's files is built.

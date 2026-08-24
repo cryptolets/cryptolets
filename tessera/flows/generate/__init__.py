@@ -1,8 +1,11 @@
+import os
 from pathlib import Path
 
 from tessera.flows.generate.blackbox import gen_blackbox_headers
 from tessera.flows.base import Flow
+from tessera.config import KernelConfig, RunConfig
 from tessera.helper import archive_design, get_design_dir_name
+from tessera.simlib import build_dware
 from tessera.samples import call_gen_samples
 from tessera.flows.base import has_stage
 from tessera.flows.generate.codegen import (gen_catapult_design_tcl,
@@ -34,6 +37,16 @@ class Generate(Flow):
         gen_catapult_kernel_tcl(catapult_flags(kernel_ctx), kernel_ctx.kernel, kernel_ctx.kernel_path,
                                 kernel_ctx.kernel_build_dir, kernel_ctx.root_dir,
                                 kernel_ctx.threads_per_process)
+
+        # Every design of a kernel shares the same arithmetic models, and only
+        # a kernel that blackboxes something has to ask for them
+        if KernelConfig.load(kernel_ctx.kernel_path).blackbox:
+            conf = RunConfig.load()
+            log_path = kernel_ctx.kernel_build_dir / "dware.log"
+            with log_path.open("w") as log:
+                build_dware(conf.tools["dc"], kernel_ctx.kernel_build_dir,
+                            conf.tools["catapult"], conf.tools["questa"],
+                            os.environ, log)
         return designs
 
     def run(self, design, kernel_ctx):

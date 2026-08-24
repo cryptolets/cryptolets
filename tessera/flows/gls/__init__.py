@@ -6,7 +6,7 @@ from pathlib import Path
 
 from tessera.config import RunConfig
 from tessera.flows.base import Flow
-from tessera.flows.gls.celllib import CELL_LIB, build_cell_lib
+from tessera.simlib import CELL_LIB, build_cells
 from tessera.flows.gls.makefile import gen_gls_makefile
 from tessera.helper import archive_run, get_design_dir_name, log_elapsed
 
@@ -62,7 +62,7 @@ class GLS(Flow):
         log_path.parent.mkdir(parents=True, exist_ok=True)
         with log_path.open("w") as log:
             # Questa reads the cells through its own variable
-            env["MODELSIM"] = str(build_cell_lib(tech, gls_dir, questa, env, log))
+            env["MODELSIM"] = str(build_cells(tech, gls_dir, questa, env, log))
 
             subprocess.run(
                 ["make", "-f", str(makefile.resolve()), "SIMTOOL=msim",

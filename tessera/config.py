@@ -158,6 +158,8 @@ class Tech(BaseModel):
 class RunConfig(BaseModel):
     total_threads: int = 8
     threads_per_process: int = 1
+    # Every tool is stopped when the machine has less than this left
+    min_free_gb: int = 50
     rtl_file: str = "rtl"
 
     # How far a run goes, which a --from or --to overrides
