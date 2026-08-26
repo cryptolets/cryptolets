@@ -1,8 +1,14 @@
 total_threads: 8
 threads_per_process: 1
-run_only: false
-dry_run: false
-gui_mode: false # TODO: not supported yet
+
+# Every run is killed when the machine has less 
+# than this much memory free as an ultimate safeguard
+min_free_gb: 10
+
+# How far a run goes, which --from, --to or --only overrides.
+# Stages in order: gen, cpp, hls, rtl, syn, gls, pwr
+frm: gen
+to: rtl
 
 # Path to tool install directories
 tools:
@@ -12,7 +18,7 @@ tools:
   prime: <PATH TO PRIMETIME>              # ASIC power
   vivado: <PATH TO VIVADO>                # FPGA synthesis
 
-# Tech node configuration; tech_type uses one of these. 
+# Tech node configuration; tech_type uses one of these.
 tech:
   # An ASIC tech is a cell library
   <ASIC TECH NAME>:
