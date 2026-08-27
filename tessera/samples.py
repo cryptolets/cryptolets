@@ -4,10 +4,8 @@ import random
 import importlib
 from pathlib import Path
 
+from tessera.const import GOLDENS_PATH, SAMPLES_PATH
 from tessera.field import SEED, get_modulus
-
-SAMPLES_PATH = Path("test/samples.csv")
-GOLDENS_PATH = Path("test/goldens.csv")
 
 def get_rng(seed=SEED):
     return random.Random(seed)

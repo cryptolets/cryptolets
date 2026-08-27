@@ -1,9 +1,8 @@
 "Kernel lookup and dependency resolution"
 from pathlib import Path
 
-from tessera.parse import parse_kernel
-
-KERNELS_DIR = Path('kernels')
+from tessera.parser.cpp import parse_header
+from tessera.const import KERNELS_DIR
 
 
 def find_kernel(name, kernels_dir=KERNELS_DIR):
@@ -30,7 +29,7 @@ def resolve_deps(kernel_path, kernels_dir=KERNELS_DIR, _seen=None, _stack=()):
     if name in _stack:
         raise Exception(f"Dependency cycle: {' -> '.join((*_stack, name))}")
 
-    impl_spec = parse_kernel(Path(kernel_path, 'impl', f"{name}_impl.h"))
+    impl_spec = parse_header(Path(kernel_path, 'impl', f"{name}_impl.h"))
     for dep in impl_spec['deps']:
         dep_path = find_kernel(dep['kernel'], kernels_dir)
         if dep_path in seen:

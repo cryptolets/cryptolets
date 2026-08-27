@@ -7,7 +7,7 @@ import time
 import logging
 from pathlib import Path
 
-BUILD_DIR = Path('build')
+from tessera.const import BUILD_DIR, DONE_DIR
 
 
 def free_gb():
@@ -27,47 +27,31 @@ def watch_memory(stop, min_free_gb):
             os.killpg(os.getpgid(0), signal.SIGTERM)
             return
 
-# What a stage writes for a design, and so what a parent reads from a dep it
-# blackboxes. A design holding all of a stage's files is built.
-PRODUCTS = {
-    "gen": [
-        "include/params.h",
-        "include/{kernel}_top.h",
-        "src/{kernel}_top.cpp",
-        "design.tcl",
-        "test/samples.csv",   # only written when the c++ test runs
-    ],
-    "hls": [
-        "package/manifest.yaml",   # its ports, area, delay and latency
-        "package/{kernel}.v",      # the RTL the blackbox header points at
-    ],
-    "syn": [
-        "package/syn/{kernel}.ddc",   # the synthesized block DC links
-    ],
-}
-
-# A stage naming no product leaves nothing to reuse, so it always runs
-ALWAYS_RUNS = object()
+# A stage that finished leaves its mark in DONE_DIR, so a later run knows not
+# to repeat it. A stage that failed leaves nothing.
+def _done_dir(kernel, design, build_root):
+    return Path(build_root, kernel, get_design_dir_name(design, kernel), DONE_DIR)
 
 
-def missing_products(kernel, design, stage, build_root=BUILD_DIR):
-    "The files a stage should have written for this design, and did not"
-    if stage not in PRODUCTS:
-        return [ALWAYS_RUNS]
-
-    design_dir = Path(build_root, kernel, get_design_dir_name(design, kernel))
-    wanted = (design_dir / p.format(kernel=kernel) for p in PRODUCTS[stage])
-    return [p for p in wanted if not p.exists()]
+def mark_done(kernel, design, stage, build_root=BUILD_DIR):
+    "Record that a stage finished for this design"
+    done = _done_dir(kernel, design, build_root)
+    done.mkdir(parents=True, exist_ok=True)
+    (done / f"{stage}.done").touch()
 
 
-def require_built(kernel, design, flow, build_root=BUILD_DIR):
-    "Fail unless the flow has written everything a later one reads"
-    missing = missing_products(kernel, design, flow, build_root)
-    if missing:
+def is_done(kernel, design, stage, build_root=BUILD_DIR):
+    "Whether a stage has already finished for this design"
+    return (_done_dir(kernel, design, build_root) / f"{stage}.done").exists()
+
+
+def require_built(kernel, design, stage, build_root=BUILD_DIR):
+    "Fail unless the stage a later one reads from has finished"
+    if not is_done(kernel, design, stage, build_root):
         raise Exception(
             f"'{kernel}' at bitwidth {design['bitwidth']} period {design['period']} "
-            f"has no {flow} results, so build it with that flow first.\n"
-            + "\n".join(f"  missing: {p}" for p in missing))
+            f"has no {stage} results, so build it with that flow first.")
+
 
 def get_design_dir_name(design, kernel=None):
     """
@@ -79,7 +63,7 @@ def get_design_dir_name(design, kernel=None):
     """
     keys = list(design)
     if kernel:
-        from tessera.config import KernelConfig
+        from tessera.models import KernelConfig
         from tessera.kernel import find_kernel
         keys = KernelConfig.load(find_kernel(kernel)).design_key or keys
 

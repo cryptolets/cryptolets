@@ -8,7 +8,7 @@ from pathlib import Path
 from tessera.deps import (blackboxed_deps, dep_design, dep_entity,
                           find_package)
 from tessera.helper import require_built
-from tessera.config import RunConfig
+from tessera.models import RunConfig
 from tessera.templating import render
 
 def child_designs(design, impl_spec, kernel_path, build_root, require=True):

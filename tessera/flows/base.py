@@ -1,7 +1,3 @@
-from dataclasses import dataclass
-from pathlib import Path
-
-
 # What --from, --to and --only name, in the order they run
 STAGES = ["gen", "cpp", "hls", "rtl", "syn", "gls", "pwr"]
 
@@ -11,27 +7,10 @@ def has_stage(stage, frm, to):
     return STAGES.index(frm) <= STAGES.index(stage) <= STAGES.index(to)
 
 
-@dataclass
-class KernelContext:
-    "What every flow reads, which the run itself decides rather than a design"
-    parent: str
-    root_dir: Path
-    sweep_flags: dict
-    threads: int
-    threads_per_process: int
-    workers: int
-    frm: str
-    to: str
-
-    # The kernel being built, which the schedule moves through
-    kernel: str = ""
-    kernel_path: Path = None
-    kernel_build_dir: Path = None
-    impl_spec: dict = None
-
-
 class Flow:
-    "One stage of the build, run over a kernel's designs"
+    """
+    One stage of the build, run over a kernel's designs
+    """
     name = ""
 
     # The stage --from, --to and --only name. Several flows share one when

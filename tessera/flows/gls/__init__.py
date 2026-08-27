@@ -4,10 +4,11 @@ import subprocess
 import time
 from pathlib import Path
 
-from tessera.config import RunConfig
+from tessera.models import RunConfig
 from tessera.flows.base import Flow
 from tessera.simlib import CELL_LIB, build_cells
 from tessera.flows.gls.makefile import gen_gls_makefile
+from tessera.flows.package.write import update_manifest
 from tessera.helper import archive_run, get_design_dir_name, log_elapsed
 
 
@@ -85,4 +86,5 @@ class GLS(Flow):
 
         # SCVerify reports the comparison itself, and make exits 0 either way
         passed = "Simulation PASSED" in log_path.read_text()
+        update_manifest(design_build_dir, gls=passed)
         return log_elapsed(self.name, design_name, 0 if passed else 1, start_time)

@@ -5,19 +5,23 @@ from dataclasses import replace
 import json
 import logging
 
-from tessera.config import RunConfig, SweepConfig
+from tessera.models import KernelContext, RunConfig, SweepConfig
 from tessera.helper import (get_design_dir_name, 
                             get_license_info,
+                            mark_done,
                             watch_memory)
 from tessera.kernel import find_kernel
-from tessera.parse import parse_impl_spec
+from tessera.parser.cpp import parse_header
 from tessera.sweep import flatten_sweep
-from tessera.schedule import resolve, log_schedule, to_build, BUILD_DIR
-from tessera.flows import FLOWS, STAGES, KernelContext, has_stage
+from tessera.schedule import get_schedule
+from tessera.const import BUILD_DIR, FLATTENED_SWEEP_FILE, ROOT_DIR
+from tessera.flows import FLOWS, STAGES, has_stage
 
 def run_flow(flow, designs, kernel_ctx):
     "Pool one flow over a kernel's designs, and report how many passed"
-    # Catapult holds one thread per process, so it takes every worker
+
+    # If a flow doesn't support multi-threading it uses 1 thread per worker
+    # Instead of hogging multiple threads per worker.
     workers = kernel_ctx.workers if flow.multi_threaded else kernel_ctx.threads
 
     if flow.license:
@@ -32,6 +36,10 @@ def run_flow(flow, designs, kernel_ctx):
     with ThreadPoolExecutor(max_workers=workers) as pool:
         results = list(pool.map(lambda d: flow.run(d, kernel_ctx), designs))
 
+    for design, ok in zip(designs, results):
+        if ok:
+            mark_done(kernel_ctx.kernel, design, flow.stage)
+
     # A worker that stops early reports nothing, so it did not pass
     if results:
         passed, total = sum(bool(r) for r in results), len(results)
@@ -40,9 +48,9 @@ def run_flow(flow, designs, kernel_ctx):
 
 
 def run(kernel, threads, threads_per_process, sweep, frm, to, only):
+    logging.info(f"Running Tessera")
     kernel_build_dir = Path(BUILD_DIR, kernel)
-    flattened_path = kernel_build_dir / 'flattened_sweep_config.json'
-    root_dir = Path(__file__).parent.parent
+    flattened_path = kernel_build_dir / FLATTENED_SWEEP_FILE
 
     # One stage names both ends of the range
     if only:
@@ -78,12 +86,15 @@ def run(kernel, threads, threads_per_process, sweep, frm, to, only):
         logging.info(f"  [{i}/{len(flattened_sweep)}] {get_design_dir_name(design, kernel)}")
 
     # automatic dependency resolution and scheduling
-    schedule = resolve(kernel, flattened_sweep)
-    log_schedule(schedule)
+    schedule = get_schedule(kernel, flattened_sweep)
+    return
+    if len(schedule) > 1:
+        logging.info("Parent kernel requires resolving the following dependencies in order:")
+        for cur_kernel, cur_designs in schedule:
+            logging.info(f"  {cur_kernel}: {len(cur_designs)} designs")
 
-    kernel_ctx = KernelContext(
-        parent=kernel,
-        root_dir=root_dir,
+    base_ctx = KernelContext(
+        root_dir=ROOT_DIR,
         sweep_flags=sweep_flags,
         threads=threads,
         threads_per_process=threads_per_process,
@@ -94,39 +105,36 @@ def run(kernel, threads, threads_per_process, sweep, frm, to, only):
 
     # Warn if HLS RTL verification is skipped when HLS was generated
     if has_stage("hls", frm, to) and not has_stage("rtl", frm, to):
-        logging.warning("SKIPPING rtl verification")
+        logging.warning("SKIPPING RTL Verification")
 
-    # And verification without it has nothing to check, since both run inside
-    # the Catapult run rather than on their own
+    # C++ and RTL verification flows are embedded in the Catapult run
+    # so they cannot be run without HLS flow
     for stage in ("cpp", "rtl"):
         if has_stage(stage, frm, to) and not has_stage("hls", frm, to):
-            logging.warning(f"{stage} verification cannot be run without HLS flow")
+            logging.warning(f"{stage} cannot be run without HLS flow")
 
     # An unblackboxed design can grow until the machine has nothing left
     stop = threading.Event()
     threading.Thread(target=watch_memory, daemon=True,
                      args=(stop, RunConfig.load().min_free_gb)).start()
 
+
+    flows_to_run = [flow for flow in FLOWS if has_stage(flow.stage, frm, to)]
+
     # A dependency is built before the kernel that blackboxes it, so each
     # kernel goes through every flow before the next one starts.
-    for dep_kernel, dep_designs in schedule:
-        dep_path = find_kernel(dep_kernel)
-        kernel_ctx = replace(kernel_ctx, kernel=dep_kernel, kernel_path=dep_path,
-                      kernel_build_dir=Path(BUILD_DIR, dep_kernel),
-                      impl_spec=parse_impl_spec(dep_kernel, dep_path))
+    for cur_kernel, cur_designs in schedule:
+        cur_path = find_kernel(cur_kernel)
+        kernel_ctx = replace(
+            base_ctx,
+            kernel_name=cur_kernel,
+            kernel_path=cur_path,
+            kernel_build_dir=Path(BUILD_DIR, cur_kernel),
+            impl_spec=parse_header(cur_path / 'impl' / f"{cur_kernel}_impl.h")
+        )
 
-        for flow in FLOWS:
-            if not has_stage(flow.stage, frm, to):
-                continue
-
-            designs = flow.designs(dep_designs, kernel_ctx)
-
-            # The parent is always rebuilt, since that is the request. A
-            # dependency is reused when it holds what this flow would write.
-            if dep_kernel != kernel:
-                designs = to_build(dep_kernel, designs, flow.stage)
-
-            if designs:
-                run_flow(flow, designs, kernel_ctx)
+        for flow in flows_to_run:
+            designs = flow.designs(cur_designs, kernel_ctx)
+            run_flow(flow, designs, kernel_ctx)
 
     stop.set()

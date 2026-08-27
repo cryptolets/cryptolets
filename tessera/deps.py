@@ -8,10 +8,10 @@ from pathlib import Path
 
 import yaml
 
-from tessera.config import KernelConfig, curves, is_fpga
+from tessera.models import KernelConfig, load_curves, is_fpga
 from tessera.helper import get_design_dir_name, require_built
 from tessera.kernel import find_kernel
-from tessera.parse import parse_kernel
+from tessera.parser.cpp import parse_header
 
 
 def dep_field(arg):
@@ -20,7 +20,7 @@ def dep_field(arg):
         return {}  # the parent's own field, which the dep design already holds
 
     name = arg.lower()
-    for curve, fields in curves().items():
+    for curve, fields in load_curves().items():
         for field in ("base", "scalar"):
             if field in fields and name == f"{curve}_{field}":
                 return {"curve": curve, "field": field}

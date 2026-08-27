@@ -5,7 +5,6 @@
 #include "params.h"
 #include "l0_int_mul_impl.h"
 #include "l0_int_cmul_impl.h"
-#include "l0_int_sub_impl.h"
 
 // Montgomery reduction, t * R^-1 mod q
 template<class _FIELD>
@@ -13,7 +12,6 @@ class l1_mont_reduce {
     l0_int_mul_impl<_FIELD::W>             int_mul_inst;
     l0_int_cmul_impl<_FIELD, CMUL_Q_PRIME> cmul_q_prime_inst;
     l0_int_cmul_impl<_FIELD, CMUL_Q>       cmul_q_inst;
-    l0_int_sub_impl<_FIELD::W+1>           int_sub_inst;
 
 public:
     void run(
@@ -47,8 +45,7 @@ public:
         ac_int<_FIELD::W+1, false> u = t_mq >> _FIELD::W;
 
         // u - q
-        ac_int<_FIELD::W+2, true> diff;
-        int_sub_inst.run(u, q, diff);
+        ac_int<_FIELD::W+2, true> diff = u - q;
 
         // z = u >= q ? u - q : u
         z = (!diff[_FIELD::W+1]) ? (ac_int<_FIELD::W, false>)diff :

@@ -16,6 +16,8 @@
 template<>
 class {{ kernel }}_impl<{{ v.args }}> {
 public:
+{% for name, width in v.widths.items() %}    static constexpr int {{ name }} = {{ width }};
+{% endfor %}
     {{ kernel }}_impl() {}
 
     #pragma hls_design interface ccore blackbox

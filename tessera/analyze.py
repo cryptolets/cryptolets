@@ -8,7 +8,7 @@ those columns empty.
 import csv
 from pathlib import Path
 
-from tessera.config import KernelConfig
+from tessera.models import KernelConfig
 from tessera.kernel import find_kernel
 
 import yaml
@@ -17,7 +17,7 @@ import yaml
 METRICS = ["cycles", "latency", "area (um^2)", "area_dc (um^2)", "area (mm^2)",
            "delay", "delay_dc",
            "luts", "ffs", "dsps", "brams", "carry",
-           "power (uW)", "power_dc (uW)"]
+           "power (uW)", "power_dc (uW)", "gls"]
 
 # What a column is called, and what its value is scaled by to suit that name
 COLUMNS = {
@@ -71,6 +71,10 @@ def collect(kernel_build_dir, design_key=None):
 
         area = manifest.get("area")
         row["area (mm^2)"] = area / 1e6 if area else None
+
+        # Whether the netlist still computes what the design says it does
+        gls = manifest.get("gls")
+        row["gls"] = "" if gls is None else ("P" if gls else "F")
 
         # Both are the whole design's power, one estimated and one measured
         for key in ("power", "power_dc"):

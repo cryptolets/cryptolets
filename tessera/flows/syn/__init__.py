@@ -3,7 +3,7 @@ import subprocess
 import time
 from pathlib import Path
 
-from tessera.config import KernelConfig
+from tessera.models import KernelConfig
 from tessera.flows.base import Flow
 from tessera.flows.package.write import update_manifest
 from tessera.flows.syn.reports import read_dc_area, read_dc_delay, read_dc_power

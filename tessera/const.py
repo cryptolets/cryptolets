@@ -20,3 +20,5 @@ GOLDENS_PATH = Path("test/goldens.csv") # path to the goldens file
 
 COMB_MARK = Path("reports") / "combinational"
 DONE_DIR = "done"
+
+ARB_CURVE = "arb_curve" # arbitrary elliptic curve

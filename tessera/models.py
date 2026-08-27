@@ -1,23 +1,21 @@
 """
-Pydantic models for yaml files
+Pydantic models and YAML file validations
 """
 import logging
+import yaml
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal, Optional, get_args
-
-import yaml
 from pydantic import BaseModel, model_validator
 
-CURVES_FILE = Path(__file__).parent.parent / "reference" / "curves.yaml"
-RUN_CONFIG_FILE = Path("config.yaml")
-ARB_CURVE = "arb_curve"
+from tessera.const import CURVES_FILE, RUN_CONFIG_FILE, ARB_CURVE
 
 
 def load_and_validate_yaml(model, path):
     return model.model_validate(yaml.safe_load(Path(path).read_text()))
 
 
-def curves():
+def load_curves():
     return yaml.safe_load(CURVES_FILE.read_text())
 
 
@@ -35,31 +33,31 @@ class Sweep(BaseModel):
     # Blackboxed deps are built at period * ratio, so a chain of them fits
     # the parent's clock. Applied again at each level of depth.
     # Helps meet timing constraints of the parent
-    dep_period_ratio: list[float] = [1]
+    dep_period_ratio: Optional[list[float]] = [1]
 
     # A named curve fixes n to its own bitwidth; arb_curve follows n
-    curve: list[str]
-    field: list[Literal["base", "scalar"]] # base vs scalar fields for an elliptic curve
-    mred: list[Literal["mred_mont", "mred_bar"]] # montgomery or barrett reduction
+    curve: Optional[list[str]] = None
+    field: Optional[list[Literal["base", "scalar"]]] = None # base vs scalar fields for an elliptic curve
+    mred: Optional[list[Literal["mred_mont", "mred_bar"]]] = None # montgomery or barrett reduction
 
     # fixed hardwires the const into the hardware, for mults, this uses a sometimes cheaper constant multiplier
-    q_type: list[Literal["fixed_q", "var_q"]] # modulus prime q
+    q_type: Optional[list[Literal["fixed_q", "var_q"]]] = None # modulus prime q
 
     # reduction constant q_prime for montgomery reduction and mu for barrett reduction
-    redc_type: list[Literal["fixed_rc", "var_rc"]]
-    
+    redc_type: Optional[list[Literal["fixed_rc", "var_rc"]]] = None
+
     # normal (DesignWare mults), schoolbook, karatsuba multipliers
-    mul_type: list[Literal["mul_nor", "mul_sb", "mul_kar"]]
-    skip_upper: list[int]
+    mul_type: Optional[list[Literal["mul_nor", "mul_sb", "mul_kar"]]] = None
+    skip_upper: Optional[list[int]] = None
 
     # which constant to use, specifically for the l0_int_cmul kernel
-    cmul_const: list[Literal[
+    cmul_const: Optional[list[Literal[
         "cmul_q", "cmul_q_prime", "cmul_mu", "cmul_a", "cmul_b", "cmul_d", "cmul_k"
-    ]]
+    ]]] = None
 
     # point addtion formula selections
-    pdbl_form: list[Literal["pdbl_a0", "pdbl_a3", "pdbl_avar"]] = ["pdbl_a0"]
-    padd_te_form: list[Literal["padd_te_add", "padd_te_cyclone"]] = ["padd_te_add"]
+    pdbl_form: Optional[list[Literal["pdbl_a0", "pdbl_a3", "pdbl_avar"]]] = ["pdbl_a0"]
+    padd_te_form: Optional[list[Literal["padd_te_add", "padd_te_cyclone"]]] = ["padd_te_add"]
 
     # Keyed by n, e.g. {16: [8, 16], 32: [16, 32]}
     # TODO: We can autogenerate this list given rough base width constraint
@@ -71,10 +69,11 @@ class Sweep(BaseModel):
         "Fields limited to a set of values, which become the params.h defines"
         out = {}
         for name, field in cls.model_fields.items():
-            item_type = get_args(field.annotation)   # list[X] -> (X,)
-            values = get_args(item_type[0]) if item_type else ()
-            if values and all(isinstance(v, str) for v in values):
-                out[name] = list(values)
+            for arg in get_args(field.annotation) or ():
+                values = get_args(get_args(arg)[0]) if get_args(arg) else ()
+                if values and all(isinstance(v, str) for v in values):
+                    out[name] = list(values)
+                    break
         return out
 
     @model_validator(mode="after")
@@ -89,17 +88,16 @@ class Sweep(BaseModel):
         if len({is_fpga(name) for name in self.tech_type}) > 1:
             raise ValueError("a sweep is either FPGA or ASIC, not both")
 
-        known = curves()
-
-        for name in self.curve:
-            if name == ARB_CURVE:
-                continue
-            if name not in known:
-                raise ValueError(f"unknown curve '{name}', pick from: {ARB_CURVE}, {', '.join(sorted(known))}")
-            for field in self.field:
-                if field not in known[name]:
-                    logging.warning(f"curve '{name}' has no {field} field, skipping that combination")
-
+        known = load_curves()
+        if self.curve:
+            for name in self.curve:
+                if name == ARB_CURVE:
+                    continue
+                if name not in known:
+                    raise ValueError(f"unknown curve '{name}', pick from: {ARB_CURVE}, {', '.join(sorted(known))}")
+                for field in self.field:
+                    if field not in known[name]:
+                        logging.warning(f"curve '{name}' has no {field} field, skipping that combination")
         return self
 
 
@@ -178,3 +176,19 @@ class RunConfig(BaseModel):
     @classmethod
     def load(cls, path=RUN_CONFIG_FILE):
         return load_and_validate_yaml(cls, path)
+
+
+@dataclass
+class KernelContext:
+    "Per kernel run context"
+    kernel_name: str
+    kernel_path: Path
+    kernel_build_dir: Path
+    impl_spec: dict
+    root_dir: Path
+    sweep_flags: dict
+    threads: int
+    threads_per_process: int
+    workers: int
+    frm: str
+    to: str

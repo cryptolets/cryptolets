@@ -1,8 +1,9 @@
 import subprocess
 from pathlib import Path
 
+from tessera.const import COMB_MARK
+
 COMB_CHK_EXIT = 2
-COMB_MARK = Path("reports") / "combinational"
 
 
 def is_combinational(design_build_dir):

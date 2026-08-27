@@ -3,8 +3,9 @@ from pathlib import Path
 
 from tessera.flows.generate.blackbox import gen_blackbox_headers
 from tessera.flows.base import Flow
-from tessera.config import KernelConfig, RunConfig
-from tessera.helper import archive_design, get_design_dir_name
+from tessera.models import KernelConfig, RunConfig
+from tessera.helper import (archive_design, get_design_dir_name,
+                            is_done)
 from tessera.simlib import build_dware
 from tessera.samples import call_gen_samples
 from tessera.flows.base import has_stage
@@ -53,8 +54,12 @@ class Generate(Flow):
         design_name = get_design_dir_name(design, kernel_ctx.kernel)
         design_build_dir = Path(kernel_ctx.kernel_build_dir, design_name)
 
-        # A finished run is kept, so the next one starts from clean sources
-        if design_build_dir.exists():
+        # A finished run is kept, so the next one starts from clean sources. A
+        # dependency that is only reused built nothing of its own to keep, and
+        # its marks say which stages it still holds.
+        reused = (kernel_ctx.kernel != kernel_ctx.parent
+                  and is_done(kernel_ctx.kernel, design, "hls"))
+        if design_build_dir.exists() and not reused:
             archive_design(design_build_dir)
         else:
             design_build_dir.mkdir(parents=True, exist_ok=True)
@@ -64,7 +69,7 @@ class Generate(Flow):
                              design_build_dir)
 
         gen_params_h(design, design_build_dir)
-        gen_kernel_top(design, kernel_ctx.kernel, kernel_ctx.impl_spec, design_build_dir)
+        gen_kernel_top(design, design_build_dir, kernel_ctx)
         blackboxed = gen_blackbox_headers(
             design, kernel_ctx.kernel_path, kernel_ctx.impl_spec,
             design_build_dir, kernel_ctx.to == "gen")

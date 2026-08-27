@@ -5,7 +5,7 @@ import re
 from pathlib import Path
 import yaml
 
-from tessera.config import RunConfig, Sweep
+from tessera.models import RunConfig, Sweep
 from tessera.field import design_fields, FIELD_CONSTANTS
 from tessera.kernel import resolve_deps
 from tessera.templating import render
@@ -95,13 +95,15 @@ def _top_ports(impl, design):
 
 
 def gen_kernel_top(
-    design, kernel_name, impl_spec, design_build_dir,
-    combinational=False # default is sequential
+    design, design_build_dir, kernel_ctx, combinational=False # default is sequential
 ):
     """
     Generate the top header and the source file Catapult synthesizes.
     A combinational kernel is wrapped, a sequential one is the top itself.
     """
+    impl_spec = kernel_ctx.impl_spec
+    kernel_name = kernel_ctx.kernel
+
     ports, args = _top_ports(impl_spec, design)
     template_args = ", ".join(to_macro(p) for p in impl_spec['template_params'])
     for port in ports:
@@ -116,6 +118,7 @@ def gen_kernel_top(
 
     render("kernel_top.h.j2", design_build_dir / 'include' / f'{kernel_name}_top.h', **ctx)
     render("kernel.cpp.j2", design_build_dir / 'src' / f'{kernel_name}_top.cpp', **ctx)
+
 
 def gen_catapult_design_tcl(design, kernel_name, design_name, design_build_dir,
                             blackboxed=(), comb_chk=False, combinational=False):

@@ -8,7 +8,8 @@ from sympy import randprime
 from sympy.core.random import seed as sympy_seed
 
 from reference.redc import barrett_get_mu, mont_get_q_prime, to_mont
-from tessera.config import ARB_CURVE, curves
+from tessera.models import load_curves
+from tessera.const import ARB_CURVE
 
 SEED = 42
 FIELD_CONSTANTS = ("q",) # constant kernel parameters

@@ -3,11 +3,12 @@ import subprocess
 import time
 from pathlib import Path
 
-from tessera.config import RunConfig
+from tessera.models import RunConfig
 from tessera.flows.base import Flow
 from tessera.flows.package.write import update_manifest
 from tessera.flows.power.tcl import gen_power_tcl, read_power
-from tessera.helper import archive_run, get_design_dir_name, log_elapsed
+from tessera.helper import (archive_run, get_design_dir_name, is_done,
+                            log_elapsed)
 
 
 class PrimePower(Flow):
@@ -15,6 +16,10 @@ class PrimePower(Flow):
     name = "PrimePower"
     stage = "pwr"
     license = "prime_power"
+
+    def designs(self, designs, kernel_ctx):
+        "A gate simulation that did not pass recorded no activity to measure"
+        return [d for d in designs if is_done(kernel_ctx.kernel, d, "gls")]
 
     def run(self, design, kernel_ctx):
         design_name = get_design_dir_name(design, kernel_ctx.kernel)

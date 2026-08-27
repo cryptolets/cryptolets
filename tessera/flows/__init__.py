@@ -1,5 +1,5 @@
 "The stages a design goes through, in the order they run"
-from tessera.flows.base import KernelContext, Flow, STAGES, has_stage
+from tessera.flows.base import Flow, STAGES, has_stage
 from tessera.flows.generate import Generate
 from tessera.flows.catapult import Catapult
 from tessera.flows.package import Package

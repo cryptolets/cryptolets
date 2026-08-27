@@ -9,12 +9,6 @@
 #include "l1_mod_sub_impl.h"
 #include "l2_point_dbl_sw_impl.h"
 
-// The generated top copies the port types, so the width needs its own name
-template<class _FIELD, int _MRED>
-struct l2_point_add_sw_ports {
-    static constexpr int RC = l1_mod_mul_impl<_FIELD,_MRED>::RC;
-};
-
 // Jacobian point addition, add-2007-bl. Two equal points have no chord, so
 // that case doubles instead.
 template<class _FIELD, int _MRED = MRED>
@@ -25,14 +19,17 @@ class l2_point_add_sw_impl {
     l2_point_dbl_sw_impl<_FIELD, _MRED> double_inst;
 
     typedef ac_int<_FIELD::W, false> fe;
-    typedef ac_int<l2_point_add_sw_ports<_FIELD,_MRED>::RC, false> rc_t;
 
 public:
+    // The reduction decides this, and the generated top names it
+    static constexpr int RC = l1_mod_mul_impl<_FIELD,_MRED>::RC;
+    typedef ac_int<RC, false> rc_t;
+
     void run(
         const PointJac<_FIELD> P0,
         const PointJac<_FIELD> P1,
         const ac_int<_FIELD::W, false> q,
-        const ac_int<l2_point_add_sw_ports<_FIELD,_MRED>::RC, false> rc,
+        const ac_int<RC, false> rc,
         PointJac<_FIELD> &R
     ) {
         fe Z1Z1, Z2Z2, U1, U2, t0, S1, t1, S2;

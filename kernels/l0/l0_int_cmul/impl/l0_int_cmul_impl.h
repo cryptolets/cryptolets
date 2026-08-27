@@ -7,7 +7,7 @@
 // Constant multiplier (cmul) implementation with different constants
 // that are used by higher-level cryptographic kernels.
 
-template<class _FIELD, int _CMUL_CONST = CMUL_CONST>
+template<class _FIELD, int _CMUL_CONST = CMUL_CONST, int _MRED = MRED>
 class l0_int_cmul_impl {
     static constexpr int W = _FIELD::W;
 

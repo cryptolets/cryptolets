@@ -6,7 +6,7 @@ import re
 import yaml
 from pathlib import Path
 
-from tessera.config import is_fpga
+from tessera.models import is_fpga
 from tessera.flows.package.verilog import (find_instance, find_modules,
                                            module_ports)
 

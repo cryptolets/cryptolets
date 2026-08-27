@@ -2,9 +2,8 @@
 from pathlib import Path
 from jinja2 import Environment, FileSystemLoader, StrictUndefined
 
+from tessera.const import TEMPLATES_DIR
 from tessera.helper import tcl_type
-
-TEMPLATES_DIR = Path(__file__).parent / "templates"
 
 env = Environment(
     loader=FileSystemLoader(TEMPLATES_DIR),

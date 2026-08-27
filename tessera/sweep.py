@@ -10,7 +10,8 @@ Add a rule by writing a function and listing it in DERIVATIONS or FILTERS.
 import logging
 from itertools import product
 
-from tessera.config import ARB_CURVE, curves
+from tessera.models import load_curves
+from tessera.const import ARB_CURVE
 
 
 # --- derivations: (design) -> None, edited in place ---
@@ -20,10 +21,9 @@ def derive_curve_width(design):
     curve = design.get("curve")
     if not curve or curve == ARB_CURVE:
         return
-    field = curves()[curve].get(design.get("field", "base"))
+    field = load_curves()[curve].get(design.get("field", "base"))
     if field:
         design["bitwidth"] = field["bitwidth"]
-
 
 
 def derive_arb_curve_field(design):
@@ -34,7 +34,6 @@ def derive_arb_curve_field(design):
 
 DERIVATIONS = [derive_curve_width, derive_arb_curve_field]
 
-
 # --- filters: (design) -> reason to skip, or None to keep ---
 
 def filter_missing_field(design):
@@ -43,7 +42,7 @@ def filter_missing_field(design):
     if not curve or curve == ARB_CURVE:
         return None
     field = design.get("field", "base")
-    if field not in curves()[curve]:
+    if field not in load_curves()[curve]:
         return f"curve '{curve}' has no {field} field"
     return None
 
@@ -93,7 +92,9 @@ def _apply_width_maps(sweep, design):
 
 def flatten_sweep(sweep):
     "Expand a sweep config into a list of designs."
-    keys = [k for k in sweep if k not in WIDTH_MAPS]
+    # A parameter the sweep leaves out is not part of any design, so a kernel
+    # that has no use for it carries nothing for it either
+    keys = [k for k in sweep if k not in WIDTH_MAPS and sweep[k] is not None]
     designs, seen, skipped = [], set(), {}
 
     for combo in product(*(sweep[k] for k in keys)):

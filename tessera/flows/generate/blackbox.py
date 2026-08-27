@@ -10,29 +10,11 @@ from pathlib import Path
 
 from tessera.deps import (blackboxed_deps, dep_design, dep_entity,
                           find_package)
-from tessera.helper import get_design_dir_name, missing_products
+from tessera.helper import get_design_dir_name, is_done
 from tessera.kernel import find_kernel
-from tessera.parse import parse_kernel
+from tessera.parser.cpp import parse_header
 from tessera.flows.generate.codegen import to_macro
 from tessera.templating import render
-
-
-def resolved_params(impl_spec, manifest):
-    """
-    The implementation's parameters, sized by the RTL that was built.
-
-    A parameter's width is written as the implementation derives it, which
-    only reads outside the implementation. The package records what each port
-    came out as, so the widths are taken from there instead.
-    """
-    widths = {port["name"]: port["width"] for port in manifest["ports"]}
-    params = []
-    for param in impl_spec["params"]:
-        signed = str(param["type"]).rstrip("> ").endswith("true")
-        params.append({**param,
-                       "type": f"ac_int<{widths[param['name']]}, "
-                               f"{'true' if signed else 'false'}>"})
-    return params
 
 
 def package_rtl(rtl, kernel, entity, include_dir):
@@ -55,7 +37,11 @@ def blackbox_variant(dep, manifest, rtl, impl_spec):
         "args": to_macro(dep["args"]),
         "entity": dep["entity"],
         "rtl": str(rtl.resolve()),
-        "params": resolved_params(impl_spec, manifest),
+        # The stub stands in for one instantiation, so its widths are the
+        # design's own rather than the implementation's parameters
+        "params": [{**p, "type": to_macro(p["type"])}
+                   for p in impl_spec["params"]],
+        "widths": {n: to_macro(e) for n, e in impl_spec["widths"].items()},
         "outputs": " ".join(outputs),
         "area": manifest["area"],
         "timing": (f'.delay({manifest["delay"]})' if manifest["combinational"]
@@ -99,7 +85,7 @@ def gen_blackbox_headers(design, kernel_path, impl_spec, design_build_dir,
     for dep in blackboxed:
         # A gen only run has not built the deps yet, so it leaves a note of
         # what is missing rather than a header
-        if deps_unbuilt and missing_products(dep["kernel"], dep_design(dep, design),
+        if deps_unbuilt and not is_done(dep["kernel"], dep_design(dep, design),
                                         "hls", build_root):
             render("blackbox_todo.h.j2",
                    Path(include_dir, f"{dep['kernel']}_impl.h"),
