@@ -1,15 +1,16 @@
 import os
 from pathlib import Path
 
-from tessera.flows.generate.blackbox import gen_blackbox_headers
-from tessera.flows.base import Flow
-from tessera.models import KernelConfig, RunConfig
+from tessera.steps.generate.blackbox import gen_blackbox_headers
+from tessera.steps.base import Flow
+from tessera.models.config import RunConfig
+from tessera.models.kernel import KernelConfig
 from tessera.helper import (archive_design, get_design_dir_name,
                             is_done)
 from tessera.simlib import build_dware
 from tessera.samples import call_gen_samples
-from tessera.flows.base import has_stage
-from tessera.flows.generate.codegen import (gen_catapult_design_tcl,
+from tessera.steps.base import has_stage
+from tessera.steps.generate.codegen import (gen_catapult_design_tcl,
                                             gen_catapult_kernel_tcl,
                                             gen_kernel_top, gen_params_h)
 

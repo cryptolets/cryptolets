@@ -3,12 +3,12 @@ import subprocess
 import time
 from pathlib import Path
 
-from tessera.models import KernelConfig
-from tessera.flows.base import Flow
-from tessera.flows.package.write import update_manifest
-from tessera.flows.syn.reports import read_dc_area, read_dc_delay, read_dc_power
-from tessera.flows.syn.select import select_designs
-from tessera.flows.syn.tcl import gen_dc_tcl
+from tessera.models.kernel import KernelConfig
+from tessera.steps.base import Flow
+from tessera.steps.package.write import update_manifest
+from tessera.steps.syn.reports import read_dc_area, read_dc_delay, read_dc_power
+from tessera.steps.syn.select import select_designs
+from tessera.steps.syn.tcl import gen_dc_tcl
 from tessera.helper import archive_run, get_design_dir_name, log_elapsed
 
 

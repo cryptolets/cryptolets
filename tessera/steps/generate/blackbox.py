@@ -13,7 +13,7 @@ from tessera.deps import (blackboxed_deps, dep_design, dep_entity,
 from tessera.helper import get_design_dir_name, is_done
 from tessera.kernel import find_kernel
 from tessera.parser.cpp import parse_header
-from tessera.flows.generate.codegen import to_macro
+from tessera.steps.generate.codegen import to_macro
 from tessera.templating import render
 
 

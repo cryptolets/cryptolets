@@ -6,8 +6,8 @@ import re
 import yaml
 from pathlib import Path
 
-from tessera.models import is_fpga
-from tessera.flows.package.verilog import (find_instance, find_modules,
+from tessera.models.common import is_fpga
+from tessera.steps.package.verilog import (find_instance, find_modules,
                                            module_ports)
 
 # Where SCVerify puts the design under test, relative to its testbench

@@ -3,10 +3,10 @@ import subprocess
 import time
 from pathlib import Path
 
-from tessera.models import RunConfig
-from tessera.flows.base import Flow
-from tessera.flows.package.write import update_manifest
-from tessera.flows.power.tcl import gen_power_tcl, read_power
+from tessera.models.config import RunConfig
+from tessera.steps.base import Flow
+from tessera.steps.package.write import update_manifest
+from tessera.steps.power.tcl import gen_power_tcl, read_power
 from tessera.helper import (archive_run, get_design_dir_name, is_done,
                             log_elapsed)
 

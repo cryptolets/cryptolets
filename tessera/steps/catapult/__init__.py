@@ -3,10 +3,10 @@ import time
 import subprocess
 from pathlib import Path
 
-from tessera.flows.base import Flow
+from tessera.steps.base import Flow
 from tessera.helper import archive_run, get_design_dir_name, log_elapsed
-from tessera.flows.catapult.comb import COMB_CHK_EXIT, mark_combinational
-from tessera.flows.generate.codegen import \
+from tessera.steps.catapult.comb import COMB_CHK_EXIT, mark_combinational
+from tessera.steps.generate.codegen import \
         gen_catapult_design_tcl, gen_kernel_top
 
 

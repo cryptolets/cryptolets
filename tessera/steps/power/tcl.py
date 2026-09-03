@@ -5,7 +5,7 @@ import re
 import yaml
 from pathlib import Path
 
-from tessera.models import RunConfig
+from tessera.models.config import RunConfig
 from tessera.templating import render
 
 def gen_power_tcl(design, kernel, design_build_dir, power_dir, max_cores):

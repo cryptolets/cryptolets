@@ -5,7 +5,9 @@ import re
 from pathlib import Path
 import yaml
 
-from tessera.models import RunConfig, Sweep
+from tessera.models.config import RunConfig
+
+from tessera.models.sweep import Sweep
 from tessera.field import design_fields, FIELD_CONSTANTS
 from tessera.kernel import resolve_deps
 from tessera.templating import render

@@ -1,10 +1,10 @@
 import logging
 from pathlib import Path
 
-from tessera.flows.base import Flow
-from tessera.flows.catapult.comb import is_combinational
+from tessera.steps.base import Flow
+from tessera.steps.catapult.comb import is_combinational
 from tessera.helper import get_design_dir_name
-from tessera.flows.package.write import write_package
+from tessera.steps.package.write import write_package
 
 
 class Package(Flow):
