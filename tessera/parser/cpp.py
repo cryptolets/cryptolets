@@ -1,11 +1,12 @@
 """
 Parse C++ HLS kernel code with tree-sitter.
 """
+import re
 from pathlib import Path
 import tree_sitter_cpp
 from tree_sitter import Language, Parser
 
-from tessera.parser.common import parse_text, find_nodes_by_type
+from tessera.parser.common import parse_text, find_nodes_by_type, norm_to_py_conv
 from tessera.const import KERNELS_DIR
 
 SPECIAL_CASE_INCLUDES = {"l0_int_mul_kar.h", "l0_int_mul_sb.h"}
@@ -16,42 +17,44 @@ def parse_tmpl_class_name(tmpl_decl):
 
 
 def parse_tmpl_params(tmpl_decl):
+    "Parse the template parameter list, in the order it is written"
     parsed_params = []
     all_params = find_nodes_by_type(tmpl_decl, "template_parameter_list")[0]
 
-    # These are params where the type is not a class/struct
-    params_decls = find_nodes_by_type(all_params, "parameter_declaration")
-    opt_params_decls = find_nodes_by_type(all_params, "optional_parameter_declaration") # params with default values
-    
-    for param_decl in params_decls + opt_params_decls:
-        param_name = parse_text(param_decl.child_by_field_name("declarator"))
-        param_type = parse_text(param_decl.child_by_field_name("type"))
-        default_value = param_decl.child_by_field_name("default_value")
-        parsed_params.append({
-            "name": param_name,
-            "type": param_type,
-            "default": parse_text(default_value) if default_value else None
-        })
-    
-    # These are params where the type is a class/struct
-    type_params_decls = find_nodes_by_type(all_params, "type_parameter_declaration")
-    for param_decl in type_params_decls:
-        param_name = parse_text(find_nodes_by_type(param_decl, "type_identifier")[0])
-        parsed_params.append({
-            "name": param_name,
-            "type": "class",
-            "default": None
-        })
+    for param_decl in all_params.named_children:
+        # Params where the type is not a class/struct
+        if param_decl.type in ("parameter_declaration", "optional_parameter_declaration"):
+            name = norm_to_py_conv(parse_text(param_decl.child_by_field_name("declarator")), rm_prefix=True)
+            default_value = param_decl.child_by_field_name("default_value")
+            default = norm_to_py_conv(parse_text(default_value)) if default_value else None
+            parsed_params.append({
+                "name": name,
+                "type": parse_text(param_decl.child_by_field_name("type")),
+                "default": default if default != name else None
+            })
 
-    opt_type_params_decls = find_nodes_by_type(all_params, "optional_type_parameter_declaration") # params with default values
-    for param_decl in opt_type_params_decls:
-        param_name = parse_text(param_decl.child_by_field_name("name"))
-        default_type = parse_text(param_decl.child_by_field_name("default_type"))
-        parsed_params.append({
-            "name": param_name,
-            "type": "class",
-            "default": parse_text(default_type)
-        })
+        # Params where the type is a class/struct
+        elif param_decl.type == "type_parameter_declaration":
+            parsed_params.append({
+                "name": norm_to_py_conv(
+                    parse_text(find_nodes_by_type(param_decl, "type_identifier")[0]),
+                    rm_prefix=True
+                ),
+                "type": "class",
+                "default": None
+            })
+
+        elif param_decl.type == "optional_type_parameter_declaration":
+            parsed_params.append({
+                "name": norm_to_py_conv(
+                    parse_text(param_decl.child_by_field_name("name")), 
+                    rm_prefix=True
+                ),
+                "type": "class",
+                "default": norm_to_py_conv(
+                    parse_text(param_decl.child_by_field_name("default_type"))
+                )
+            })
 
     return parsed_params
 
@@ -65,11 +68,30 @@ def parse_func(func_node):
         [parse_text(node) for node in params.named_children],
     )
 
+
+def norm_expr(text):
+    "C++ expression to an eval-ready python one, e.g. 2*_FIELD::W -> 2*field__w"
+    text = text.replace("::", "__")
+    text = re.sub(r"\b_(?=[A-Za-z])", "", text) # strip tmpl param prefixes
+    return text.lower()
+
+
+def parse_arg(arg_text):
+    "A name or qualified name argument, e.g. typename _FIELD::Q_PRIME"
+    parts = [p.strip() for p in arg_text.split("::")]
+    is_tmpl_param = parts[0].startswith("_")
+    parts = [norm_to_py_conv(p, rm_prefix=True) for p in parts]
+
+    if len(parts) == 1:
+        return {"kind": "name", "name": parts[0], "is_tmpl_param": is_tmpl_param}
+    return {"kind": "qual", "parts": parts, "is_tmpl_param": is_tmpl_param}
+
+
 def parse_class_field_decl(field_decl):
     decl_type = field_decl.child_by_field_name("type").type
     name = parse_text(find_nodes_by_type(field_decl, "field_identifier")[0])
     declaration = parse_text(field_decl)
-    
+
     # Is a dependency field declaration
     if decl_type == "template_type":
         tmpl_type_node = find_nodes_by_type(field_decl, "template_type")[0]
@@ -80,16 +102,23 @@ def parse_class_field_decl(field_decl):
             if arg_node.type == "type_descriptor":
                 if arg_node.child_by_field_name("type").type == "dependent_type":
                     node = find_nodes_by_type(arg_node, "qualified_identifier")[0]
-                    tmpl_params.append(parse_text(node))
+                    tmpl_params.append(parse_arg(parse_text(node)))
                 else:
-                    tmpl_params.append(parse_text(arg_node))
-            elif arg_node.type == "binary_expression":
-                tmpl_params.append(parse_text(arg_node))
+                    tmpl_params.append(parse_arg(parse_text(arg_node)))
+            elif arg_node.type in ("binary_expression", "number_literal"):
+                tmpl_params.append({"kind": "expr",
+                                    "text": norm_expr(parse_text(arg_node))})
+            elif arg_node.is_named:
+                # ensure unparsable template arguments are caught
+                raise Exception(f"Cannot parse template argument "
+                                f"'{parse_text(arg_node)}' in '{declaration}'")
 
+        tmpl_name = parse_text(tmpl_type_node.child_by_field_name("name"))
         return {
             "name": name,
             "decl_type": decl_type,
-            "tmpl_name": parse_text(tmpl_type_node.child_by_field_name("name")),
+            "tmpl_name": tmpl_name,
+            "kernel": tmpl_name.removesuffix("_impl") if tmpl_name.endswith("_impl") else None,
             "tmpl_params": tmpl_params,
             "declaration": declaration,
         }
@@ -99,9 +128,11 @@ def parse_class_field_decl(field_decl):
             "name": name,
             "decl_type": decl_type,
             "tmpl_name": None,
+            "kernel": None,
             "tmpl_params": [],
             "declaration": declaration,
         }
+
 
 def parse_include(root_node):
     include_nodes = find_nodes_by_type(root_node, "preproc_include")

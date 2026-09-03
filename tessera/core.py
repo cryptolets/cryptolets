@@ -1,17 +1,17 @@
-from pathlib import Path
-from concurrent.futures import ThreadPoolExecutor
 import threading
-from dataclasses import replace
 import json
 import logging
+from pathlib import Path
+from concurrent.futures import ThreadPoolExecutor
+from dataclasses import replace
 
-from tessera.models import KernelContext, RunConfig, SweepConfig
-from tessera.helper import (get_design_dir_name, 
-                            get_license_info,
+from tessera.models.config import RunConfig
+
+from tessera.models.sweep import SweepConfig
+from tessera.models.run import Run
+from tessera.helper import (get_license_info,
                             mark_done,
                             watch_memory)
-from tessera.kernel import find_kernel
-from tessera.parser.cpp import parse_header
 from tessera.sweep import flatten_sweep
 from tessera.schedule import get_schedule
 from tessera.const import BUILD_DIR, FLATTENED_SWEEP_FILE, ROOT_DIR
@@ -50,31 +50,26 @@ def run_flow(flow, designs, kernel_ctx):
 def run(kernel, threads, threads_per_process, sweep, frm, to, only):
     logging.info(f"Running Tessera")
     kernel_build_dir = Path(BUILD_DIR, kernel)
-    flattened_path = kernel_build_dir / FLATTENED_SWEEP_FILE
+    flattened_sweep_path = kernel_build_dir / FLATTENED_SWEEP_FILE
 
     # One stage names both ends of the range
-    if only:
-        frm = to = only
-
-    # A run that starts past the first stage reuses what an earlier one built,
-    # so the design list comes from that run rather than the sweep
-    reuse_flattened_sweep = frm != STAGES[0]
-    assert not reuse_flattened_sweep or flattened_path.exists(), \
-        f"A run starting at {frm} reuses an existing build. Start at " \
-        f"{STAGES[0]} first.\n  missing: {flattened_path}"
-
+    if only: frm = to = only
     kernel_build_dir.mkdir(parents=True, exist_ok=True)
 
     # The flags are settings, so they always come from the sweep file. Only
     # the designs are stored, since a rerun has to match what was built.
-    sweep_conf = SweepConfig.load(sweep).model_dump()
-    sweep_flags = sweep_conf['flags']
+    sweep_conf = SweepConfig.load(sweep)
+    sweep_conf_map = sweep_conf.model_dump()
+    sweep_flags = sweep_conf_map['flags']
 
-    if reuse_flattened_sweep:
-        flattened_sweep = json.loads(Path(flattened_path).read_text())['sweep']
-    else:
-        flattened_sweep = flatten_sweep(sweep_conf['sweep'])
-        flattened_path.write_text(json.dumps({'sweep': flattened_sweep}, indent=2))
+
+    # Flatten the sweep, and reuse stored flattened sweep if
+    # the generate (first) stage is skipped
+    flattened_sweep = flatten_sweep(
+        sweep_conf_map['sweep'], 
+        flattened_sweep_path,
+        reuse=frm != STAGES[0]
+    )
 
     num_workers = threads // threads_per_process
     logging.info(f"Running {len(flattened_sweep)} designs for {kernel}")
@@ -83,24 +78,23 @@ def run(kernel, threads, threads_per_process, sweep, frm, to, only):
 
     logging.info(f"Flattened sweep designs:")
     for i, design in enumerate(flattened_sweep, 1):
-        logging.info(f"  [{i}/{len(flattened_sweep)}] {get_design_dir_name(design, kernel)}")
+        logging.debug(f"  [{i}/{len(flattened_sweep)}] {design.get_dir_name()}")
 
     # automatic dependency resolution and scheduling
-    schedule = get_schedule(kernel, flattened_sweep)
-    return
+    schedule = get_schedule(kernel, flattened_sweep, sweep_conf.sweep.get_sweep_params())
     if len(schedule) > 1:
         logging.info("Parent kernel requires resolving the following dependencies in order:")
         for cur_kernel, cur_designs in schedule:
-            logging.info(f"  {cur_kernel}: {len(cur_designs)} designs")
+            logging.info(f"  {cur_kernel.name}: {len(cur_designs)} designs")
 
-    base_ctx = KernelContext(
-        root_dir=ROOT_DIR,
-        sweep_flags=sweep_flags,
+    run_inst = Run(
         threads=threads,
         threads_per_process=threads_per_process,
         workers=num_workers,
+        sweep_flags=sweep_flags,
         frm=frm,
         to=to,
+        root_dir=ROOT_DIR,
     )
 
     # Warn if HLS RTL verification is skipped when HLS was generated
@@ -118,23 +112,12 @@ def run(kernel, threads, threads_per_process, sweep, frm, to, only):
     threading.Thread(target=watch_memory, daemon=True,
                      args=(stop, RunConfig.load().min_free_gb)).start()
 
-
     flows_to_run = [flow for flow in FLOWS if has_stage(flow.stage, frm, to)]
 
-    # A dependency is built before the kernel that blackboxes it, so each
-    # kernel goes through every flow before the next one starts.
+    # Main loop to run flows for each kernel and designs
     for cur_kernel, cur_designs in schedule:
-        cur_path = find_kernel(cur_kernel)
-        kernel_ctx = replace(
-            base_ctx,
-            kernel_name=cur_kernel,
-            kernel_path=cur_path,
-            kernel_build_dir=Path(BUILD_DIR, cur_kernel),
-            impl_spec=parse_header(cur_path / 'impl' / f"{cur_kernel}_impl.h")
-        )
-
         for flow in flows_to_run:
-            designs = flow.designs(cur_designs, kernel_ctx)
-            run_flow(flow, designs, kernel_ctx)
+            designs = flow.designs(cur_designs, cur_kernel, run_inst)
+            run_flow(flow, designs, cur_kernel, run_inst)
 
     stop.set()

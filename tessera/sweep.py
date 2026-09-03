@@ -7,11 +7,13 @@ A sweep is the cartesian product of its parameters, then:
 
 Add a rule by writing a function and listing it in DERIVATIONS or FILTERS.
 """
+import json
 import logging
 from itertools import product
 
-from tessera.models import load_curves
-from tessera.const import ARB_CURVE
+from tessera.models.common import load_curves
+from tessera.models.design import Design
+from tessera.const import ARB_FIELD
 
 
 # --- derivations: (design) -> None, edited in place ---
@@ -19,27 +21,27 @@ from tessera.const import ARB_CURVE
 def derive_curve_width(design):
     "A named curve fixes n to the bitwidth of its field."
     curve = design.get("curve")
-    if not curve or curve == ARB_CURVE:
+    if not curve or curve == ARB_FIELD:
         return
     field = load_curves()[curve].get(design.get("field", "base"))
     if field:
         design["bitwidth"] = field["bitwidth"]
 
 
-def derive_arb_curve_field(design):
-    "An arb_curve prime is not tied to a curve, so it has only a base field."
-    if design.get("curve") == ARB_CURVE:
+def derive_arb_field_field(design):
+    "An arb_field prime is not tied to a curve, so it has only a base field."
+    if design.get("curve") == ARB_FIELD:
         design["field"] = "base"
 
 
-DERIVATIONS = [derive_curve_width, derive_arb_curve_field]
+DERIVATIONS = [derive_curve_width, derive_arb_field_field]
 
 # --- filters: (design) -> reason to skip, or None to keep ---
 
 def filter_missing_field(design):
     "Curves without a scalar field cannot be swept over one."
     curve = design.get("curve")
-    if not curve or curve == ARB_CURVE:
+    if not curve or curve == ARB_FIELD:
         return None
     field = design.get("field", "base")
     if field not in load_curves()[curve]:
@@ -47,17 +49,17 @@ def filter_missing_field(design):
     return None
 
 
-def filter_arb_curve_fixed_q(design):
+def filter_arb_field_fixed_q(design):
     """
-    An arb_curve prime is random, so we only use it to test
+    An arb_field prime is random, so we only use it to test
     variable parameters, and no point in fixing it.
     """
-    if design.get("curve") == ARB_CURVE and design.get("q_type") == "fixed_q":
-        return "arb_curve has no meaningful fixed modulus"
+    if design.get("curve") == ARB_FIELD and design.get("q_type") == "fixed_q":
+        return "arb_field has no meaningful fixed modulus"
     return None
 
 
-FILTERS = [filter_missing_field, filter_arb_curve_fixed_q]
+FILTERS = [filter_missing_field, filter_arb_field_fixed_q]
 
 # Params keyed by n rather than swept directly
 WIDTH_MAPS = ("base_mul_width", "kar_base_mul_width")
@@ -90,8 +92,19 @@ def _apply_width_maps(sweep, design):
         yield out
 
 
-def flatten_sweep(sweep):
-    "Expand a sweep config into a list of designs."
+def flatten_sweep(sweep, path, reuse=False):
+    """
+    Expand a sweep config into a list of designs
+    """
+
+    # Reuse an existing flattened sweep stored in json file
+    if reuse:
+        if not path.exists():
+            raise Exception(f"No stored sweep at {path}. "
+                            f"Run from the first stage to create it.")
+        stored = json.loads(path.read_text())["sweep"]
+        return [Design(d) for d in stored]
+
     # A parameter the sweep leaves out is not part of any design, so a kernel
     # that has no use for it carries nothing for it either
     keys = [k for k in sweep if k not in WIDTH_MAPS and sweep[k] is not None]
@@ -113,11 +126,12 @@ def flatten_sweep(sweep):
             key = tuple(sorted(out.items()))
             if key not in seen:
                 seen.add(key)
-                designs.append(out)
+                designs.append(Design(out))
 
     for reason, count in skipped.items():
         logging.warning(f"Skipped {count} design(s): {reason}")
 
+    path.write_text(json.dumps({"sweep": [d.get_design() for d in designs]}, indent=2))
     return designs
 
 

@@ -1,3 +1,15 @@
+def norm_to_py_conv(name, rm_prefix=False):
+    """
+    C++ naming convention to python, e.g. _MRED -> mred
+    Python naming follows lower case convention, while
+    C++ naming convention is upper case as the parameters are
+    macros in C++.
+    """
+    if rm_prefix and name.startswith("_"):
+        name = name[1:]
+    return name.lower()
+
+
 def walk_tree(node):
     yield node
     for child in node.children:

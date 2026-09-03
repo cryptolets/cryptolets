@@ -41,7 +41,10 @@ def app():
               help='The stage to stop after.')
 @click.option('--only', type=click.Choice(STAGES), default=None,
               help='Run one stage alone, reusing what an earlier run built.')
-def run(kernel, threads, threads_per_process, sweep, frm, to, only):
+@click.option('--verbose', '-v', is_flag=True, help='Show debug logging.')
+def run(kernel, threads, threads_per_process, sweep, frm, to, only, verbose):
+    if verbose:
+        logging.getLogger().setLevel(logging.DEBUG)
     core.run(
         kernel=kernel,
         threads=threads,
