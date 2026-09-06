@@ -1,16 +1,14 @@
 """
 Generate Core Catapult Sweep files per-design header files
 """
-import re
 from pathlib import Path
-import yaml
 
 from tessera.models.config import RunConfig
-
 from tessera.models.sweep import Sweep
-from tessera.field import design_fields, FIELD_CONSTANTS
-from tessera.kernel import resolve_deps
 from tessera.templating import render
+from tessera.parser.common import norm_to_cpp_conv, strip_tmpl_prefix
+from tessera.models.design import PARAMS_MAPPED_TO_STRUCT
+from tessera.const import HW_CONSTRAINTS_PARAMS, KERNELS_DIR
 
 catapult_stages = [
     "new",
@@ -28,132 +26,111 @@ catapult_stages = [
 # Catapult stages that save the table to a file
 SAVE_TABLE_STAGES = {"schedule", "dpfsm", "extract"}
 
-# Parameters that are not part of the design. 
-# Curve and field are excluded because the generated field
-# descriptor already carries both.
-EXCLUDE_PARAMS = ['tech_type', 'curve', 'field', 'dep_period_ratio']
 
-def gen_params_h(design, design_build_dir):
-    enum_defines = {
-        value.upper(): i
-        for enum, values in Sweep.enums().items() if enum not in EXCLUDE_PARAMS
+def gen_params_h(design):
+    enums = {
+        norm_to_cpp_conv(value): i
+        for values in Sweep.enums().values()
         for i, value in enumerate(values)
     }
 
-    params = {}
-    for param, value in design.items():
-        if param in EXCLUDE_PARAMS:
+    defines, usings = {}, {}
+    for param, value in design.design.items():
+        # Constraints steer the tools, not the C++, so they stay out of params.h
+        if param in HW_CONSTRAINTS_PARAMS:
             continue
-        if isinstance(value, bool):
-            value = int(value)
-        elif isinstance(value, str):
-            value = value.upper()
-        params[param.upper()] = value
+        if param in PARAMS_MAPPED_TO_STRUCT:
+            # A struct ref becomes a type alias, e.g.
+            # using CMUL_CONST = BN254_BASE::Q_PRIME
+            # Therefore its uses the "using" syntax
+            usings[norm_to_cpp_conv(param)] = norm_to_cpp_conv(value)
+        else:
+            # rest are define macros
+            defines[norm_to_cpp_conv(param)] = norm_to_cpp_conv(value)
+
+    # Reshape the structs for the template: constants are the nested dicts
+    structs = [{
+        "name": norm_to_cpp_conv(name),
+        "w": struct["w"],
+        "consts": [{"name": norm_to_cpp_conv(const), "w": v["w"], "val": v["val"]}
+                   for const, v in struct.items() if isinstance(v, dict)],
+    } for name, struct in design.structs.items()]
 
     render(
         "params.h.j2",
-        design_build_dir / 'include' / 'params.h',
-        enums=enum_defines,
-        params=params,
-        fields=design_fields(design),
+        design.build_dir / 'include' / 'params.h',
+        enums=enums,
+        params=defines,
+        usings=usings,
+        structs=structs,
     )
 
-def to_macro(text):
-    "A template parameter _X is the params.h macro X"
-    text = re.sub(r"\b_FIELD::W\b", "BITWIDTH", text) # to override field's bitwidth
-    return re.sub(r"\b_([A-Z][A-Z0-9_]*)\b", r"\1", text)
+
+# Ports a design can fix, mapped to the param and value that fix them
+FIXABLE_PORTS = {"q": ("q_type", "fixed_q")}
 
 
-def qualify(text, impl, template_args):
-    """
-    Name a width the impl declares, from outside the impl.
-
-    A port type is copied into the top as it is written, so a width the impl
-    holds as its own member has to be named through the class that holds it.
-    """
-    return re.sub(r"\b([A-Z][A-Z0-9_]*)\b",
-                  lambda m: f"{impl['name']}<{template_args}>::{m[1]}"
-                            if m[1] in impl.get("widths", ()) else m[1],
-                  text)
-
-
-def _top_ports(impl, design):
-    "The top's ports and the arguments it forwards to the impl"
-    # With a fixed modulus the descriptor supplies q, so it is not a port
-    fixed = design.get('q_type') == 'fixed_q'
-
-    ports, args = [], []
-    for param in impl['params']:
-        if fixed and param['name'] in FIELD_CONSTANTS:
-            args.append(f"FIELD::{param['name'].upper()}()")
-        else:
-            ports.append({
-                'type': to_macro(param['type']),
-                'name': param['name'],
-                'ref': param['is_output'],
-            })
-            args.append(param['name'])
-    return ports, args
-
-
-def gen_kernel_top(
-    design, design_build_dir, kernel_ctx, combinational=False # default is sequential
-):
+def gen_kernel_top(design, kernel, combinational=False):
     """
     Generate the top header and the source file Catapult synthesizes.
     A combinational kernel is wrapped, a sequential one is the top itself.
     """
-    impl_spec = kernel_ctx.impl_spec
-    kernel_name = kernel_ctx.kernel
+    template_args = ", ".join(p["name"].upper()
+                              for p in kernel.impl_spec["tmpl_params"])
 
-    ports, args = _top_ports(impl_spec, design)
-    template_args = ", ".join(to_macro(p) for p in impl_spec['template_params'])
-    for port in ports:
-        port['type'] = qualify(port['type'], impl_spec, template_args)
+    ports, args = [], []
+    for param in kernel.impl_spec["run_params"]:
+        fixed_by, fixed_value = FIXABLE_PORTS.get(param["name"], (None, None))
+        if fixed_by and design.design.get(fixed_by) == fixed_value:
+            args.append(f"FIELD::{param['name'].upper()}::VALUE()")
+            continue
+
+        # A template param _X resolves through the params.h name X at the top
+        text = strip_tmpl_prefix(param["text"])
+        ports.append({"name": param["name"], "text": text})
+        args.append(param["name"])
+
     ctx = dict(
-        kernel=kernel_name,
+        kernel=kernel.name,
         ports=ports,
         args=args,
         combinational=combinational,
-        template_args=", ".join(to_macro(p) for p in impl_spec['template_params']),
+        template_args=template_args,
     )
 
-    render("kernel_top.h.j2", design_build_dir / 'include' / f'{kernel_name}_top.h', **ctx)
-    render("kernel.cpp.j2", design_build_dir / 'src' / f'{kernel_name}_top.cpp', **ctx)
+    render("kernel_top.h.j2", design.build_dir / 'include' / f'{kernel.name}_top.h', **ctx)
+    render("kernel.cpp.j2", design.build_dir / 'src' / f'{kernel.name}_top.cpp', **ctx)
+    
 
-
-def gen_catapult_design_tcl(design, kernel_name, design_name, design_build_dir,
-                            blackboxed=(), comb_chk=False, combinational=False):
-    # Catapult supplies some libraries itself, so lib_file can be empty
-    tech = RunConfig.load().tech[design['tech_type']].model_dump()
+def gen_catapult_design_tcl(design, kernel, comb_chk=False, combinational=False):
+    # Add the design's tech node, lib paths and config from config.yaml
+    tech = RunConfig.load().tech[design.design['tech_type']].model_dump()
     tech = {k: str(Path(v).expanduser()) if v and k.endswith(('_path', '_file')) else (v or "")
             for k, v in tech.items()}
 
     render(
         "design.tcl.j2",
-        design_build_dir / "design.tcl",
-        design_name=design_name,
-        design_build_dir=design_build_dir.resolve(),
-        design=design,
+        design.build_dir / "design.tcl",
+        design_name=design.build_dir.name,
+        design_build_dir=design.build_dir.resolve(),
+        design=design.design,
         tech=tech,
         comb_chk=comb_chk,
-        # A generated header stands in for its dep only under this flag, and
-        # falls back to the real implementation without it
-        blackboxed=bool(blackboxed),
-        top_class=f"{kernel_name}_top" if combinational else kernel_name,
+        uses_blackboxes=design.uses_blackboxes,
+        top_class=f"{kernel.name}_top" if combinational else kernel.name,
     )
 
 
-def _stage_bodies(kernel_name, kernel_path, root_dir):
+def _stage_bodies(kernel, run_inst):
     "Kernel-agnostic TCL per stage, before kernel.yaml additions are appended"
-    cpp_path = Path(root_dir, 'tessera', 'cpp')
+    cpp_path = Path(run_inst.root_dir, 'tessera', 'cpp')
     cpp_src_path = cpp_path / 'src'
-    dep_paths = resolve_deps(kernel_path, Path(root_dir, 'kernels'))
 
+    # Every kernel's impl dir is on the search path, so any dep's header
+    # resolves without walking the dependency tree
     include_paths = [
         cpp_path / 'include',
-        Path(kernel_path, 'impl'),
-        *(p / 'impl' for p in dep_paths),
+        *sorted(KERNELS_DIR.glob("*/*/impl")),
     ]
     include_paths_str = "\n".join(f"  {p.resolve()}" for p in include_paths)
 
@@ -163,12 +140,12 @@ def _stage_bodies(kernel_name, kernel_path, root_dir):
         "options set Input/SearchPath [file join $design_build_dir blackbox] -append",
         "options set Input/SearchPath {\n" + include_paths_str + "\n} -append",
         "options set Input/SearchPath [file join $design_build_dir include] -append",
-        "solution file add [file join $design_build_dir src " + f"{kernel_name}_top.cpp]",
+        "solution file add [file join $design_build_dir src " + f"{kernel.name}_top.cpp]",
         # A generated header stands in for its dep only under this flag, and
         # falls back to the real implementation without it
-        "if { $blackboxed } { options set Input/CompilerFlags "
+        "if { $uses_blackboxes } { options set Input/CompilerFlags "
         "\"[options get Input/CompilerFlags] -DBLACKBOX_FLOW\" }",
-        f"solution file add [file join {(Path(kernel_path) / f'{kernel_name}_tb.cpp').resolve()}] -exclude true",
+        f"solution file add [file join {(kernel.path / f'{kernel.name}_tb.cpp').resolve()}] -exclude true",
         f"solution file add [file join {(cpp_src_path / 'csvparser.cpp').resolve()}] -exclude true",
         f"solution file add [file join {(cpp_src_path / 'tb_helper.cpp').resolve()}] -exclude true",
     ]
@@ -192,12 +169,9 @@ def _stage_bodies(kernel_name, kernel_path, root_dir):
     return {'analyze': analyze_stage, 'compile': compile_stage, 'libraries': libraries_stage}
 
 
-def gen_catapult_kernel_tcl(sweep_flags, kernel_name, kernel_path, kernel_build_dir,
-                            root_dir, threads_per_process=1):
-    kernel_yaml = yaml.safe_load(Path(kernel_path, 'kernel.yaml').read_text())
-
-    bodies = _stage_bodies(kernel_name, kernel_path, root_dir)
-    for stage, body in kernel_yaml.get('stages', {}).items():
+def gen_catapult_kernel_tcl(flags, kernel, run_inst):
+    bodies = _stage_bodies(kernel, run_inst)
+    for stage, body in kernel.config.stages.items():
         bodies.setdefault(stage, []).extend(body.splitlines())
 
     stages = [
@@ -209,17 +183,18 @@ def gen_catapult_kernel_tcl(sweep_flags, kernel_name, kernel_path, kernel_build_
         for stage in catapult_stages
     ]
 
+    tcl_dir = Path(run_inst.root_dir, 'tessera', 'tcl', 'catapult')
     render(
         "kernel.tcl.j2",
-        kernel_build_dir / "kernel.tcl",
-        root_dir=root_dir,
-        kernel_name=kernel_name,
-        catapult_util_tcl=Path(root_dir, 'tessera', 'tcl', 'catapult', 'util.tcl').resolve(),
-        catapult_init_tcl=Path(root_dir, 'tessera', 'tcl', 'catapult', 'init.tcl').resolve(),
-        catapult_verify_tcl=Path(root_dir, 'tessera', 'tcl', 'catapult', 'verify.tcl').resolve(),
-        catapult_vivado_tcl=Path(root_dir, 'tessera', 'tcl', 'catapult', 'vivado.tcl').resolve(),
-        flags=sweep_flags,
-        threads_per_process=threads_per_process,
+        kernel.build_dir / "kernel.tcl",
+        root_dir=run_inst.root_dir,
+        kernel_name=kernel.name,
+        catapult_util_tcl=(tcl_dir / 'util.tcl').resolve(),
+        catapult_init_tcl=(tcl_dir / 'init.tcl').resolve(),
+        catapult_verify_tcl=(tcl_dir / 'verify.tcl').resolve(),
+        catapult_vivado_tcl=(tcl_dir / 'vivado.tcl').resolve(),
+        flags=flags,
+        threads_per_process=run_inst.threads_per_process,
         stages=stages,
         tools={k: str(Path(v).expanduser()) for k, v in RunConfig.load().tools.items()},
     )
