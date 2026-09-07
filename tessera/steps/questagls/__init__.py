@@ -10,7 +10,8 @@ from tessera.steps.questagls.libs import CELL_LIB, build_cells, questa_env
 from tessera.const import CELLS_DIR
 from tessera.steps.questagls.codegen import gen_gls_makefile
 from tessera.steps.catapult.package import update_manifest
-from tessera.helper import archive_run, log_elapsed
+from tessera.helpers.archive import archive_run
+from tessera.helpers.others import log_elapsed
 
 
 class QuestaSimGLS(Step):

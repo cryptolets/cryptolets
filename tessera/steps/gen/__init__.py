@@ -4,7 +4,7 @@ from tessera.steps.base import Step
 from tessera.samples import write_test_samples
 from tessera.steps.gen.blackbox import gen_blackbox_headers
 from tessera.steps.catapult import CatapultHLS
-from tessera.helper import archive_design
+from tessera.helpers.archive import archive_design
 from tessera.steps.gen.codegen import (gen_catapult_design_tcl,
                                        gen_catapult_kernel_tcl,
                                        gen_kernel_top, gen_params_h)

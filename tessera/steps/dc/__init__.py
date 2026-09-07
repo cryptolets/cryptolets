@@ -7,7 +7,8 @@ from tessera.steps.catapult.package import update_manifest
 from tessera.steps.dc.codegen import gen_dc_tcl
 from tessera.steps.dc.select import select_designs
 from tessera.parser.metrics.dc import parse_dc_qor, parse_dc_power
-from tessera.helper import archive_run, log_elapsed
+from tessera.helpers.archive import archive_run
+from tessera.helpers.others import log_elapsed
 
 
 class DesignCompiler(Step):

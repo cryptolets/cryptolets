@@ -7,7 +7,8 @@ from tessera.const import DWARE_DIR
 from tessera.models.config import RunConfig
 from tessera.steps.base import Step
 from tessera.steps.questagls.libs import build_dware
-from tessera.helper import archive_run, log_elapsed
+from tessera.helpers.archive import archive_run
+from tessera.helpers.others import log_elapsed
 from tessera.steps.catapult.comb import COMB_CHK_EXIT, mark_combinational
 from tessera.steps.catapult.package import write_package
 from tessera.steps.gen.codegen import gen_catapult_design_tcl, gen_kernel_top

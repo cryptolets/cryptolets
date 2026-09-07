@@ -8,7 +8,8 @@ from tessera.steps.base import Step
 from tessera.steps.catapult.package import update_manifest
 from tessera.steps.primepower.codegen import gen_power_tcl
 from tessera.parser.metrics.primepower import parse_primepower
-from tessera.helper import archive_run, log_elapsed
+from tessera.helpers.archive import archive_run
+from tessera.helpers.others import log_elapsed
 
 
 class PrimePower(Step):
