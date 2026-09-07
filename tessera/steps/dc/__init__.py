@@ -26,14 +26,14 @@ class DesignCompiler(Step):
         design_name = design.build_dir.name
         start_time = time.time()
 
-        module = gen_dc_tcl(design, kernel, run_inst.threads_per_process)
-        logging.info(f"Running Design Compiler for {design_name}")
-
         # Design Compiler writes its work directories into the current one, so
         # it gets its own. Catapult's is left alone for a syn only run.
         archive_run(design.build_dir, dirs=("dc",))
         dc_dir = design.build_dir / "dc"
         dc_dir.mkdir(parents=True, exist_ok=True)
+
+        module = gen_dc_tcl(design, kernel, run_inst)
+        logging.info(f"Running Design Compiler for {design_name}")
 
         log_path = design.build_dir / "logs" / "dc.tessera.log"
         log_path.parent.mkdir(parents=True, exist_ok=True)
@@ -47,6 +47,7 @@ class DesignCompiler(Step):
 
         ok = log_elapsed(self.name, design_name, result.returncode, start_time)
         if ok:
-            update_manifest(design, **read_dc_qor(design),
-                            power_dc=read_dc_power(design, module))
+            passes = run_inst.sweep_flags["syn_passes"]
+            update_manifest(design, **read_dc_qor(design, passes),
+                            power_dc=read_dc_power(design, module, passes))
         return ok

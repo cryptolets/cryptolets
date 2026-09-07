@@ -33,16 +33,20 @@ def child_designs(design):
     return children
 
 
-def gen_dc_tcl(design, kernel, max_cores):
-    "Write the design's dc.tcl, and return the module it synthesizes"
+def gen_dc_tcl(design, kernel, run_inst):
+    """
+    Write the design's dc.tcl, and return the module it synthesizes
+    """
     tech = RunConfig.load().tech[design.design["tech_type"]]
 
     package_dir = design.build_dir / "package"
     manifest = yaml.safe_load((package_dir / "manifest.yaml").read_text())
-
-    report_dir = design.build_dir / "reports" / "dc"
-    report_dir.mkdir(parents=True, exist_ok=True)
     (package_dir / "syn").mkdir(parents=True, exist_ok=True)
+
+    passes = run_inst.sweep_flags["syn_passes"]
+    for n in range(1, passes + 1):
+        (design.build_dir / "reports" / "dc" / f"pass_{n}").mkdir(parents=True, exist_ok=True)
+        (design.build_dir / "dc" / f"pass_{n}").mkdir(parents=True, exist_ok=True)
 
     render(
         "dc.tcl.j2",
@@ -50,11 +54,15 @@ def gen_dc_tcl(design, kernel, max_cores):
         kernel=kernel.name,
         module=manifest["module"],
         rtl=str((package_dir / manifest["rtl"]).resolve()),
-        sdc=str((package_dir / manifest["sdc"]).resolve()),
+        period=design.design["period"],
+        combinational=manifest["combinational"],
         target_library=str(Path(tech.lib_db).expanduser()),
         children=child_designs(design) if design.uses_blackboxes else [],
-        max_cores=max_cores,
+        max_cores=run_inst.threads_per_process,
+        passes=passes,
+        constraints_tcl=str(Path(run_inst.root_dir, "tessera", "tcl", "dc", "constraints.tcl").resolve()),
         syn_dir=str((package_dir / "syn").resolve()),
-        report_dir=str(report_dir.resolve()),
+        dc_dir=str((design.build_dir / "dc").resolve()),
+        report_dir=str((design.build_dir / "reports" / "dc").resolve()),
     )
     return manifest["module"]

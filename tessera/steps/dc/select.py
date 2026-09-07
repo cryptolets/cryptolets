@@ -9,13 +9,14 @@ import yaml
 def latency_time(row):
     if row.get("latency"):
         return row["latency"] * row["design"].design["period"]
-
     # A combinational design finishes within one cycle, so its delay is the time
     return row.get("delay")
 
 
-def frontier(rows, mode):
-    "The designs that no other design beats on both area and time"
+def pareto_frontier(rows, mode):
+    """
+    Get designs which are on the Pareto frontier (area vs latency)
+    """
     ranked = [row for row in rows
               if row.get("area") is not None and latency_time(row) is not None]
 
@@ -33,22 +34,23 @@ def frontier(rows, mode):
     return best[:1] if len(best) < 2 else [best[0], best[-1]]
 
 
-def select(rows, mode, kernel_key):
+def select_rows(rows, mode, kernel_key):
     """
     Select the rows worth synthesizing.
     """
-    if mode == "all":
-        return rows
+    if mode == "all": return rows
 
     units = {}
     for row in rows:
         units.setdefault(tuple(row["design"].design.get(k) for k in kernel_key), []).append(row)
 
-    return [row for unit in units.values() for row in frontier(unit, mode)]
+    return [row for unit in units.values() for row in pareto_frontier(unit, mode)]
 
 
 def select_designs(designs, kernel, mode):
-    "The sweep's designs, narrowed to the ones worth synthesizing"
+    """
+    The sweep's designs, narrowed to the ones worth synthesizing
+    """
     if mode == "all":
         return designs
 
@@ -65,7 +67,7 @@ def select_designs(designs, kernel, mode):
         ranked.append({"design": design,
                        **{k: manifest.get(k) for k in ("area", "delay", "latency")}})
 
-    selected = [row["design"] for row in select(ranked, mode, kernel_key)]
+    selected = [row["design"] for row in select_rows(ranked, mode, kernel_key)]
     logging.info(f"Synthesizing {len(selected)} of {len(designs)} designs ({mode})")
     for design in selected:
         logging.info(f"  {design.build_dir.name}")
