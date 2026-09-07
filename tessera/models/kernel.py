@@ -4,8 +4,7 @@ Per kernel models: kernel.yaml and the kernel itself.
 from pathlib import Path
 from pydantic import BaseModel, model_validator
 
-from tessera.const import BUILD_DIR
-from tessera.kernel import find_kernel
+from tessera.const import BUILD_DIR, KERNELS_DIR
 from tessera.models.common import load_and_validate_yaml
 from tessera.parser.cpp import parse_kernel_impl
 
@@ -38,7 +37,15 @@ class KernelConfig(BaseModel):
 class Kernel:
     def __init__(self, name):
         self.name = name
-        self.path = find_kernel(name)
+        self.path = Kernel.find(name)
         self.build_dir = BUILD_DIR / name
         self.impl_spec = parse_kernel_impl(self.path / "impl" / f"{name}_impl.h")
         self.config = KernelConfig.load(self.path)
+
+    @staticmethod
+    def find(name):
+        "The kernel's directory, under whichever level holds it"
+        for level in KERNELS_DIR.iterdir():
+            if level.is_dir() and (level / name).is_dir():
+                return level / name
+        raise Exception(f"Kernel '{name}' not found")

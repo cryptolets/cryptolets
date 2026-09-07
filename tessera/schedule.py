@@ -4,7 +4,6 @@ import logging
 from graphlib import TopologicalSorter
 from simpleeval import simple_eval
 
-from tessera.kernel import find_kernel
 from tessera.const import HW_CONSTRAINTS_PARAMS
 from tessera.models.common import is_fpga
 from tessera.models.design import Design, PARAMS_MAPPED_TO_STRUCT
@@ -39,7 +38,7 @@ def get_blackboxed_deps(kernel):
 
     for dep_kernel_name in kernel.config.blackbox:
         if dep_kernel_name not in dep_kernels_in_impl:
-            find_kernel(dep_kernel_name) # errors on a typo
+            Kernel.find(dep_kernel_name) # errors on a typo
             logging.warning(f"Blackboxed dep '{dep_kernel_name}' is not in the impl")
         else:
             dep_kernel_tmpl_params_map[dep_kernel_name] = dep_kernels_in_impl[dep_kernel_name]

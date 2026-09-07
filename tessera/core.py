@@ -7,7 +7,8 @@ from tessera.models.config import RunConfig
 
 from tessera.models.sweep import SweepConfig
 from tessera.models.run import Run
-from tessera.helper import get_license_info, watch_memory
+from tessera.helpers.license import get_license_info
+from tessera.helpers.memory import watch_memory
 from tessera.sweep import flatten_sweep
 from tessera.schedule import get_schedule
 from tessera.const import BUILD_DIR, FLATTENED_SWEEP_FILE, ROOT_DIR
