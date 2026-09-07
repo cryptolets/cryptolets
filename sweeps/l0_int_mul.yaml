@@ -1,16 +1,16 @@
 sweep:
-  mul_type: [mul_nor, mul_kar, mul_sb]
-  bitwidth: [256]
+  mul_type: [mul_kar, mul_nor]
+  bitwidth: [48]
   tech_type: [gf12_highperf]
-  period: [0.90]
+  period: [1]
   ii: [1]
   base_mul_width:
     8: [8]
     12: [12]
     16: [16]
     24: [24]
-    32: [32]
-    48: [48]
+    32: [16]
+    48: [24]
     64: [16]
     96: [48]
     128: [64]
@@ -71,3 +71,4 @@ sweep:
 flags:
   num_test_samples: 100
   syn_sel: all            # all, pareto, small_fast (smallest and fastest)
+  syn_passes: 1           # compile_ultra passes: one full, the rest incremental

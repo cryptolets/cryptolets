@@ -1,12 +1,13 @@
 sweep:
-  bitwidth: [254]
+  bitwidth: [32]
   tech_type: [gf12_highperf]
   period: [1]
   ii: [1]
   mul_type: [mul_nor]
-  dep_period_ratio: [0.9, 1]
+  dep_period_ratio: [1]
 
   base_mul_width:
+    32: [32]
     254: [63]
     255: [63]
     381: [47]
@@ -14,6 +15,7 @@ sweep:
     510: [63]
     762: [47]
   kar_base_mul_width:
+    32: [32]
     254: [127, 63]
     255: [127, 63]
     381: [190, 95, 47]
@@ -28,10 +30,10 @@ sweep:
   # Which modular reduction the multiply uses
   mred: [mred_mont]
 
-  # Field modulus. Omit both to get a random prime of width bitwidth.
-  curve: [bn254]   # name from reference/curves.yaml
-  field: [base]               # which modulus of that curve to use
+  # field; arb_field is a random prime of the bitwidth
+  field: [arb_field]
 
 flags:
-  num_test_samples: 20
+  num_test_samples: 100
   syn_sel: all            # all, pareto, small_fast (smallest and fastest)
+  syn_passes: 1           # compile_ultra passes: one full, the rest incremental

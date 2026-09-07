@@ -4,16 +4,12 @@ sweep:
   period: [1]
   ii: [1]
 
-  # Which field constant is baked into the multiplier
-  cmul_const: [cmul_q, cmul_q_prime, cmul_b, cmul_d, cmul_k]
-
-  # A curve coefficient is held in the domain its reduction works in
-  mred: [mred_mont, mred_bar]
-
-  # Field modulus. Omit both to get a random prime of width bitwidth.
-  curve: [arb_curve]          # name from reference/curves.yaml
-  field: [base]               # which modulus of that curve to use
+  # We generate a random constant with a given width and hamming weight
+  cmul_const_w: [16, 32]
+  cmul_hamming: [0.25, 0.5, 0.75]
+  cmul_output_type: [cmul_output_full, cmul_output_lo, cmul_output_hi]
 
 flags:
   num_test_samples: 100
   syn_sel: all            # all, pareto, small_fast (smallest and fastest)
+  syn_passes: 1           # compile_ultra passes: one full, the rest incremental

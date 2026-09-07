@@ -1,12 +1,14 @@
 sweep:
-  bitwidth: [254]
+  bitwidth: [64]
   tech_type: [gf12_highperf]
   period: [1]
   ii: [1]
-  mul_type: [mul_kar]
-  dep_period_ratio: [1]
+  mul_type: [mul_nor, mul_sb]
+  dep_period_ratio: [0.5]
 
   base_mul_width:
+    32: [32]
+    64: [64]
     254: [63]
     255: [63]
     381: [47]
@@ -14,6 +16,8 @@ sweep:
     510: [63]
     762: [47]
   kar_base_mul_width:
+    32: [32]
+    64: [64]
     254: [127, 63]
     255: [127, 63]
     381: [190, 95, 47]
@@ -22,16 +26,16 @@ sweep:
     762: [381, 190, 95, 47]
 
   # fixed bakes the constant into the hardware, var takes it as a port
-  q_type: [var_q]
+  q_type: [fixed_q, var_q]
   redc_type: [var_rc]
 
   # Which modular reduction the multiply uses
   mred: [mred_mont]
 
-  # Field modulus. Omit both to get a random prime of width bitwidth.
-  curve: [arb_curve]   # name from reference/curves.yaml
-  field: [base]               # which modulus of that curve to use
+  # field; arb_field is a random prime of the bitwidth
+  field: [test64_base, arb_field]
 
 flags:
   num_test_samples: 100
   syn_sel: all            # all, pareto, small_fast (smallest and fastest)
+  syn_passes: 2           # compile_ultra passes: one full, the rest incremental
