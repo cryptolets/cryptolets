@@ -5,7 +5,7 @@ import importlib
 from pathlib import Path
 
 from tessera.const import GOLDENS_PATH, SAMPLES_PATH
-from tessera.field import SEED, get_modulus
+from tessera.structs.field import SEED
 
 def get_rng(seed=SEED):
     return random.Random(seed)

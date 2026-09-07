@@ -18,13 +18,14 @@ ARB_COEFFS = {"a": "0", "b": "1", "d": "2"}
 
 
 @lru_cache
-def get_field(name, w=None):
+def get_field(name):
     """
     The complete field struct: bitwidth, modulus, and the computed constants.
-    A named field comes from curves.yaml; arb_field is a random prime of
-    width w, seeded so the same width always gives the same prime.
+    A named field comes from curves.yaml; arb_field_<w> is a random prime of
+    width w, seeded so the same name always gives the same prime.
     """
-    if name == ARB_FIELD:
+    if name.startswith(ARB_FIELD):
+        w = int(name.rsplit("_", 1)[1])
         sympy_seed(SEED)
         q = randprime(1 << (w - 1), (1 << w) - 1)
         coeffs = ARB_COEFFS

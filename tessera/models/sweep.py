@@ -69,12 +69,6 @@ class Sweep(BaseModel):
                     break
         return out
 
-    def get_sweep_params(self):
-        """
-        The params this sweep actually swept
-        """
-        return [k for k, v in self.model_dump().items() if v is not None]
-
     @model_validator(mode="after")
     def _check_tech(self):
         known_tech = RunConfig.load().tech
