@@ -1,15 +1,15 @@
 """
 Resolve the field a design works over.
 
-A design names a curve and one of its fields, or arb_curve for a random
+A design names a curve and one of its fields, or arb_field for a random
 prime of the requested bitwidth.
 """
 from sympy import randprime
 from sympy.core.random import seed as sympy_seed
 
 from reference.redc import barrett_get_mu, mont_get_q_prime, to_mont
-from tessera.models import load_curves
-from tessera.const import ARB_CURVE
+from tessera.models.common import load_curves
+from tessera.const import ARB_FIELD
 
 SEED = 42
 FIELD_CONSTANTS = ("q",) # constant kernel parameters
@@ -17,8 +17,8 @@ ARB_COEFFS = {"a": "0", "b": "1", "d": "2"}
 
 
 def get_modulus(design, seed=SEED):
-    curve = design.get("curve", ARB_CURVE)
-    if curve != ARB_CURVE:
+    curve = design.get("curve", ARB_FIELD)
+    if curve != ARB_FIELD:
         return int(curves()[curve][design.get("field", "base")]["q"], 16)
 
     bitwidth = design["bitwidth"]
@@ -30,9 +30,9 @@ def design_fields(design):
     """
     Generated Field (with prime modulus, bitwidth, etc.) descriptors into params.h
     """
-    curve = design.get("curve", ARB_CURVE)
+    curve = design.get("curve", ARB_FIELD)
     field = design.get("field", "base")
-    name = curve if curve == ARB_CURVE else f"{curve}_{field}"
+    name = curve if curve == ARB_FIELD else f"{curve}_{field}"
 
     q = get_modulus(design)
     return [{
@@ -52,9 +52,9 @@ def curve_coeffs(curve, q, mont):
 
     A montgomery design works in its own domain, so it holds them converted.
     """
-    # An arb_curve is not a real curve, so its coefficients are only there to
+    # An arb_field is not a real curve, so its coefficients are only there to
     # give a design something to multiply by
-    known = ARB_COEFFS if curve == ARB_CURVE else curves()[curve]
+    known = ARB_COEFFS if curve == ARB_FIELD else curves()[curve]
 
     out = {}
     for name in ("a", "b", "d"):

@@ -29,7 +29,7 @@ proc run_osci_test {test test_cpp_only design_build_dir} {
 }
 
 proc run_verify_rtl {verify_rtl design_build_dir} {
-    global blackboxed
+    global uses_blackboxes
     # Run VSC RTL Simulation and Verification
     if {$verify_rtl} {
         puts "Running Questa RTL simulation and verification"
@@ -43,7 +43,7 @@ proc run_verify_rtl {verify_rtl design_build_dir} {
         # arithmetic, and catapult only builds models for arithmetic it mapped
         # itself, so the models built for the kernel are named here
         set args SIMTOOL=msim
-        if { $blackboxed } {
+        if { $uses_blackboxes } {
             set dw [file normalize [file join $design_build_dir .. dware_cache]]
             lappend args "ADDED_VLOGLIBS=$dw/DW01_ver $dw/DW02_ver $dw/DW03_ver $dw/DWARE_ver"
         }

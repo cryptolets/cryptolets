@@ -32,11 +32,11 @@ def run_step(step, designs, kernel, run):
 
     logging.info(f"Running {step.name} for {kernel.name}")
     with ThreadPoolExecutor(max_workers=workers) as pool:
-        results = list(pool.map(lambda d: step.run(d, kernel, run), designs))
+        results = list(pool.map(lambda d: step.run_wrapper(d, kernel, run), designs))
 
     for design, ok in zip(designs, results):
         if ok:
-            step.mark_done(design, kernel)
+            step.mark_done(design)
 
     # A worker that stops early reports nothing, so it did not pass
     if results:

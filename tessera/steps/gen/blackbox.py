@@ -1,4 +1,6 @@
 """
+Code to take child kernels and then make them catapult blackboxes
+We do this by using metrics, rtl and impl header of the child kernel.
 """
 import re
 import yaml
@@ -7,15 +9,15 @@ from tessera.parser.common import norm_to_cpp_conv
 from tessera.templating import render
 
 
-def copy_rtl(rtl, kernel_name, entity, include_dir):
+def copy_rtl(rtl, kernel_name, module, include_dir):
     """
     Copy RTL from the design's build dir into parent's blackbox dir
     The child is named to avoid conflict between multiple instances
     of the same kernel used in a parent.
     """
     renamed = re.sub(rf"\b{kernel_name}(_[a-zA-Z0-9_]+)?\b",
-                     lambda m: f"{entity}{m[1] or ''}", rtl.read_text())
-    out = include_dir / f"{entity}.v"
+                     lambda m: f"{module}{m[1] or ''}", rtl.read_text())
+    out = include_dir / f"{module}.v"
     out.write_text(renamed)
     return out
 
@@ -35,20 +37,20 @@ def gen_blackbox_headers(design, gen_only):
             manifest = yaml.safe_load((package_dir / "manifest.yaml").read_text())
             child_kernel = child_design.kernel
 
-            entity = f"{child_name}_{child_design.get_hash(child_kernel.config.design_key)}"
-            rtl = copy_rtl(package_dir / manifest["rtl"], child_name, entity, include_dir)
+            rtl = copy_rtl(package_dir / manifest["rtl"], child_name,
+                           child_design.blackbox_module, include_dir)
 
             tmpl_params = [{"name": f"_{p['name'].upper()}", "type": p["type"],
                             "value": norm_to_cpp_conv(child_design.design[p["name"]])}
                            for p in child_kernel.impl_spec["tmpl_params"]]
 
             designs_tmpl_ctx.append({
-                "entity": entity,
+                "module": child_design.blackbox_module,
                 "rtl": rtl.resolve(),
                 "tmpl_params": tmpl_params,
                 "ports": [p["text"] for p in child_kernel.impl_spec["run_params"]],
                 "outputs": [p["name"] for p in manifest["ports"]
-                            if p["dir"] == "output" and p["name"] not in ("clk", "rst")],
+                            if p["direction"] == "output" and p["name"] not in ("clk", "rst")],
                 "combinational": manifest["combinational"],
                 "area": manifest["area"],
                 "delay": manifest["delay"],

@@ -18,14 +18,14 @@ set_message_info -id UID-341 -stop_on
 # Children keep their own synthesis, so DC links them instead of flattening.
 {% for child in children %}
 read_ddc {{ child.ddc }}
-rename_design {{ child.entity }} {{ child.renamed }}
+rename_design {{ child.module }} {{ child.renamed }}
 {% endfor %}
 set_dont_touch [get_designs { {{ children | map(attribute='renamed') | join(' ') }} }]
 {% endif %}
 
 analyze -format verilog {{ rtl }}
-elaborate {{ entity }}
-current_design {{ entity }}
+elaborate {{ module }}
+current_design {{ module }}
 link
 
 set_multi_vth_constraint -reset

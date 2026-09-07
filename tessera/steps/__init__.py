@@ -9,6 +9,10 @@ from tessera.steps.primepower import PrimePower
 # Swap a step by editing this list, e.g. QuestaSimGLS() -> VCSGLS()
 PIPELINE = [Generate(), CatapultHLS(), DesignCompiler(), QuestaSimGLS(), PrimePower()]
 
+# Each step knows the one before it, whose results it reads
+for prev, step in zip(PIPELINE, PIPELINE[1:]):
+    step.prev = prev
+
 # The checkpoints --from and --to can name, derived from the steps
 STAGES = [stage for step in PIPELINE for stage in step.stages]
 

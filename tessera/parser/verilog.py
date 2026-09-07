@@ -69,9 +69,18 @@ def parse_verilog(verilog):
     for module_decl_node in module_decl_nodes:
         module_name = parse_module_name(module_decl_node)
         module_ports = parse_module_ports(module_decl_node)
+
+        # parse what modules are instantiated and their names
+        instances = [
+            {"module": parse_text(find_nodes_by_type(n, "simple_identifier")[0]),
+             "inst": parse_text(find_nodes_by_type(n, "instance_identifier")[0])}
+            for n in find_nodes_by_type(module_decl_node, "module_instantiation")
+        ]
+
         parsed_modules.append({
             "name": module_name,
-            "ports": module_ports
+            "ports": module_ports,
+            "instances": instances,
         })
 
     return parsed_modules
@@ -79,6 +88,6 @@ def parse_verilog(verilog):
 
 if __name__ == "__main__":
     from pprint import pprint
-    mul_verilog = "/home/gk2657/cryptolets_rehaul/build_v3/l1_mod_mul/bitwidth_254__tech_type_gf12_highperf__period_1.0__ii_1__dep_period_ratio_0.9__curve_bn254__field_base__q_type_fixed_q__redc_type_fixed_rc__mred_mred_mont__mul_type_mul_nor__base_mul_width_254__kar_base_mul_width_254/blackbox/l0_int_mul_9b20f9.v"
-    cmul_verilog = "/home/gk2657/cryptolets_rehaul/build_v3/l1_mod_mul/bitwidth_254__tech_type_gf12_highperf__period_1.0__ii_1__dep_period_ratio_0.9__curve_bn254__field_base__q_type_fixed_q__redc_type_fixed_rc__mred_mred_mont__mul_type_mul_nor__base_mul_width_254__kar_base_mul_width_254/blackbox/l0_int_cmul_f4f873.v"
+    cmul_verilog = ("build_v3/l0_int_cmul/bitwidth_254__tech_type_gf12_highperf__period_0.9__ii_1"
+                    "__curve_bn254__field_base__cmul_const_cmul_q__mred_mred_mont/package/l0_int_cmul.v")
     pprint(parse_verilog(cmul_verilog))

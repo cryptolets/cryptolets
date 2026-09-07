@@ -17,11 +17,13 @@ class Design:
         # set when the design is attached to its kernel
         self.kernel = None
         self.build_dir = None
+        self.blackbox_module = None # what a parent calls this design's RTL module
         self.uses_blackboxes = False
 
     def attach(self, kernel):
         self.kernel = kernel
         self.build_dir = kernel.build_dir / self.get_dir_name(kernel.config.design_key)
+        self.blackbox_module = f"{kernel.name}_{self.get_hash(kernel.config.design_key)}"
         self._attach_structs(kernel)
 
     def _attach_structs(self, kernel):
@@ -35,12 +37,13 @@ class Design:
         roots = [self.design[p].split("-")[0]
                  for p in PARAMS_MAPPED_TO_STRUCT if p in self.design]
 
-        # Plus extra fields the kernel's impl names directly (kernel.yaml)
+        # Plus extra fields the kernel's impl names directly (kernel.yaml).
+        # A struct handed down by the parent design is already here.
         for name in roots + kernel.config.fields:
-            if name not in kernel.config.structs:
+            if name not in self.structs and name not in kernel.config.structs:
                 # A field, from curves.yaml or generated for arb_field
                 try:
-                    self.structs[name] = get_field(name, self.design.get("bitwidth"))
+                    self.structs[name] = get_field(name)
                 except KeyError:
                     raise Exception(f"unknown struct '{name}' in a design "
                                     f"for kernel '{kernel.name}'")

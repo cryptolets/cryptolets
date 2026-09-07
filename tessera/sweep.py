@@ -18,48 +18,36 @@ from tessera.const import ARB_FIELD
 
 # --- derivations: (design) -> None, edited in place ---
 
-def derive_curve_width(design):
-    "A named curve fixes n to the bitwidth of its field."
-    curve = design.get("curve")
-    if not curve or curve == ARB_FIELD:
+def derive_field_width(design):
+    """
+    A named field fixes the bitwidth to its own. An arb_field follows the
+    bitwidth, and carries it in its name so a child of the design, whose
+    own bitwidth may differ, still names the same prime.
+    """
+    field = design.get("field")
+    if not field:
         return
-    field = load_curves()[curve].get(design.get("field", "base"))
-    if field:
-        design["bitwidth"] = field["bitwidth"]
+    if field == ARB_FIELD:
+        design["field"] = f"{ARB_FIELD}_{design['bitwidth']}"
+    else:
+        design["bitwidth"] = load_curves()[field]["bitwidth"]
 
 
-def derive_arb_field_field(design):
-    "An arb_field prime is not tied to a curve, so it has only a base field."
-    if design.get("curve") == ARB_FIELD:
-        design["field"] = "base"
-
-
-DERIVATIONS = [derive_curve_width, derive_arb_field_field]
+DERIVATIONS = [derive_field_width]
 
 # --- filters: (design) -> reason to skip, or None to keep ---
-
-def filter_missing_field(design):
-    "Curves without a scalar field cannot be swept over one."
-    curve = design.get("curve")
-    if not curve or curve == ARB_FIELD:
-        return None
-    field = design.get("field", "base")
-    if field not in load_curves()[curve]:
-        return f"curve '{curve}' has no {field} field"
-    return None
-
 
 def filter_arb_field_fixed_q(design):
     """
     An arb_field prime is random, so we only use it to test
     variable parameters, and no point in fixing it.
     """
-    if design.get("curve") == ARB_FIELD and design.get("q_type") == "fixed_q":
+    if design.get("field", "").startswith(ARB_FIELD) and design.get("q_type") == "fixed_q":
         return "arb_field has no meaningful fixed modulus"
     return None
 
 
-FILTERS = [filter_missing_field, filter_arb_field_fixed_q]
+FILTERS = [filter_arb_field_fixed_q]
 
 # Params keyed by n rather than swept directly
 WIDTH_MAPS = ("base_mul_width", "kar_base_mul_width")

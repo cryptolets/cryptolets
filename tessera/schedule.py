@@ -7,7 +7,7 @@ from simpleeval import simple_eval
 from tessera.kernel import find_kernel
 from tessera.const import HW_CONSTRAINTS_PARAMS
 from tessera.models.common import is_fpga
-from tessera.models.design import Design
+from tessera.models.design import Design, PARAMS_MAPPED_TO_STRUCT
 from tessera.models.kernel import Kernel
 from tessera.models.sweep import get_sweep_enum_vars
 
@@ -136,6 +136,13 @@ def resolve_designs(
                     child_design[param] = design.design[param]
 
             child = Design(child_design)
+
+            # The parent already holds the structs the child's refs point at
+            for param in PARAMS_MAPPED_TO_STRUCT:
+                root = child_design.get(param, "").split("-")[0]
+                if root in design.structs:
+                    child.structs[root] = design.structs[root]
+
             key = child.get_hash(design_key)
             child = child_designs.setdefault(key, child)
             design.deps.setdefault(child_kernel.name, {})[key] = child

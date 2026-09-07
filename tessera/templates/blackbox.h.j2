@@ -31,7 +31,7 @@ public:
 {% for p in d.ports %}        {{ p }}{{ "," if not loop.last }}
 {% endfor %}    ) {
         ac_blackbox()
-            .entity("{{ d.entity }}")
+            .entity("{{ d.module }}")
             .verilog_files("{{ d.rtl }}")
             .outputs("{{ d.outputs | join(' ') }}")
             .area({{ d.area }})

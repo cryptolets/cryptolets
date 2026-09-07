@@ -2,16 +2,13 @@
 Choose which designs for logic synthesizing.
 """
 import logging
-from pathlib import Path
 
 import yaml
-
-from tessera.helper import get_design_dir_name
 
 
 def latency_time(row):
     if row.get("latency"):
-        return row["latency"] * row["design"]["period"]
+        return row["latency"] * row["design"].design["period"]
 
     # A combinational design finishes within one cycle, so its delay is the time
     return row.get("delay")
@@ -45,36 +42,32 @@ def select(rows, mode, kernel_key):
 
     units = {}
     for row in rows:
-        units.setdefault(tuple(row["design"].get(k) for k in kernel_key), []).append(row)
+        units.setdefault(tuple(row["design"].design.get(k) for k in kernel_key), []).append(row)
 
     return [row for unit in units.values() for row in frontier(unit, mode)]
 
 
-def select_designs(designs, kernel, kernel_build_dir, mode, kernel_key):
+def select_designs(designs, kernel, mode):
     "The sweep's designs, narrowed to the ones worth synthesizing"
     if mode == "all":
         return designs
 
+    kernel_key = kernel.config.kernel_key
     if not kernel_key:
         raise Exception(
             f"'{mode}' only compares designs that compute the same thing, so "
             f"the kernel needs a kernel_key in its kernel.yaml")
 
-    # What the design is worth is in its package, so one Catapult has not
-    # built yet cannot be ranked and is left out. The metrics sit beside the
-    # design rather than in it, since a design is only its parameters.
+    # What a design is worth is in its package, written by the Catapult step
     ranked = []
     for design in designs:
-        manifest_path = Path(kernel_build_dir, get_design_dir_name(design, kernel),
-                             "package", "manifest.yaml")
-        if manifest_path.exists():
-            manifest = yaml.safe_load(manifest_path.read_text())
-            ranked.append({"design": design,
-                           **{k: manifest.get(k) for k in ("area", "delay", "latency")}})
+        manifest = yaml.safe_load((design.build_dir / "package" / "manifest.yaml").read_text())
+        ranked.append({"design": design,
+                       **{k: manifest.get(k) for k in ("area", "delay", "latency")}})
 
     selected = [row["design"] for row in select(ranked, mode, kernel_key)]
     logging.info(f"Synthesizing {len(selected)} of {len(designs)} designs ({mode})")
     for design in selected:
-        logging.info(f"  {get_design_dir_name(design, kernel)}")
+        logging.info(f"  {design.build_dir.name}")
 
     return selected

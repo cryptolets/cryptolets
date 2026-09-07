@@ -9,11 +9,10 @@ from tessera.samples import write_test_samples
 from tessera.steps.gen.blackbox import gen_blackbox_headers
 from tessera.steps.catapult import CatapultHLS
 from tessera.helper import archive_design
-from tessera.const import DONE_DIR
 from tessera.steps.gen.codegen import (gen_catapult_design_tcl,
-                                            gen_catapult_kernel_tcl,
-                                            gen_kernel_top, gen_params_h)
-                                            
+                                       gen_catapult_kernel_tcl,
+                                       gen_kernel_top, gen_params_h)
+
 
 class Generate(Step):
     "Generate all the files a design needs before other steps run"
@@ -41,10 +40,8 @@ class Generate(Step):
                             os.environ, log)
 
     def run(self, design, kernel, run_inst):
-        # If design is reused, don't archive the design, otherwise archive it
-        reused = (kernel.name != run_inst.target
-                  and (design.build_dir / DONE_DIR / "hls.done").exists())
-        archive_design(design.build_dir, reused=reused)
+        # A design that reaches here is not built, so its old files move aside
+        archive_design(design.build_dir)
         write_test_samples(design, kernel, run_inst) # Write the test samples by calling gen_samples for the kernel
         gen_params_h(design)
         gen_kernel_top(design, kernel)

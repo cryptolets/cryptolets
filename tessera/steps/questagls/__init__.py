@@ -8,7 +8,7 @@ from tessera.models.config import RunConfig
 from tessera.steps.base import Step
 from tessera.simlib import CELL_LIB, build_cells
 from tessera.steps.questagls.makefile import gen_gls_makefile
-from tessera.steps.package.write import update_manifest
+from tessera.steps.catapult.package import update_manifest
 from tessera.helper import archive_run, get_design_dir_name, log_elapsed
 
 

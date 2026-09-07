@@ -6,8 +6,8 @@ from pathlib import Path
 from tessera.steps.base import Step
 from tessera.helper import archive_run, log_elapsed
 from tessera.steps.catapult.comb import COMB_CHK_EXIT, mark_combinational
-from tessera.steps.gen.codegen import \
-        gen_catapult_design_tcl, gen_kernel_top
+from tessera.steps.catapult.package import write_package
+from tessera.steps.gen.codegen import gen_catapult_design_tcl, gen_kernel_top
 
 
 class CatapultHLS(Step):
@@ -73,6 +73,9 @@ class CatapultHLS(Step):
             gen_catapult_design_tcl(design, kernel, combinational=True)
             return_code = self.run_catapult(kernel.build_dir, design.build_dir)
 
-        # TODO: Package the design
+        # A parent blackboxes the design through its package, so only a
+        # successful run leaves one
+        if return_code == 0:
+            write_package(design, kernel, combinational)
 
         return log_elapsed(self.name, design_name, return_code, start_time)
