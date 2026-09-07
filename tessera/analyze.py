@@ -8,8 +8,7 @@ those columns empty.
 import csv
 from pathlib import Path
 
-from tessera.models import KernelConfig
-from tessera.kernel import find_kernel
+from tessera.models.kernel import Kernel, KernelConfig
 
 import yaml
 
@@ -175,7 +174,7 @@ def run(kernel, where=(), csv_path=None, all_columns=False, build="build"):
     "Every design's results, as rows ready to print"
     filters = dict(pair.split("=", 1) for pair in where)
 
-    design_key = KernelConfig.load(find_kernel(kernel)).design_key
+    design_key = KernelConfig.load(Kernel.find(kernel)).design_key
     rows = where_rows(collect(Path(build, kernel), design_key), filters)
 
     if not all_columns:

@@ -2,7 +2,6 @@ import logging
 import os
 import subprocess
 import time
-from pathlib import Path
 
 from tessera.models.config import RunConfig
 from tessera.steps.base import Step
