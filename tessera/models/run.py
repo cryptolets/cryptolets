@@ -7,6 +7,7 @@ from pathlib import Path
 
 @dataclass
 class Run:
+    target: str # the kernel the run was asked to build
     threads: int
     threads_per_process: int
     workers: int

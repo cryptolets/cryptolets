@@ -5,14 +5,14 @@ import time
 from pathlib import Path
 
 from tessera.models.config import RunConfig
-from tessera.steps.base import Flow
+from tessera.steps.base import Step
 from tessera.simlib import CELL_LIB, build_cells
-from tessera.steps.gls.makefile import gen_gls_makefile
+from tessera.steps.questagls.makefile import gen_gls_makefile
 from tessera.steps.package.write import update_manifest
 from tessera.helper import archive_run, get_design_dir_name, log_elapsed
 
 
-class GLS(Flow):
+class QuestaSimGLS(Step):
     """
     Gate-Level Simulation (GLS): 
         Run the RTL testbench against the synthesized netlist.
@@ -21,8 +21,7 @@ class GLS(Flow):
     For gate level simulation, we reuse all of it and swap one entry: 
     the design under test becomes the netlist Design Compiler produced.
     """
-    name = "Gate level simulation"
-    stage = "gls"
+    name = "gls"
 
     def run(self, design, kernel_ctx):
         design_name = get_design_dir_name(design, kernel_ctx.kernel)

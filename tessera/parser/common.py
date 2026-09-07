@@ -1,13 +1,38 @@
-def norm_to_py_conv(name, rm_prefix=False):
+import re
+
+
+def strip_tmpl_prefix(text):
+    """"
+    Template parameters use a _ prefix, this defines 
+    that they are private to the template
+
+    This is a general function which strips the _ prefix
     """
-    C++ naming convention to python, e.g. _MRED -> mred
+    return re.sub(r"\b_(?=[A-Za-z])", "", text)
+
+
+def norm_to_py_conv(text):
+    """
     Python naming follows lower case convention, while
     C++ naming convention is upper case as the parameters are
     macros in C++.
+
+     e.g. _MRED -> mred, 2*_FIELD::W -> 2*field__w
     """
-    if rm_prefix and name.startswith("_"):
-        name = name[1:]
-    return name.lower()
+    text = text.replace("::", "__")
+    return strip_tmpl_prefix(text).lower()
+
+
+def norm_to_cpp_conv(value):
+    """
+    Python convention to C++
+    e.g. mred_mont -> MRED_MONT, a-b -> A::B, True -> 1, 254 -> 254
+    """
+    if isinstance(value, bool): # before int, a bool is an int
+        return int(value)
+    if isinstance(value, str):
+        return "::".join(p.upper() for p in value.split("-"))
+    return value
 
 
 def walk_tree(node):

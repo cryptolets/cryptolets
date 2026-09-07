@@ -131,7 +131,7 @@ def flatten_sweep(sweep, path, reuse=False):
     for reason, count in skipped.items():
         logging.warning(f"Skipped {count} design(s): {reason}")
 
-    path.write_text(json.dumps({"sweep": [d.get_design() for d in designs]}, indent=2))
+    path.write_text(json.dumps({"sweep": [d.design for d in designs]}, indent=2))
     return designs
 
 

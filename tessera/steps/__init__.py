@@ -1,10 +1,10 @@
 "The pipeline: the steps a design goes through, in the order they run"
 from tessera.steps.base import Step
-from tessera.steps.generate import Generate
+from tessera.steps.gen import Generate
 from tessera.steps.catapult import CatapultHLS
-from tessera.steps.syn import DesignCompiler
-from tessera.steps.gls import QuestaSimGLS
-from tessera.steps.power import PrimePower
+from tessera.steps.dc import DesignCompiler
+from tessera.steps.questagls import QuestaSimGLS
+from tessera.steps.primepower import PrimePower
 
 # Swap a step by editing this list, e.g. QuestaSimGLS() -> VCSGLS()
 PIPELINE = [Generate(), CatapultHLS(), DesignCompiler(), QuestaSimGLS(), PrimePower()]

@@ -11,33 +11,32 @@
 {% for name, value in params.items() -%}
 #define {{ name }} {{ value }}
 {% endfor %}
-{% if fields %}
-{% for f in fields %}
-struct {{ f.name }} {
-    static constexpr int W = {{ f.bitwidth }};
-    static ac_int<{{ f.bitwidth }}, false> Q() {
-        ac_int<{{ f.bitwidth }}, false> q;
-        q.bit_fill_hex("{{ f.q }}");
-        return q;
+// Structs
+{# A struct is a dict: an int is a constexpr, "val" a hex constant
+   VALUE() of width "w", a dict a nested struct. Nothing else renders. #}
+{% macro struct(name, s) %}
+struct {{ name | norm_to_cpp_conv }} {
+{% for k, v in s.items() %}
+{% if v is mapping %}
+    {{ struct(k, v) | indent(4) }}
+{% elif k == "val" %}
+    static ac_int<{{ s.w }}, false> VALUE() {
+        ac_int<{{ s.w }}, false> v;
+        v.bit_fill_hex("{{ v }}");
+        return v;
     }
-    static ac_int<{{ f.bitwidth }}, false> Q_PRIME() {
-        ac_int<{{ f.bitwidth }}, false> q_prime;
-        q_prime.bit_fill_hex("{{ f.q_prime }}");
-        return q_prime;
-    }
-    static ac_int<{{ f.bitwidth }}+1, false> MU() {
-        ac_int<{{ f.bitwidth }}+1, false> mu;
-        mu.bit_fill_hex("{{ f.mu }}");
-        return mu;
-    }
-{% for c in ['a', 'b', 'd', 'k'] %}{% if c in f %}
-    static ac_int<{{ f.bitwidth }}, false> {{ c | upper }}() {
-        ac_int<{{ f.bitwidth }}, false> {{ c }};
-        {{ c }}.bit_fill_hex("{{ f[c] }}");
-        return {{ c }};
-    }
-{% endif %}{% endfor %}};
-{% endfor %}
-using FIELD = {{ fields[0].name }};
+{% elif v is integer %}
+    static constexpr int {{ k | norm_to_cpp_conv }} = {{ v | norm_to_cpp_conv }};
+{% else %}
+#error "unsupported entry {{ k }} in struct {{ name }}"
 {% endif %}
+{% endfor %}
+};
+{%- endmacro %}
+{% for name, s in structs.items() %}
+{{ struct(name, s) }}
+{% endfor %}
+{% for name, ref in usings.items() -%}
+using {{ name }} = {{ ref }};
+{% endfor %}
 #endif // PARAMS_H

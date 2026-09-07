@@ -19,10 +19,6 @@ class Step:
     # Catapult holds one thread per process, the rest take what they are given
     multi_threaded = True
 
-    # A dep design already built by an earlier run is reused. Generate cannot
-    # reuse, since what it writes depends on the stage range, not the design.
-    skip_if_done = True
-
     def __init__(self):
         self.stages = list(self.stages) or [self.name]
 
@@ -36,23 +32,27 @@ class Step:
         path.parent.mkdir(parents=True, exist_ok=True)
         path.touch()
 
-    def designs(self, designs, kernel, run):
+    def setup(self, kernel, run_inst):
+        "Hook for once-per-kernel work, e.g. generating the kernel tcl"
+        pass
+
+    def designs(self, designs, kernel, run_inst):
         "The designs still needing this step, narrowed by select()"
         # The requested kernel is always rebuilt, since that is the request.
         # A dependency is reused when this step already ran for it.
-        if self.skip_if_done and kernel.name != run.target:
+        if kernel.name != run_inst.target:
             todo = [d for d in designs if not self.done_path(d, kernel).exists()]
             if len(todo) < len(designs):
                 logging.info(f"{kernel.name}: {len(designs) - len(todo)} of "
                              f"{len(designs)} designs already built")
             designs = todo
 
-        return self.select(designs, kernel, run)
+        return self.select(designs, kernel, run_inst)
 
-    def select(self, designs, kernel, run):
+    def select(self, designs, kernel, run_inst):
         "Hook to narrow the designs, e.g. to a pareto front"
         return designs
 
-    def run(self, design, kernel, run):
+    def run(self, design, kernel, run_inst):
         "Run the step for one design, and return whether it passed"
         raise NotImplementedError

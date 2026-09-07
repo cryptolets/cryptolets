@@ -9,41 +9,39 @@ from tessera.models.config import RunConfig
 
 from tessera.models.sweep import SweepConfig
 from tessera.models.run import Run
-from tessera.helper import (get_license_info,
-                            mark_done,
-                            watch_memory)
+from tessera.helper import get_license_info, watch_memory
 from tessera.sweep import flatten_sweep
 from tessera.schedule import get_schedule
 from tessera.const import BUILD_DIR, FLATTENED_SWEEP_FILE, ROOT_DIR
-from tessera.flows import FLOWS, STAGES, has_stage
+from tessera.steps import PIPELINE, STAGES, has_stage
 
-def run_flow(flow, designs, kernel_ctx):
-    "Pool one flow over a kernel's designs, and report how many passed"
+def run_step(step, designs, kernel, run):
+    "Pool one step over a kernel's designs, and report how many passed"
 
-    # If a flow doesn't support multi-threading it uses 1 thread per worker
+    # If a step doesn't support multi-threading it uses 1 thread per worker
     # Instead of hogging multiple threads per worker.
-    workers = kernel_ctx.workers if flow.multi_threaded else kernel_ctx.threads
+    workers = run.workers if step.multi_threaded else run.threads
 
-    if flow.license:
-        available = get_license_info(flow.license)['available']
-        logging.info(f"{available} {flow.name} licenses available")
+    if step.license:
+        available = get_license_info(step.license)['available']
+        logging.info(f"{available} {step.name} licenses available")
         if available < workers:
-            logging.warning(f"Not enough {flow.name} licenses available, "
+            logging.warning(f"Not enough {step.name} licenses available, "
                             f"using {available} workers")
         workers = min(workers, available)
 
-    logging.info(f"Running {flow.name} for {kernel_ctx.kernel}")
+    logging.info(f"Running {step.name} for {kernel.name}")
     with ThreadPoolExecutor(max_workers=workers) as pool:
-        results = list(pool.map(lambda d: flow.run(d, kernel_ctx), designs))
+        results = list(pool.map(lambda d: step.run(d, kernel, run), designs))
 
     for design, ok in zip(designs, results):
         if ok:
-            mark_done(kernel_ctx.kernel, design, flow.stage)
+            step.mark_done(design, kernel)
 
     # A worker that stops early reports nothing, so it did not pass
     if results:
         passed, total = sum(bool(r) for r in results), len(results)
-        logging.info(f"{flow.name} Success Rate: {passed}/{total} "
+        logging.info(f"{step.name} Success Rate: {passed}/{total} "
                      f"({100*passed/total:.0f}%)")
 
 
@@ -81,13 +79,14 @@ def run(kernel, threads, threads_per_process, sweep, frm, to, only):
         logging.debug(f"  [{i}/{len(flattened_sweep)}] {design.get_dir_name()}")
 
     # automatic dependency resolution and scheduling
-    schedule = get_schedule(kernel, flattened_sweep, sweep_conf.sweep.get_sweep_params())
+    schedule = get_schedule(kernel, flattened_sweep)
     if len(schedule) > 1:
         logging.info("Parent kernel requires resolving the following dependencies in order:")
         for cur_kernel, cur_designs in schedule:
             logging.info(f"  {cur_kernel.name}: {len(cur_designs)} designs")
 
     run_inst = Run(
+        target=kernel,
         threads=threads,
         threads_per_process=threads_per_process,
         workers=num_workers,
@@ -112,12 +111,14 @@ def run(kernel, threads, threads_per_process, sweep, frm, to, only):
     threading.Thread(target=watch_memory, daemon=True,
                      args=(stop, RunConfig.load().min_free_gb)).start()
 
-    flows_to_run = [flow for flow in FLOWS if has_stage(flow.stage, frm, to)]
+    steps_to_run = [step for step in PIPELINE
+                    if any(has_stage(s, frm, to) for s in step.stages)]
 
-    # Main loop to run flows for each kernel and designs
+    # Main loop to run steps for each kernel and designs
     for cur_kernel, cur_designs in schedule:
-        for flow in flows_to_run:
-            designs = flow.designs(cur_designs, cur_kernel, run_inst)
-            run_flow(flow, designs, cur_kernel, run_inst)
+        for step in steps_to_run:
+            step.setup(cur_kernel, run_inst)
+            designs = step.designs(cur_designs, cur_kernel, run_inst)
+            run_step(step, designs, cur_kernel, run_inst)
 
     stop.set()

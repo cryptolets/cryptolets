@@ -6,6 +6,7 @@ from simpleeval import simple_eval
 
 from tessera.kernel import find_kernel
 from tessera.const import HW_CONSTRAINTS_PARAMS
+from tessera.models.common import is_fpga
 from tessera.models.design import Design
 from tessera.models.kernel import Kernel
 from tessera.models.sweep import get_sweep_enum_vars
@@ -61,18 +62,17 @@ def resolve_kernels(kernels, kernel_graph, kernel_name):
 
 
 def resolve_designs(
-    parent_kernel, parent_inst_args, parent_designs, parent_sweep_params,
-    child_kernel
+    parent_kernel, parent_inst_args, parent_designs, child_kernel, child_designs
 ):
     """
-    Resolves the child's designs
+    Resolves the child's designs with deduplication accounted for
     """
     child_tmpl_params = child_kernel.impl_spec["tmpl_params"]
+    design_key = child_kernel.config.design_key
 
-    child_designs = []
     # TODO: we can multithread this, if it becomes a bottleneck
     #       because there can be lots of designs
-    for design in parent_designs:
+    for design in parent_designs.values():
         expr_vars = {**get_sweep_enum_vars(), **design.get_expr_vars()}
 
         for parent_inst in parent_inst_args:
@@ -135,12 +135,13 @@ def resolve_designs(
                 else:
                     child_design[param] = design.design[param]
 
-            child_designs.append(Design(child_design))
+            child = Design(child_design)
+            key = child.get_hash(design_key)
+            child = child_designs.setdefault(key, child)
+            design.deps.setdefault(child_kernel.name, {})[key] = child
 
-    return child_designs
 
-
-def get_schedule(kernel_name: str, designs: list[Design], sweep_params: dict):
+def get_schedule(kernel_name: str, designs: list[Design]):
     """
     First, resolve the kernel-level dependency graph.
     Then, resolve which designs are needed for each kernel.
@@ -151,31 +152,27 @@ def get_schedule(kernel_name: str, designs: list[Design], sweep_params: dict):
     resolve_kernels(kernels, kernel_graph, kernel_name)
     kernel_order = list(TopologicalSorter(kernel_graph).static_order())
 
-    kernel_designs_map = {k: [] for k in kernel_order}
-    kernel_designs_map[kernel_name] = designs
-
-    sweep_params_map = {k: [] for k in kernel_order}
-    sweep_params_map[kernel_name] = sweep_params
+    # name -> hash -> Design, so each kernel holds a design once
+    kernel_designs_map = {k: {} for k in kernel_order}
+    design_key = kernels[kernel_name].config.design_key
+    kernel_designs_map[kernel_name] = {d.get_hash(design_key): d for d in designs}
 
     # Parents first, so a kernel's designs are complete before it passes
     # them down to its own deps
     for parent_name in reversed(kernel_order):
-        for design in kernel_designs_map[parent_name]:
-            design.attach_structs(kernels[parent_name])
+        for design in kernel_designs_map[parent_name].values():
+            design.attach(kernels[parent_name])
+            # FPGA designs never blackbox: Vivado can't take a packaged dep
+            design.uses_blackboxes = (bool(kernel_graph[parent_name])
+                                      and not is_fpga(design.design["tech_type"]))
 
         for child_name in kernel_graph[parent_name]:
-            kernel_designs_map[child_name] += resolve_designs(
+            resolve_designs(
                 parent_kernel=kernels[parent_name],
                 parent_inst_args=kernel_graph[parent_name][child_name],
                 parent_designs=kernel_designs_map[parent_name],
-                parent_sweep_params=sweep_params_map[parent_name],
                 child_kernel=kernels[child_name],
+                child_designs=kernel_designs_map[child_name],
             )
 
-    # Deduplicate designs
-    for name in kernel_order:
-        design_key = kernels[name].config.design_key
-        unique = {d.get_hash(design_key): d for d in kernel_designs_map[name]}
-        kernel_designs_map[name] = list(unique.values())
-
-    return [(kernels[k], kernel_designs_map[k]) for k in kernel_order]
+    return [(kernels[k], list(kernel_designs_map[k].values())) for k in kernel_order]

@@ -9,14 +9,22 @@ from tessera.structs.hamming import gen_hamming_const
 PARAMS_MAPPED_TO_STRUCT = {"field", "cmul_const"}
 
 class Design:
-    design: dict 
-    structs: dict
-
     def __init__(self, design: dict):
         self.design = copy.deepcopy(design)
         self.structs = {}
+        self.deps = {} # child kernel name -> hash -> the child designs used
 
-    def attach_structs(self, kernel):
+        # set when the design is attached to its kernel
+        self.kernel = None
+        self.build_dir = None
+        self.uses_blackboxes = False
+
+    def attach(self, kernel):
+        self.kernel = kernel
+        self.build_dir = kernel.build_dir / self.get_dir_name(kernel.config.design_key)
+        self._attach_structs(kernel)
+
+    def _attach_structs(self, kernel):
         """
         Fill structs with everything this design's kernel can name:
         the design's struct params, the kernel's declared fields and structs.
@@ -47,6 +55,18 @@ class Design:
             self.structs["cmul_const"] = gen_hamming_const(
                 self.design["cmul_const_w"], self.design["cmul_hamming"])
 
+    def get_param_struct(self, param):
+        """
+        Deserializes a struct-valued param into a struct
+        """
+        if param not in self.design:
+            return self.structs[param]
+
+        struct = self.structs
+        for part in self.design[param].split("-"):
+            struct = struct[part]
+        return struct
+
     @staticmethod
     def _flatten_struct(prefix, struct, names):
         for key, value in struct.items():
@@ -65,13 +85,10 @@ class Design:
 
         # A struct reached through a param, e.g. _FIELD::W -> field__w
         for param in PARAMS_MAPPED_TO_STRUCT:
-            if param in self.design and self.design[param] in self.structs:
-                Design._flatten_struct(param, self.structs[self.design[param]], vars)
+            if param in self.design:
+                Design._flatten_struct(param, self.get_param_struct(param), vars)
 
         return vars
-
-    def get_design(self):
-        return self.design
 
     def get_dir_name(self, design_key=None):
         """

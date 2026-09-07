@@ -1,13 +1,12 @@
 import logging
 from pathlib import Path
 
-from tessera.steps.base import Flow
 from tessera.steps.catapult.comb import is_combinational
 from tessera.helper import get_design_dir_name
 from tessera.steps.package.write import write_package
 
 
-class Package(Flow):
+class Package:
     "Collect what Catapult built into RTL a parent can blackbox"
     name = "Package"
     stage = "hls"

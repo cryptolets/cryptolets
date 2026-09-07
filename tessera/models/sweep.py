@@ -37,6 +37,8 @@ class Sweep(BaseModel):
 
     # which constant to use, specifically for the l0_int_cmul kernel
     cmul_const: Optional[list[str]] = None
+    cmul_const_w: Optional[list[int]] = None
+    cmul_hamming: Optional[list[float]] = None
 
     # which part of the product a cmul keeps
     cmul_output_type: Optional[list[Literal[

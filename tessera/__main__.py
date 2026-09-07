@@ -7,7 +7,7 @@ import logging
 # from tessera import analyze as analysis
 from tessera import core
 from tessera.const import RUN_CONFIG_FILE, RUNS_DIR
-from tessera.flows import STAGES
+from tessera.steps import STAGES
 from tessera import scaffold
 
 # Use defaults from config.yaml

@@ -10,7 +10,7 @@ from tessera.parser.common import norm_to_cpp_conv, strip_tmpl_prefix
 from tessera.models.design import PARAMS_MAPPED_TO_STRUCT
 from tessera.const import HW_CONSTRAINTS_PARAMS, KERNELS_DIR
 
-catapult_stages = [
+CATAPULT_STAGES = [
     "new",
     "analyze",
     "compile",
@@ -48,26 +48,21 @@ def gen_params_h(design):
             # rest are define macros
             defines[norm_to_cpp_conv(param)] = norm_to_cpp_conv(value)
 
-    # Reshape the structs for the template: constants are the nested dicts
-    structs = [{
-        "name": norm_to_cpp_conv(name),
-        "w": struct["w"],
-        "consts": [{"name": norm_to_cpp_conv(const), "w": v["w"], "val": v["val"]}
-                   for const, v in struct.items() if isinstance(v, dict)],
-    } for name, struct in design.structs.items()]
-
     render(
         "params.h.j2",
         design.build_dir / 'include' / 'params.h',
         enums=enums,
         params=defines,
         usings=usings,
-        structs=structs,
+        structs=design.structs,
     )
 
 
 # Ports a design can fix, mapped to the param and value that fix them
-FIXABLE_PORTS = {"q": ("q_type", "fixed_q")}
+FIXABLE_PORTS = {
+    "q": ("q_type", "fixed_q"),
+    "rc": ("redc_type", "fixed_rc")
+}
 
 
 def gen_kernel_top(design, kernel, combinational=False):
@@ -180,7 +175,7 @@ def gen_catapult_kernel_tcl(flags, kernel, run_inst):
             'body': "\n".join(bodies.get(stage, [])),
             'save_table': stage in SAVE_TABLE_STAGES,
         }
-        for stage in catapult_stages
+        for stage in CATAPULT_STAGES
     ]
 
     tcl_dir = Path(run_inst.root_dir, 'tessera', 'tcl', 'catapult')

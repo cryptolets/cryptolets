@@ -4,17 +4,16 @@ import time
 from pathlib import Path
 
 from tessera.models.config import RunConfig
-from tessera.steps.base import Flow
+from tessera.steps.base import Step
 from tessera.steps.package.write import update_manifest
-from tessera.steps.power.tcl import gen_power_tcl, read_power
+from tessera.steps.primepower.tcl import gen_power_tcl, read_power
 from tessera.helper import (archive_run, get_design_dir_name, is_done,
                             log_elapsed)
 
 
-class PrimePower(Flow):
+class PrimePower(Step):
     "Measure power from the activity a gate level simulation recorded"
-    name = "PrimePower"
-    stage = "pwr"
+    name = "pwr"
     license = "prime_power"
 
     def designs(self, designs, kernel_ctx):

@@ -15,7 +15,7 @@ public:
     #pragma hls_design interface ccore
     #pragma hls_ccore_type combinational
     void run(
-{% for p in ports %}        {{ p.type }} {{ "&" if p.ref }}{{ p.name }}{{ "," if not loop.last }}
+{% for p in ports %}        {{ p.text }}{{ "," if not loop.last }}
 {% endfor %}    ) {
         inst.run({{ args | join(', ') }});
     }
@@ -29,7 +29,7 @@ public:
 
     #pragma hls_design interface top
     void CCS_BLOCK({{ kernel }}_top, run)(
-{% for p in ports %}        {{ p.type }} {{ "&" if p.ref }}{{ p.name }}{{ "," if not loop.last }}
+{% for p in ports %}        {{ p.text }}{{ "," if not loop.last }}
 {% endfor %}    ) {
         core.run({{ ports | map(attribute='name') | join(', ') }});
     }
@@ -43,7 +43,7 @@ public:
 
     #pragma hls_design interface top
     void CCS_BLOCK({{ kernel }}, run)(
-{% for p in ports %}        {{ p.type }} {{ "&" if p.ref }}{{ p.name }}{{ "," if not loop.last }}
+{% for p in ports %}        {{ p.text }}{{ "," if not loop.last }}
 {% endfor %}    ) {
         inst.run({{ args | join(', ') }});
     }

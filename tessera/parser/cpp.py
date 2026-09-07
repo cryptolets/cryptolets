@@ -1,13 +1,14 @@
 """
 Parse C++ HLS kernel code with tree-sitter.
 """
-import re
 from pathlib import Path
 import tree_sitter_cpp
 from tree_sitter import Language, Parser
 
-from tessera.parser.common import parse_text, find_nodes_by_type, norm_to_py_conv
 from tessera.const import KERNELS_DIR
+from tessera.parser.common import (parse_text, find_nodes_by_type,
+                                   norm_to_py_conv)
+
 
 SPECIAL_CASE_INCLUDES = {"l0_int_mul_kar.h", "l0_int_mul_sb.h"}
 
@@ -24,7 +25,7 @@ def parse_tmpl_params(tmpl_decl):
     for param_decl in all_params.named_children:
         # Params where the type is not a class/struct
         if param_decl.type in ("parameter_declaration", "optional_parameter_declaration"):
-            name = norm_to_py_conv(parse_text(param_decl.child_by_field_name("declarator")), rm_prefix=True)
+            name = norm_to_py_conv(parse_text(param_decl.child_by_field_name("declarator")))
             default_value = param_decl.child_by_field_name("default_value")
             default = norm_to_py_conv(parse_text(default_value)) if default_value else None
             parsed_params.append({
@@ -37,9 +38,7 @@ def parse_tmpl_params(tmpl_decl):
         elif param_decl.type == "type_parameter_declaration":
             parsed_params.append({
                 "name": norm_to_py_conv(
-                    parse_text(find_nodes_by_type(param_decl, "type_identifier")[0]),
-                    rm_prefix=True
-                ),
+                    parse_text(find_nodes_by_type(param_decl, "type_identifier")[0])),
                 "type": "class",
                 "default": None
             })
@@ -47,9 +46,7 @@ def parse_tmpl_params(tmpl_decl):
         elif param_decl.type == "optional_type_parameter_declaration":
             parsed_params.append({
                 "name": norm_to_py_conv(
-                    parse_text(param_decl.child_by_field_name("name")), 
-                    rm_prefix=True
-                ),
+                    parse_text(param_decl.child_by_field_name("name"))),
                 "type": "class",
                 "default": norm_to_py_conv(
                     parse_text(param_decl.child_by_field_name("default_type"))
@@ -63,24 +60,19 @@ def parse_func(func_node):
     declarator = func_node.child_by_field_name("declarator")
     params = declarator.child_by_field_name("parameters")
 
-    return (
-        parse_text(declarator.child_by_field_name("declarator")),
-        [parse_text(node) for node in params.named_children],
-    )
+    parsed_params = [{
+        "name": parse_text(node.child_by_field_name("declarator")).lstrip("&"),
+        "text": parse_text(node),
+    } for node in params.named_children]
 
-
-def norm_expr(text):
-    "C++ expression to an eval-ready python one, e.g. 2*_FIELD::W -> 2*field__w"
-    text = text.replace("::", "__")
-    text = re.sub(r"\b_(?=[A-Za-z])", "", text) # strip tmpl param prefixes
-    return text.lower()
+    return parse_text(declarator.child_by_field_name("declarator")), parsed_params
 
 
 def parse_arg(arg_text):
     "A name or qualified name argument, e.g. typename _FIELD::Q_PRIME"
     parts = [p.strip() for p in arg_text.split("::")]
     is_tmpl_param = parts[0].startswith("_")
-    parts = [norm_to_py_conv(p, rm_prefix=True) for p in parts]
+    parts = [norm_to_py_conv(p) for p in parts]
 
     if len(parts) == 1:
         return {"kind": "name", "name": parts[0], "is_tmpl_param": is_tmpl_param}
@@ -107,7 +99,7 @@ def parse_class_field_decl(field_decl):
                     tmpl_params.append(parse_arg(parse_text(arg_node)))
             elif arg_node.type in ("binary_expression", "number_literal"):
                 tmpl_params.append({"kind": "expr",
-                                    "text": norm_expr(parse_text(arg_node))})
+                                    "text": norm_to_py_conv(parse_text(arg_node))})
             elif arg_node.is_named:
                 # ensure unparsable template arguments are caught
                 raise Exception(f"Cannot parse template argument "
@@ -153,6 +145,10 @@ def parse_header(header):
     parser = Parser(Language(tree_sitter_cpp.language()))
     root_node = parser.parse(Path(header).read_bytes()).root_node
     tmpl_decls = find_nodes_by_type(root_node, "template_declaration")
+
+    # The impl class; a consts struct beside it carries derived constants
+    tmpl_decls = [d for d in tmpl_decls
+                  if find_nodes_by_type(d, "class_specifier")]
 
     # each header should only contain one template class for now
     assert len(tmpl_decls) <= 1, f"{header}: one template class per header"
