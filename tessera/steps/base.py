@@ -39,7 +39,7 @@ class Step:
         "Whether the step before this one left what this one reads"
         return self.prev is None or self.prev.is_done(design)
 
-    def setup(self, kernel, run_inst):
+    def setup(self, kernel, designs, run_inst):
         "Hook for once-per-kernel work, e.g. generating the kernel tcl"
         pass
 

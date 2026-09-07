@@ -6,7 +6,8 @@ from pathlib import Path
 
 from tessera.models.config import RunConfig
 from tessera.steps.base import Step
-from tessera.simlib import CELL_LIB
+from tessera.steps.questagls.libs import CELL_LIB, build_cells, questa_env
+from tessera.const import CELLS_DIR
 from tessera.steps.questagls.codegen import gen_gls_makefile
 from tessera.steps.catapult.package import update_manifest
 from tessera.helper import archive_run, log_elapsed
@@ -23,18 +24,28 @@ class QuestaSimGLS(Step):
     """
     name = "gls"
 
+    def setup(self, kernel, designs, run_inst):
+        conf = RunConfig.load()
+        questa, env = questa_env()
+
+        for tech_type in sorted({d.design["tech_type"] for d in designs}):
+            tech = conf.tech[tech_type]
+            if not tech.lib_verilog:
+                raise Exception(f"'{tech_type}' has no lib_verilog, so its cells "
+                                f"cannot be simulated")
+            log_path = CELLS_DIR / tech_type / "cells.log"
+            log_path.parent.mkdir(parents=True, exist_ok=True)
+            with log_path.open("a") as log:
+                build_cells(tech_type, tech, questa, env, log)
+
     @staticmethod
     def run_sim(makefile, design, kernel, log):
-        questa = str(Path(RunConfig.load().tools["questa"]).expanduser())
         gls_dir = design.build_dir / "gls"
+        cells_dir = CELLS_DIR / design.design["tech_type"]
 
-        env = {
-            **os.environ,
-            # Questa reads its own license variable
-            "SALT_LICENSE_SERVER": os.environ.get("MGLS_LICENSE_FILE", ""),
-            "QSIM_HOME": questa,
-            "MODELSIM": str(gls_dir / "modelsim.ini"),
-        }
+        # Questa reads the ini naming the cell models through its own variable
+        questa, env = questa_env()
+        env["MODELSIM"] = str(cells_dir / "modelsim.ini")
 
         solution_dir = design.build_dir / "Catapult" / f"{kernel.name}.v1"
         target_dir = os.path.relpath(gls_dir.resolve(), solution_dir.resolve())
@@ -44,7 +55,7 @@ class QuestaSimGLS(Step):
              f"TARGET={target_dir}",
              "STAGE=gate", # The gate stage reads the netlist rather than the RTL, and an
              "RTLTOOL=", # blank because we already ran Design Compiler
-             f"ADDED_VLOGLIBS={gls_dir.resolve() / CELL_LIB}",
+             f"ADDED_VLOGLIBS={cells_dir / CELL_LIB}",
              "SIMLIBS_V=", # blank because gate level netlist doesn't need designware simulation models
              f"CCS_VCD_FILE={(gls_dir / 'gate.vcd').resolve()}", "sim"],
             cwd=solution_dir,
@@ -56,11 +67,6 @@ class QuestaSimGLS(Step):
     def run(self, design, kernel, run_inst):
         design_name = design.build_dir.name
         start_time = time.time()
-
-        tech = RunConfig.load().tech[design.design["tech_type"]]
-        if not tech.lib_verilog:
-            raise Exception(f"'{design.design['tech_type']}' has no lib_verilog, so its "
-                            f"cells cannot be simulated")
 
         archive_run(design.build_dir, dirs=("gls",))
         (design.build_dir / "gls").mkdir(parents=True, exist_ok=True)

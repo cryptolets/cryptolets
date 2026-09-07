@@ -3,7 +3,10 @@ import time
 import subprocess
 from pathlib import Path
 
+from tessera.const import DWARE_DIR
+from tessera.models.config import RunConfig
 from tessera.steps.base import Step
+from tessera.steps.questagls.libs import build_dware
 from tessera.helper import archive_run, log_elapsed
 from tessera.steps.catapult.comb import COMB_CHK_EXIT, mark_combinational
 from tessera.steps.catapult.package import write_package
@@ -22,6 +25,17 @@ class CatapultHLS(Step):
     stages = ("cpp", "hls", "rtl")
     license = "catapult_ultra"
     multi_threaded = False
+
+    def setup(self, kernel, designs, run_inst):
+        # A blackboxed child's RTL names DesignWare parts Catapult did not map
+        # itself, so its RTL verify needs their models compiled once
+        if kernel.config.blackbox:
+            logging.info(f"Compiling the DesignWare sim models")
+            conf = RunConfig.load()
+            log_path = DWARE_DIR / "dware.log"
+            DWARE_DIR.mkdir(parents=True, exist_ok=True)
+            with log_path.open("a") as log:
+                build_dware(conf.tools["dc"], conf.tools["catapult"], conf.tools["questa"], log)
 
     @staticmethod
     def flags(run_inst):

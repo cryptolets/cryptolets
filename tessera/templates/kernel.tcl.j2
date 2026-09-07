@@ -1,5 +1,6 @@
 set root_dir {{ root_dir }}
 set kernel_name {{ kernel_name }}
+set dware_dir {{ dware_dir }}
 {% for name, path in tools.items() -%}
 set tool_{{ name }} {{ path | tcl }}
 {% endfor %}

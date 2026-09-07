@@ -12,13 +12,13 @@ def _field(report, text, name):
     return match.group(1)
 
 
-def read_dc_qor(design):
+def parse_dc_qor(design, passes):
     """
     The cell area DC built, in square micrometres, and the critical path it
-    achieved, in nanoseconds. The high level run estimated both before
+    achieved after its last pass, in nanoseconds. The high level run estimated both before
     synthesis, so the pair says whether the design holds once built from cells.
     """
-    report = design.build_dir / "reports" / "dc" / "qor.rpt"
+    report = design.build_dir / "reports" / "dc" / f"pass_{passes}" / "qor.rpt"
     text = report.read_text()
 
     period = float(_field(report, text, "Critical Path Clk Period"))
@@ -30,13 +30,13 @@ def read_dc_qor(design):
     }
 
 
-def read_dc_power(design, module):
+def parse_dc_power(design, module, passes):
     """
     The power DC estimated, in watts, if every net switched as often as the
     tool assumes. A power run measures the real figure instead. The report
     mixes its units: dynamic power in mW, leakage in uW.
     """
-    report = design.build_dir / "reports" / "dc" / "power.rpt"
+    report = design.build_dir / "reports" / "dc" / f"pass_{passes}" / "power.rpt"
 
     # The module also names a row in the wire load table, so match the row
     # whose columns are numbers

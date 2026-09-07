@@ -6,9 +6,9 @@ import yaml
 
 from tessera.models.common import is_fpga
 from tessera.parser.verilog import parse_verilog
-from tessera.parser.metrics.catapult import (read_catapult_ccore_metrics,
-                                     read_catapult_metrics,
-                                     read_catapult_fpga_metrics)
+from tessera.parser.metrics.catapult import (parse_catapult_ccore,
+                                     parse_catapult,
+                                     parse_catapult_fpga)
 
 # Where SCVerify puts the design under test, relative to its testbench
 SCVERIFY_DUT = "scverify_top/rtl/dut_inst"
@@ -75,11 +75,11 @@ def write_package(design, kernel, combinational):
 
     # A CCORE reports its own row in the BOM, apart from the wrapper's totals
     if combinational:
-        metrics = read_catapult_ccore_metrics(design, kernel)
+        metrics = parse_catapult_ccore(design, kernel)
     else:
-        metrics = read_catapult_metrics(design)
+        metrics = parse_catapult(design)
     if is_fpga(design.design["tech_type"]):
-        metrics.update(read_catapult_fpga_metrics(design))
+        metrics.update(parse_catapult_fpga(design))
 
     manifest = {
         "kernel": kernel.name,

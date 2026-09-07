@@ -1,10 +1,6 @@
-import os
-import logging
 from pathlib import Path
 
 from tessera.steps.base import Step
-from tessera.models.config import RunConfig
-from tessera.simlib import build_dware
 from tessera.samples import write_test_samples
 from tessera.steps.gen.blackbox import gen_blackbox_headers
 from tessera.steps.catapult import CatapultHLS
@@ -18,26 +14,12 @@ class Generate(Step):
     "Generate all the files a design needs before other steps run"
     name = "gen"
 
-    def setup(self, kernel, run_inst):
+    def setup(self, kernel, designs, run_inst):
         """
         Setup ran once per kernel to write kernel.tcl
         """
         kernel.build_dir.mkdir(parents=True, exist_ok=True)
         gen_catapult_kernel_tcl(CatapultHLS.flags(run_inst), kernel, run_inst)
-
-        # Every design of a kernel shares the same arithmetic models, and only
-        # a kernel that blackboxes something has to ask for them
-        if kernel.config.blackbox:
-            conf = RunConfig.load()
-
-            # Build the one-time dware lib
-            log_path = kernel.build_dir / "dware.log"
-            logging.info(f"Compiling the DesignWare sim libs for {kernel.name}, "
-                         f"once per kernel (see {log_path})")
-            with log_path.open("w") as log:
-                build_dware(conf.tools["dc"], kernel.build_dir,
-                            conf.tools["catapult"], conf.tools["questa"],
-                            os.environ, log)
 
     def run(self, design, kernel, run_inst):
         # A design that reaches here is not built, so its old files move aside

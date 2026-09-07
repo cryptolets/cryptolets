@@ -98,6 +98,9 @@ class SweepFlags(BaseModel):
     # number of test samples for each design for C++/HLS-RTL/GLS Simulation/Verification
     num_test_samples: int = 100
 
+    # compile_ultra passes in synthesis: one full, the rest incremental
+    syn_passes: int = 1
+
 
 class SweepConfig(BaseModel):
     sweep: Sweep

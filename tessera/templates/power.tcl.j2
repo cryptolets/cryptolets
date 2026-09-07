@@ -5,7 +5,7 @@ set_host_options -max_cores {{ max_cores }}
 set link_library "* {{ target_library }}"
 
 read_verilog {{ netlist }}
-link_design {{ entity }}
+link_design {{ module }}
 
 read_sdc {{ sdc }}
 update_timing

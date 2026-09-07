@@ -7,7 +7,6 @@ import time
 import logging
 from pathlib import Path
 
-from tessera.const import BUILD_DIR, DONE_DIR
 
 
 def free_gb():
@@ -26,56 +25,6 @@ def watch_memory(stop, min_free_gb):
                           f"stopping every tool")
             os.killpg(os.getpgid(0), signal.SIGTERM)
             return
-
-# A stage that finished leaves its mark in DONE_DIR, so a later run knows not
-# to repeat it. A stage that failed leaves nothing.
-def _done_dir(kernel, design, build_root):
-    return Path(build_root, kernel, get_design_dir_name(design, kernel), DONE_DIR)
-
-
-def mark_done(kernel, design, stage, build_root=BUILD_DIR):
-    "Record that a stage finished for this design"
-    done = _done_dir(kernel, design, build_root)
-    done.mkdir(parents=True, exist_ok=True)
-    (done / f"{stage}.done").touch()
-
-
-def is_done(kernel, design, stage, build_root=BUILD_DIR):
-    "Whether a stage has already finished for this design"
-    return (_done_dir(kernel, design, build_root) / f"{stage}.done").exists()
-
-
-def require_built(kernel, design, stage, build_root=BUILD_DIR):
-    "Fail unless the stage a later one reads from has finished"
-    if not is_done(kernel, design, stage, build_root):
-        raise Exception(
-            f"'{kernel}' at bitwidth {design['bitwidth']} period {design['period']} "
-            f"has no {stage} results, so build it with that flow first.")
-
-
-def get_design_dir_name(design, kernel=None):
-    """
-    What a design's build directory is called.
-
-    The kernel names the parameters that change its hardware, so two designs
-    differing only in one it ignores are the same build. Without a kernel the
-    whole design names it, which is what the sweep itself is keyed on.
-    """
-    keys = list(design)
-    if kernel:
-        from tessera.models import KernelConfig
-        from tessera.kernel import find_kernel
-        keys = KernelConfig.load(find_kernel(kernel)).design_key or keys
-
-    # A parameter the sweep did not give this design names nothing, so a
-    # multiplier that never splits carries no base width
-    parts = []
-    for key in keys:
-        if key not in design:
-            continue
-        value = design[key]
-        parts.append(f"{key}_{int(value) if isinstance(value, bool) else value}")
-    return "__".join(parts)
 
 def tcl_type(value):
     if isinstance(value, bool):
@@ -120,7 +69,7 @@ def log_elapsed(tool, design_name, return_code, start_time):
 
 
 # ---- archive design helper functions ----
-KEEP = ("prior", "ccore_cache", "dware_cache") # these don't get archived
+KEEP = ("prior", "ccore_cache") # these don't get archived
 
 def _move(design_build_dir, names, label):
     if not names:
@@ -142,7 +91,12 @@ def archive_run(design_build_dir, label="", dirs=("Catapult", "dc")):
 
 
 def archive_design(design_build_dir, label=""):
-    "Move a whole finished run aside, the sources it was built from included"
-    _move(design_build_dir,
-          [p.name for p in design_build_dir.iterdir() if p.name not in KEEP],
-          label)
+    """
+    Ready a design dir: the previous run is moved aside, so the next one
+    starts clean.
+    """
+    if design_build_dir.exists():
+        _move(design_build_dir,
+              [p.name for p in design_build_dir.iterdir() if p.name not in KEEP],
+              label)
+    design_build_dir.mkdir(parents=True, exist_ok=True)

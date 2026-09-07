@@ -11,6 +11,8 @@ RUN_CONFIG_FILE = Path("config.yaml")
 
 BUILD_DIR = Path("build") # where Tessera writes its builds
 RUNS_DIR = BUILD_DIR / "runs" # Each run's log, kept beside the builds it made
+DWARE_DIR = (BUILD_DIR / "dware").resolve() # DesignWare sim models, built once
+CELLS_DIR = (BUILD_DIR / "cells").resolve() # cell sim models, built once per tech
 
 # emphemeral file to store the flattened and filtered sweep config
 FLATTENED_SWEEP_FILE = "flattened_sweep_config.json"
@@ -21,4 +23,7 @@ GOLDENS_PATH = Path("test/goldens.csv") # path to the goldens file
 COMB_MARK = Path("reports") / "combinational"
 DONE_DIR = "done"
 
-ARB_CURVE = "arb_curve" # arbitrary elliptic curve
+ARB_FIELD = "arb_field" # arbitrary prime field, not tied to any curve
+
+# parameters that are hardware constrains, and not design parameters
+HW_CONSTRAINTS_PARAMS = ["tech_type", "period", "ii", "dep_period_ratio"]

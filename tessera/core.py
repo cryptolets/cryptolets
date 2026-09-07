@@ -1,9 +1,7 @@
 import threading
-import json
 import logging
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor
-from dataclasses import replace
 
 from tessera.models.config import RunConfig
 
@@ -117,7 +115,7 @@ def run(kernel, threads, threads_per_process, sweep, frm, to, only):
     # Main loop to run steps for each kernel and designs
     for cur_kernel, cur_designs in schedule:
         for step in steps_to_run:
-            step.setup(cur_kernel, run_inst)
+            step.setup(cur_kernel, cur_designs, run_inst)
             designs = step.designs(cur_designs, cur_kernel, run_inst)
             run_step(step, designs, cur_kernel, run_inst)
 

@@ -6,7 +6,7 @@ from tessera.steps.base import Step
 from tessera.steps.catapult.package import update_manifest
 from tessera.steps.dc.codegen import gen_dc_tcl
 from tessera.steps.dc.select import select_designs
-from tessera.parser.metrics.dc import read_dc_qor, read_dc_power
+from tessera.parser.metrics.dc import parse_dc_qor, parse_dc_power
 from tessera.helper import archive_run, log_elapsed
 
 
@@ -48,6 +48,8 @@ class DesignCompiler(Step):
         ok = log_elapsed(self.name, design_name, result.returncode, start_time)
         if ok:
             passes = run_inst.sweep_flags["syn_passes"]
-            update_manifest(design, **read_dc_qor(design, passes),
-                            power_dc=read_dc_power(design, module, passes))
+            update_manifest(
+                design, **parse_dc_qor(design, passes),
+                power_dc=parse_dc_power(design, module, passes)
+            )
         return ok

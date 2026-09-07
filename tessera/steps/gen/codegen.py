@@ -8,7 +8,7 @@ from tessera.models.sweep import Sweep
 from tessera.templating import render
 from tessera.parser.common import norm_to_cpp_conv, strip_tmpl_prefix
 from tessera.models.design import PARAMS_MAPPED_TO_STRUCT
-from tessera.const import HW_CONSTRAINTS_PARAMS, KERNELS_DIR
+from tessera.const import DWARE_DIR, HW_CONSTRAINTS_PARAMS, KERNELS_DIR
 
 CATAPULT_STAGES = [
     "new",
@@ -184,6 +184,7 @@ def gen_catapult_kernel_tcl(flags, kernel, run_inst):
         kernel.build_dir / "kernel.tcl",
         root_dir=run_inst.root_dir,
         kernel_name=kernel.name,
+        dware_dir=DWARE_DIR,
         catapult_util_tcl=(tcl_dir / 'util.tcl').resolve(),
         catapult_init_tcl=(tcl_dir / 'init.tcl').resolve(),
         catapult_verify_tcl=(tcl_dir / 'verify.tcl').resolve(),

@@ -1,4 +1,5 @@
 # Tessera Design Compiler synthesis for {{ kernel }}
+date
 
 set_host_options -max_cores {{ max_cores }}
 
@@ -6,7 +7,9 @@ set target_library {{ target_library }}
 set link_library {* {{ target_library }} dw_foundation.sldb standard.sldb}
 set synthetic_library {dw_foundation.sldb standard.sldb}
 
+set search_path [concat * $search_path]
 define_design_lib WORK -path ./work
+set_svf {{ module }}.svf
 
 # A broken netlist should error and stop dc
 set_message_info -id LINT-61 -stop_on
@@ -23,39 +26,51 @@ rename_design {{ child.module }} {{ child.renamed }}
 set_dont_touch [get_designs { {{ children | map(attribute='renamed') | join(' ') }} }]
 {% endif %}
 
-analyze -format verilog {{ rtl }}
+analyze -library WORK -format sverilog {{ rtl }}
 elaborate {{ module }}
+date
 current_design {{ module }}
 link
 
-set_multi_vth_constraint -reset
-set_fix_multiple_port_nets -all -buffer_constants
-read_sdc {{ sdc }}
-set auto_wire_load_selection false
+source {{ constraints_tcl }}
+{% if combinational %}
+set_comb_constraints {{ period }}
+{% else %}
+set_clocked_constraints {{ period }}
+{% endif %}
 
-# Flatten Catapult's IO handshake wrappers
-set wait_ctrl [find -hierarchy cell {*_triosy_obj_inst *_synci_inst *_staller_inst *_rsci*_inst}]
-if {[llength $wait_ctrl] > 0} {
-    ungroup $wait_ctrl -flatten
-}
+# Run a full pass first, and then incremental passes for meeting timing
+{% for n in range(1, passes + 1) %}
+# ---- pass {{ n }} ----
+date
+{% if n == 1 %}
+compile_ultra
+{% else %}
+compile_ultra -incremental
+{% endif %}
+date
 
-set_multi_vth_constraint -reset
-compile_ultra -no_autoungroup
+write_file -hierarchy -format verilog -output {{ dc_dir }}/pass_{{ n }}/{{ kernel }}_gate.v
+write_sdc {{ dc_dir }}/pass_{{ n }}/{{ kernel }}_gate.sdc
 
-check_design -unmapped -nosplit
+{% set rpt = report_dir ~ "/pass_" ~ n %}
+report_timing -delay max -nosplit -input -nets -cap -max_path 10 -nworst 10 > {{ rpt }}/timing_max.rpt
+report_timing -delay min -nosplit -input -nets -cap -max_path 10 -nworst 10 > {{ rpt }}/timing_min.rpt
+report_constraint -all_violators -verbose -nosplit                          > {{ rpt }}/constraint.rpt
+check_design -nosplit                                                       > {{ rpt }}/check_design.rpt
+report_design                                                               > {{ rpt }}/design.rpt
+report_area                                                                 > {{ rpt }}/area.rpt
+report_area -hierarchy -nosplit                                             > {{ rpt }}/area_hier.rpt
+report_timing -loop                                                         > {{ rpt }}/timing_loop.rpt
+report_power -hierarchy -analysis_effort high                               > {{ rpt }}/power.rpt
+report_qor                                                                  > {{ rpt }}/qor.rpt
+report_resources -hierarchy                                                 > {{ rpt }}/resources.rpt
+{% endfor %}
 
-redirect -file {{ report_dir }}/area.rpt      { report_area -hierarchy -designware -nosplit }
-redirect -file {{ report_dir }}/qor.rpt       { report_qor }
-redirect -file {{ report_dir }}/timing.rpt    { report_timing -nosplit }
-redirect -file {{ report_dir }}/power.rpt     { report_power -hierarchy }
-redirect -file {{ report_dir }}/resources.rpt { report_resources -hierarchy }
-
+# The package carries the last pass, which is what later steps read
 write -format ddc     -hierarchy -output {{ syn_dir }}/{{ kernel }}.ddc
 write -format verilog -hierarchy -output {{ syn_dir }}/{{ kernel }}_gate.v
 write_sdc {{ syn_dir }}/{{ kernel }}_gate.sdc
 write_sdf {{ syn_dir }}/{{ kernel }}_gate.sdf
-
-# qor summary for package
-redirect -file {{ syn_dir }}/qor.rpt { report_qor }
 
 exit

@@ -4,7 +4,7 @@ Parse the metrics Catapult reports, per design.
 import re
 
 
-def read_catapult_csv(path, section):
+def parse_catapult_csv(path, section):
     """
     One section of Catapult's metrics.csv as {column: value}, from its first
     data row, which is the design's total. The file holds several sections,
@@ -19,11 +19,11 @@ def read_catapult_csv(path, section):
     raise Exception(f"No '{section}' section in {path}")
 
 
-def read_catapult_metrics(design):
+def parse_catapult(design):
     "The area, latency and delay of a sequential design"
     reports = design.build_dir / "reports"
-    general = read_catapult_csv(reports / "metrics.csv", "General")
-    timing = read_catapult_csv(reports / "metrics.csv", "Timing")
+    general = parse_catapult_csv(reports / "metrics.csv", "General")
+    timing = parse_catapult_csv(reports / "metrics.csv", "Timing")
     return {
         "area": float(general["Area"]),
         "latency": int(general["Latency Cycle"]),
@@ -31,7 +31,7 @@ def read_catapult_metrics(design):
     }
 
 
-def read_catapult_ccore_metrics(design, kernel):
+def parse_catapult_ccore(design, kernel):
     """
     The area and delay of a combinational design, which is a CCORE.
     The metrics table reports the wrapper's totals, so the CCORE's own row
@@ -70,8 +70,8 @@ FPGA_METRICS = {
 }
 
 
-def read_catapult_fpga_metrics(design):
+def parse_catapult_fpga(design):
     "The resources Vivado used, from the section it adds to metrics.csv"
-    vivado = read_catapult_csv(design.build_dir / "reports" / "metrics.csv", "Vivado")
+    vivado = parse_catapult_csv(design.build_dir / "reports" / "metrics.csv", "Vivado")
     return {name: float(vivado[column] or 0)
             for name, column in FPGA_METRICS.items() if column in vivado}
