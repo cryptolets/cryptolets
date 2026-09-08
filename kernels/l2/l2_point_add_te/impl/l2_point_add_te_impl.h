@@ -7,7 +7,9 @@
 #include "l2_point_add_te_add.h"
 #include "l2_point_add_te_cyclone.h"
 
-template<class _FIELD, int _MRED = MRED, int _PADD_TE_FORM = PADD_TE_FORM>
+template<class _FIELD, 
+         int _MRED = MRED, 
+         int _PADD_TE_FORM = PADD_TE_FORM>
 class l2_point_add_te_impl {
     l2_point_add_te_add<_FIELD, _MRED>     add_inst;
     l2_point_add_te_cyclone<_FIELD, _MRED> cyclone_inst;
@@ -15,15 +17,13 @@ class l2_point_add_te_impl {
     typedef ac_int<_FIELD::W, false> fe;
 
 public:
-    // The reduction decides this, and the generated top names it
-    static constexpr int RC = l1_mod_mul_impl<_FIELD,_MRED>::RC;
-    typedef ac_int<RC, false> rc_t;
+    typedef ac_int<l1_mod_mul_consts<_FIELD,_MRED>::RC, false> rc_t;
 
     void run(
         const PointExtProj<_FIELD> P0,
         const PointExtProj<_FIELD> P1,
         const ac_int<_FIELD::W, false> q,
-        const ac_int<RC, false> rc,
+        const ac_int<l1_mod_mul_consts<_FIELD,_MRED>::RC, false> rc,
         PointExtProj<_FIELD> &R
     ) {
         if constexpr (_PADD_TE_FORM == PADD_TE_ADD) {

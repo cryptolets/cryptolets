@@ -21,7 +21,7 @@ vector<string> run_per_row(vector<string>& samples_row) {
   PointExtProj<FIELD> R;
   CCS_DESIGN(l2_point_add_te_top) dut;
 
-#if Q_TYPE == FIXED_Q
+#if defined(Q_TYPE) && Q_TYPE == FIXED_Q
   dut.run(aff_to_ext_proj<FIELD>(P, q), aff_to_ext_proj<FIELD>(Q, q), rc, R);
 #else
   dut.run(aff_to_ext_proj<FIELD>(P, q), aff_to_ext_proj<FIELD>(Q, q), q, rc, R);

@@ -101,6 +101,10 @@ class SweepFlags(BaseModel):
     # compile_ultra passes in synthesis: one full, the rest incremental
     syn_passes: int = 1
 
+    # A blackbox carries the child's synthesized area and delay, rather than
+    # what Catapult estimated for it. Needs the children through syn.
+    bb_syn_metrics: bool = False
+
 
 class SweepConfig(BaseModel):
     sweep: Sweep

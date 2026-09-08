@@ -7,21 +7,24 @@
 #include "l1_mont_reduce.h"
 #include "l1_barrett_reduce.h"
 
-template<class _FIELD, int _MRED = MRED>
+template<class _FIELD, int _MRED>
+struct l1_mod_mul_consts {
+    // Montgomery reduces by q_prime, Barrett by the wider mu
+    static constexpr int RC = (_MRED == MRED_BAR) ? 2*_FIELD::W : _FIELD::W;
+};
+
+template<class _FIELD, int _MRED>
 class l1_mod_mul_impl {
     l0_int_mul_impl<_FIELD::W> int_mul_inst;
     l1_mont_reduce<_FIELD>     mont_inst;
     l1_barrett_reduce<_FIELD>  barrett_inst;
 
 public:
-    // Montgomery reduces by q_prime, Barrett by the wider mu
-    static constexpr int RC = (_MRED == MRED_BAR) ? 2*_FIELD::W : _FIELD::W;
-
     void run(
         const ac_int<_FIELD::W, false> x,
         const ac_int<_FIELD::W, false> y,
         const ac_int<_FIELD::W, false> q,
-        const ac_int<RC, false> rc,
+        const ac_int<l1_mod_mul_consts<_FIELD, _MRED>::RC, false> rc,
         ac_int<_FIELD::W, false> &z
     ) {
         // t = x * y

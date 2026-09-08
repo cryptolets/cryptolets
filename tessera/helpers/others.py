@@ -16,5 +16,5 @@ def log_elapsed(tool, design_name, return_code, start_time):
     hrs, mins, secs = int(elapsed // 3600), int((elapsed % 3600) // 60), elapsed % 60
     status = "COMPLETED" if return_code == 0 else "FAILED"
     log = logging.info if return_code == 0 else logging.error
-    log(f"{tool} {status} for {design_name} in {hrs:d} hrs {mins:d} mins {secs:05.2f} secs")
+    log(f"[{status}] {tool} for {design_name} in {hrs:d} hrs {mins:d} mins {secs:05.2f} secs")
     return return_code == 0

@@ -22,7 +22,7 @@ class Design:
 
     def attach(self, kernel):
         self.kernel = kernel
-        self.build_dir = kernel.build_dir / self.get_dir_name(kernel.config.design_key)
+        self.build_dir = kernel.build_dir / self.get_hash(kernel.config.design_key)
         self.blackbox_module = f"{kernel.name}_{self.get_hash(kernel.config.design_key)}"
         self._attach_structs(kernel)
 
@@ -93,9 +93,9 @@ class Design:
 
         return vars
 
-    def get_dir_name(self, design_key=None):
+    def get_name(self, design_key=None):
         """
-        design's build directory name
+        The design spelled out as param_value pairs, its readable identity
         """
         keys = design_key or list(self.design)
 
@@ -110,8 +110,8 @@ class Design:
         return "__".join(parts)
 
     def get_hash(self, design_key=None):
-        "sha256 of the design's identity, which get_dir_name defines"
-        return hashlib.sha256(self.get_dir_name(design_key).encode()).hexdigest()
+        "A 64 bit hash of the design's identity, which names its build dir"
+        return hashlib.blake2b(self.get_name(design_key).encode(), digest_size=8).hexdigest()
 
 
 

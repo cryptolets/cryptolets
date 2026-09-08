@@ -10,4 +10,5 @@ sweep:
 flags:
   num_test_samples: 100
   syn_sel: all         # all, pareto, small_fast (smallest and fastest)
+  bb_syn_metrics: false   # blackbox children with their DC area/delay, not Catapult's estimate
   syn_passes: 3           # compile_ultra passes: one full, the rest incremental

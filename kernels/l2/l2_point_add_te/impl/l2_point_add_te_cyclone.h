@@ -9,16 +9,16 @@
 #include "l1_mod_add_impl.h"
 #include "l1_mod_sub_impl.h"
 
-// Twisted Edwards addition, the cyclone msm variant
-template<class _FIELD, int _MRED>
+// Twisted Edwards point addition from CycloneMSM paper.
+template<class _FIELD, int _MRED=MRED>
 class l2_point_add_te_cyclone {
     l1_mod_mul_impl<_FIELD, _MRED>          modmul_inst;
-    l1_mod_cmul_impl<_FIELD, _MRED, CMUL_K> cmul_k_inst;
+    l1_mod_cmul_impl<_FIELD, _MRED, CMUL_K> modcmul_k_inst;
     l1_mod_add_impl<_FIELD>                 modadd_inst;
     l1_mod_sub_impl<_FIELD>                 modsub_inst;
 
     typedef ac_int<_FIELD::W, false> fe;
-    typedef ac_int<l1_mod_mul_impl<_FIELD,_MRED>::RC, false> rc_t;
+    typedef ac_int<l1_mod_mul_consts<_FIELD,_MRED>::RC, false> rc_t;
 
 public:
     void run(
@@ -34,7 +34,7 @@ public:
         modadd_inst.run(P0.Y, P0.X, q, t2);          // t2 = Y1+X1
         modadd_inst.run(P1.Y, P1.X, q, t3);          // t3 = Y2+X2
         modmul_inst.run(t2, t3, q, rc, B);           // B = t2*t3
-        cmul_k_inst.run(P1.T, q, rc, t4);            // t4 = k*T2
+        modcmul_k_inst.run(P1.T, q, rc, t4);         // t4 = k*T2
         modmul_inst.run(P0.T, t4, q, rc, C);         // C = T1*t4
         modadd_inst.run(P1.Z, P1.Z, q, t5);          // t5 = 2*Z2
         modmul_inst.run(P0.Z, t5, q, rc, D);         // D = Z1*t5

@@ -1,11 +1,11 @@
-from tessera.samples import get_rng, get_modulus, write_csvs
+from tessera.samples import get_rng, get_q, write_csvs
 from reference.field import modadd
 
-def generate(design, sweep_flags, design_build_dir):
-    bitwidth = design["bitwidth"]
+def generate(design, sweep_flags):
+    bitwidth = design.design["bitwidth"]
     num_samples = sweep_flags.get("num_test_samples", 10)
     rng = get_rng()
-    q = get_modulus(design)
+    q = get_q(design)
         
     samples = []
     goldens = []
@@ -36,4 +36,4 @@ def generate(design, sweep_flags, design_build_dir):
     for x, y, q in samples:
         goldens.append((modadd(x, y, q),))
     
-    write_csvs(samples, goldens, design_build_dir)
+    write_csvs(samples, goldens, design.build_dir)

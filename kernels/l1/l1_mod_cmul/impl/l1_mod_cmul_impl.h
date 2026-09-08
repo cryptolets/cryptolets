@@ -9,7 +9,9 @@
 
 // One operand is a field constant, so only the multiply differs from a
 // l1_mod_mul. The reduction is the same one.
-template<class _FIELD, int _MRED = MRED, int _CMUL_CONST = CMUL_CONST>
+template<class _FIELD, 
+         class _CMUL_CONST,
+         int _MRED=MRED>
 class l1_mod_cmul_impl {
     // Declared so the shared reductions are on the include path
     l0_int_cmul_impl<_FIELD, _CMUL_CONST> cmul_inst;
@@ -20,7 +22,7 @@ public:
     void run(
         const ac_int<_FIELD::W, false> x,
         const ac_int<_FIELD::W, false> q,
-        const ac_int<l1_mod_mul_impl<_FIELD,_MRED>::RC, false> rc,
+        const ac_int<l1_mod_mul_consts<_FIELD,_MRED>::RC, false> rc,
         ac_int<_FIELD::W, false> &z
     ) {
         // t = x * const

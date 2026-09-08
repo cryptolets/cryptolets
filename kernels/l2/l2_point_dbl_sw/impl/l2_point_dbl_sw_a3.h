@@ -16,7 +16,7 @@ class l2_point_dbl_sw_a3 {
     l1_mod_sub_impl<_FIELD>        modsub_inst;
 
     typedef ac_int<_FIELD::W, false> fe;
-    typedef ac_int<l1_mod_mul_impl<_FIELD,_MRED>::RC, false> rc_t;
+    typedef ac_int<l1_mod_mul_consts<_FIELD,_MRED>::RC, false> rc_t;
 
 public:
     void run(

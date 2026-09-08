@@ -19,7 +19,7 @@ vector<string> run_per_row(vector<string>& samples_row) {
   PointJac<FIELD> R;
   CCS_DESIGN(l2_point_dbl_sw_top) dut;
 
-#if Q_TYPE == FIXED_Q
+#if defined(Q_TYPE) && Q_TYPE == FIXED_Q
   dut.run(aff_to_jac<FIELD>(P), rc, R);
 #else
   dut.run(aff_to_jac<FIELD>(P), q, rc, R);

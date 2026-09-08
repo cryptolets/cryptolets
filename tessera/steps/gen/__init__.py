@@ -1,4 +1,5 @@
 from pathlib import Path
+import yaml
 
 from tessera.steps.base import Step
 from tessera.samples import write_test_samples
@@ -24,10 +25,18 @@ class Generate(Step):
     def run(self, design, kernel, run_inst):
         # A design that reaches here is not built, so its old files move aside
         archive_design(design.build_dir)
+
+        # The dir is named by hash, so the design says what it is
+        (design.build_dir / "design.yaml").write_text(yaml.safe_dump({
+            "kernel": kernel.name,
+            "hash": design.build_dir.name,
+            "name": design.get_name(kernel.config.design_key),
+            "params": design.design,
+        }, sort_keys=False))
         write_test_samples(design, kernel, run_inst) # Write the test samples by calling gen_samples for the kernel
         gen_params_h(design)
         gen_kernel_top(design, kernel)
         if design.uses_blackboxes:
-            gen_blackbox_headers(design, run_inst.to == "gen")
+            gen_blackbox_headers(design, run_inst)
         gen_catapult_design_tcl(design, kernel, comb_chk=True)
         return True # success

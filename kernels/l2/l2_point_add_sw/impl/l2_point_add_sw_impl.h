@@ -9,27 +9,27 @@
 #include "l1_mod_sub_impl.h"
 #include "l2_point_dbl_sw_impl.h"
 
-// Jacobian point addition, add-2007-bl. Two equal points have no chord, so
-// that case doubles instead.
+// Short Weierstrass point addition 
+// with doubling branched after point equality check.
+
+// Should _PDBL_FORM be here?
 template<class _FIELD, int _MRED = MRED>
 class l2_point_add_sw_impl {
     l1_mod_mul_impl<_FIELD, _MRED>  modmul_inst;
     l1_mod_add_impl<_FIELD>         modadd_inst;
     l1_mod_sub_impl<_FIELD>         modsub_inst;
-    l2_point_dbl_sw_impl<_FIELD, _MRED> double_inst;
+    l2_point_dbl_sw_impl<_FIELD>    double_inst;
 
     typedef ac_int<_FIELD::W, false> fe;
 
 public:
-    // The reduction decides this, and the generated top names it
-    static constexpr int RC = l1_mod_mul_impl<_FIELD,_MRED>::RC;
-    typedef ac_int<RC, false> rc_t;
+    typedef ac_int<l1_mod_mul_consts<_FIELD,_MRED>::RC, false> rc_t;
 
     void run(
         const PointJac<_FIELD> P0,
         const PointJac<_FIELD> P1,
         const ac_int<_FIELD::W, false> q,
-        const ac_int<RC, false> rc,
+        const ac_int<l1_mod_mul_consts<_FIELD,_MRED>::RC, false> rc,
         PointJac<_FIELD> &R
     ) {
         fe Z1Z1, Z2Z2, U1, U2, t0, S1, t1, S2;

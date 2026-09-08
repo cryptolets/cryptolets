@@ -1,8 +1,8 @@
 from tessera.samples import get_rng, write_csvs
 from reference import integer
 
-def generate(design, sweep_flags, design_build_dir):
-    bitwidth = design["bitwidth"]
+def generate(design, sweep_flags):
+    bitwidth = design.design["bitwidth"]
     num_samples = sweep_flags.get("num_test_samples", 10)
     rng = get_rng()
 
@@ -24,4 +24,4 @@ def generate(design, sweep_flags, design_build_dir):
 
     goldens = [(integer.sub(x, y),) for x, y in samples]
 
-    write_csvs(samples, goldens, design_build_dir)
+    write_csvs(samples, goldens, design.build_dir)

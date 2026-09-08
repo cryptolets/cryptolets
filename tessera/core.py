@@ -38,10 +38,14 @@ def run_step(step, designs, kernel, run):
             step.mark_done(design)
 
     # A worker that stops early reports nothing, so it did not pass
-    if results:
-        passed, total = sum(bool(r) for r in results), len(results)
-        logging.info(f"{step.name} Success Rate: {passed}/{total} "
-                     f"({100*passed/total:.0f}%)")
+    passed, total = sum(bool(r) for r in results), len(results)
+    if total:
+        logging.info(f"{step.name} Success Rate: {rate(passed, total)}")
+    return passed, total
+
+
+def rate(passed, total):
+    return f"{passed}/{total} ({100 * passed / total:.0f}%)"
 
 
 def run(kernel, threads, threads_per_process, sweep, frm, to, only):
@@ -75,7 +79,7 @@ def run(kernel, threads, threads_per_process, sweep, frm, to, only):
 
     logging.info(f"Flattened sweep designs:")
     for i, design in enumerate(flattened_sweep, 1):
-        logging.debug(f"  [{i}/{len(flattened_sweep)}] {design.get_dir_name()}")
+        logging.debug(f"  [{i}/{len(flattened_sweep)}] {design.get_name()}")
 
     # automatic dependency resolution and scheduling
     schedule = get_schedule(kernel, flattened_sweep)
@@ -114,10 +118,19 @@ def run(kernel, threads, threads_per_process, sweep, frm, to, only):
                     if any(has_stage(s, frm, to) for s in step.stages)]
 
     # Main loop to run steps for each kernel and designs
+    summary = {}
     for cur_kernel, cur_designs in schedule:
         for step in steps_to_run:
             step.setup(cur_kernel, cur_designs, run_inst)
             designs = step.designs(cur_designs, cur_kernel, run_inst)
-            run_step(step, designs, cur_kernel, run_inst)
+            summary[cur_kernel.name, step.name] = run_step(step, designs, cur_kernel, run_inst)
 
     stop.set()
+
+    # Kernels in build order, steps in pipeline order, as they ran
+    logging.info("Summary:")
+    for cur_kernel, _ in schedule:
+        logging.info(f"  {cur_kernel.name}:")
+        for step in steps_to_run:
+            passed, total = summary[cur_kernel.name, step.name]
+            logging.info(f"    {step.name}: {rate(passed, total) if total else 'no designs'}")

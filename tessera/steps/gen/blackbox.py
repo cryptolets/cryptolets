@@ -22,7 +22,22 @@ def copy_rtl(rtl, kernel_name, module, include_dir):
     return out
 
 
-def gen_blackbox_headers(design, gen_only):
+def blackbox_metrics(manifest, syn_metrics, child_design):
+    """
+    The area and delay Catapult plans the parent with: its own estimates for
+    the child, or what DC measured once the child was synthesized
+    """
+    if not syn_metrics:
+        return {"area": manifest["area"], "delay": manifest["delay"]}
+    if manifest.get("area_dc") is None:
+        raise Exception(f"bb_syn_metrics needs '{child_design.build_dir.name}' "
+                        f"through syn first")
+    return {"area": manifest["area_dc"], "delay": manifest["delay_dc"]}
+
+
+def gen_blackbox_headers(design, run_inst):
+    gen_only = run_inst.to == "gen"
+    syn_metrics = run_inst.sweep_flags["bb_syn_metrics"]
     include_dir = design.build_dir / "blackbox"
     include_dir.mkdir(parents=True)
 
@@ -52,8 +67,7 @@ def gen_blackbox_headers(design, gen_only):
                 "outputs": [p["name"] for p in manifest["ports"]
                             if p["direction"] == "output" and p["name"] not in ("clk", "rst")],
                 "combinational": manifest["combinational"],
-                "area": manifest["area"],
-                "delay": manifest["delay"],
+                **blackbox_metrics(manifest, syn_metrics, child_design),
                 "latency": manifest["latency"],
             })
 

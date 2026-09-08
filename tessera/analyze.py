@@ -41,8 +41,9 @@ def collect(kernel_build_dir, design_key=None):
     rows = []
     for manifest_path in sorted(Path(kernel_build_dir).glob("*/package/manifest.yaml")):
         manifest = yaml.safe_load(manifest_path.read_text())
+        design = yaml.safe_load((manifest_path.parent.parent / "design.yaml").read_text())
 
-        params = manifest.get("params", {})
+        params = design["params"]
         if design_key:
             params = {k: v for k, v in params.items() if k in design_key}
 

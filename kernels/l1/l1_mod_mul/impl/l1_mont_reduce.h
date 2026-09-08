@@ -9,9 +9,9 @@
 // Montgomery reduction, t * R^-1 mod q
 template<class _FIELD>
 class l1_mont_reduce {
-    l0_int_mul_impl<_FIELD::W>             int_mul_inst;
-    l0_int_cmul_impl<_FIELD, CMUL_Q_PRIME> cmul_q_prime_inst;
-    l0_int_cmul_impl<_FIELD, CMUL_Q>       cmul_q_inst;
+    l0_int_mul_impl<_FIELD::W> int_mul_inst;
+    l0_int_cmul_impl<_FIELD::W, typename _FIELD::Q_PRIME, CMUL_OUTPUT_LO>   cmul_q_prime_inst;
+    l0_int_cmul_impl<_FIELD::W, typename _FIELD::Q,       CMUL_OUTPUT_FULL> cmul_q_inst;
 
 public:
     void run(

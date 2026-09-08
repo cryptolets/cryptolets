@@ -30,3 +30,18 @@ def modmul_mont(a, b, q, q_prime):
 
 def modsq_mont(a, q, q_prime):
     return modmul_mont(a, a, q, q_prime)
+
+def modmul_barrett(a, b, q, mu):
+    "Barrett modular multiply"
+    W = q.bit_length()
+    t = a * b
+    m = (t * mu) >> (2 * W)
+    diff = t - m*q
+    if diff - 2*q >= 0:
+        return diff - 2*q
+    if diff - q >= 0:
+        return diff - q
+    return diff
+
+def modsq_barrett(a, q, mu):
+    return modmul_barrett(a, a, q, mu)

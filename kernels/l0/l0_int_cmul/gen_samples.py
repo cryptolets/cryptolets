@@ -1,50 +1,29 @@
-from tessera.samples import get_rng, get_modulus, write_csvs
-from tessera.field import curve_coeffs
-from reference.redc import barrett_get_mu, mont_get_q_prime
+from tessera.samples import get_rng, get_cmul_const, write_csvs
 from reference import integer
 
-def constant(design):
-    "The field constant this design multiplies by"
-    q = get_modulus(design)
-    name = design["cmul_const"][len("cmul_"):]
 
-    # A curve coefficient is held in the domain its reduction works in
-    coeffs = curve_coeffs(design.get("curve"), q, design.get("mred") == "mred_mont")
-    if name in coeffs:
-        return int(coeffs[name], 16)
-
-    return {
-        "q": q,
-        "q_prime": mont_get_q_prime(q),
-        "mu": barrett_get_mu(q),
-    }[name]
-
-
-def generate(design, sweep_flags, design_build_dir):
-    bitwidth = design["bitwidth"]
+def generate(design, sweep_flags):
+    bitwidth = design.design["bitwidth"]
+    output_type = design.design["cmul_output_type"]
     num_samples = sweep_flags.get("num_test_samples", 10)
     rng = get_rng()
-    const = constant(design)
-    cmul_const = design["cmul_const"]
+    const_w, const = get_cmul_const(design)
 
-    goldens = []
-
-    # Barrett reduces a double width value, so its input is twice as wide
-    in_width = 2 * bitwidth if cmul_const == "cmul_mu" else bitwidth
-    max_val = (1 << in_width) - 1
+    max_val = (1 << bitwidth) - 1
     mid_val = max_val // 2
 
     samples = [(0,), (1,), (max_val,), (mid_val,)]
+    goldens = []
 
     # Remaining random samples, distributed across sub-bitwidth ranges
     effective_samples = max(num_samples - len(samples), 0)
     if effective_samples > 0:
-        sub_bitwidths = list(range(1, in_width + 1))
+        sub_bitwidths = list(range(1, bitwidth + 1))
         for i in range(effective_samples):
             sub_bw = sub_bitwidths[i % len(sub_bitwidths)]
             samples.append((rng.randint(0, (1 << sub_bw) - 1),))
 
     for (x,) in samples:
-        goldens.append((integer.cmul(x, const, cmul_const, bitwidth),))
+        goldens.append((integer.cmul(x, const, bitwidth, const_w, output_type),))
 
-    write_csvs(samples, goldens, design_build_dir)
+    write_csvs(samples, goldens, design.build_dir)

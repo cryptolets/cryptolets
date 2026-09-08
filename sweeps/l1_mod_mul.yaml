@@ -4,11 +4,11 @@ sweep:
   period: [1]
   ii: [1]
   mul_type: [mul_nor, mul_sb]
-  dep_period_ratio: [0.5]
+  dep_period_ratio: [0.33, 0.25]
 
   base_mul_width:
     32: [32]
-    64: [64]
+    64: [16, 32, 64]
     254: [63]
     255: [63]
     381: [47]
@@ -38,4 +38,5 @@ sweep:
 flags:
   num_test_samples: 100
   syn_sel: all            # all, pareto, small_fast (smallest and fastest)
-  syn_passes: 2           # compile_ultra passes: one full, the rest incremental
+  bb_syn_metrics: true   # blackbox children with their DC area/delay, not Catapult's estimate
+  syn_passes: 5           # compile_ultra passes: one full, the rest incremental

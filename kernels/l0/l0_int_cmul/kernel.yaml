@@ -2,11 +2,12 @@
 blackbox: []
 
 # The parameters that change the hardware, which name a design's build directory
-design_key: [bitwidth, tech_type, period, ii, curve, field, cmul_const, mred]
+design_key: [bitwidth, tech_type, period, ii, cmul_const, cmul_const_w,
+             cmul_hamming, cmul_output_type]
 
 # Of those, the ones that decide what this computes, so only designs that
 # could replace one another are compared
-kernel_key: [bitwidth, curve, field, cmul_const, mred]
+kernel_key: [bitwidth, cmul_const, cmul_const_w, cmul_hamming, cmul_output_type]
 
 # Kernel specific stage scripts
 stages:

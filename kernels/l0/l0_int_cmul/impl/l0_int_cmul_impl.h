@@ -4,39 +4,38 @@
 #include <ac_int.h>
 #include "params.h"
 
-// Constant multiplier (cmul) implementation with different constants
-// that are used by higher-level cryptographic kernels.
+// Constant multiplier (cmul) for a given constant
 
-template<class _FIELD, int _CMUL_CONST = CMUL_CONST, int _MRED = MRED>
+template<int _BITWIDTH,
+         class _CMUL_CONST,
+         int _CMUL_OUTPUT_TYPE=CMUL_OUTPUT_FULL>
+struct l0_int_cmul_consts {
+    static constexpr int OUT_FULL = _BITWIDTH + _CMUL_CONST::W;
+
+    // Derive output width based on the output type at compile time
+    static constexpr int OUT_WIDTH =
+        (_CMUL_OUTPUT_TYPE == CMUL_OUTPUT_FULL) ? OUT_FULL :
+        (_CMUL_OUTPUT_TYPE == CMUL_OUTPUT_LO)   ? _CMUL_CONST::W :
+                                                  OUT_FULL - _BITWIDTH;
+};
+
+template<int _BITWIDTH, 
+         class _CMUL_CONST, 
+         int _CMUL_OUTPUT_TYPE=CMUL_OUTPUT_FULL>
 class l0_int_cmul_impl {
-    static constexpr int W = _FIELD::W;
-
 public:
-    // Barrett takes a double width x, Montgomery keeps only the low half.
-    // A curve coefficient is an ordinary field element, so it keeps the whole
-    // product for the reduction that follows.
-    static constexpr int IN  = (_CMUL_CONST == CMUL_MU)      ? 2*_FIELD::W : _FIELD::W;
-    static constexpr int OUT = (_CMUL_CONST == CMUL_Q_PRIME
-                             || _CMUL_CONST == CMUL_MU)      ? _FIELD::W : 2*_FIELD::W;
-
     void run(
-        const ac_int<IN, false> x,
-        ac_int<OUT, false> &z
+        const ac_int<_BITWIDTH, false> x,
+        ac_int<l0_int_cmul_consts<_BITWIDTH, _CMUL_CONST, _CMUL_OUTPUT_TYPE>::OUT_WIDTH, false> &z
     ) {
-        if constexpr (_CMUL_CONST == CMUL_Q) {
-            z = x * _FIELD::Q();                                   // whole product
-        } else if constexpr (_CMUL_CONST == CMUL_Q_PRIME) {
-            z = (x * _FIELD::Q_PRIME()).template slc<OUT>(0);      // low half
-        } else if constexpr (_CMUL_CONST == CMUL_MU) {
-            z = (x * _FIELD::MU()).template slc<OUT>(2*W);    // high half
-        } else if constexpr (_CMUL_CONST == CMUL_A) {
-            z = x * _FIELD::A();
-        } else if constexpr (_CMUL_CONST == CMUL_B) {
-            z = x * _FIELD::B();
-        } else if constexpr (_CMUL_CONST == CMUL_D) {
-            z = x * _FIELD::D();
-        } else { // CMUL_K
-            z = x * _FIELD::K();
+        if constexpr (_CMUL_OUTPUT_TYPE == CMUL_OUTPUT_FULL) {
+            z = x * _CMUL_CONST::VALUE(); // full product
+        } else if constexpr (_CMUL_OUTPUT_TYPE == CMUL_OUTPUT_LO) {
+            // lower half of the product
+            z = (x * _CMUL_CONST::VALUE()).template slc<l0_int_cmul_consts<_BITWIDTH, _CMUL_CONST, _CMUL_OUTPUT_TYPE>::OUT_WIDTH>(0);
+        } else {
+            // upper half of the product
+            z = (x * _CMUL_CONST::VALUE()).template slc<l0_int_cmul_consts<_BITWIDTH, _CMUL_CONST, _CMUL_OUTPUT_TYPE>::OUT_WIDTH>(_BITWIDTH);
         }
     }
 };

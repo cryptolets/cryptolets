@@ -44,7 +44,7 @@ ac_int<2*_BITWIDTH, false> l0_int_mul_par_gen(
 }
 
 template<int _BITWIDTH,
-         int _SKIP_UPPER = SKIP_UPPER,
+         int _SKIP_UPPER,
          int _BASE_MUL_WIDTH = BASE_MUL_WIDTH>
 class l0_int_mul_par_impl {
     l0_int_mul_impl<_BITWIDTH> int_mul_inst;
