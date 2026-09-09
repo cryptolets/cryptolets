@@ -1,0 +1,17 @@
+module {{ module }} ({% for p in data %}{{ p.name | replace("_rsc_dat", "") }}{{ ", " if not loop.last }}{% endfor %});
+{% for p in data %}
+{% if p.width > 1 %}
+  {{ p.direction }} [{{ p.width - 1 }}:0] {{ p.name | replace("_rsc_dat", "") }};
+{% else %}
+  {{ p.direction }} {{ p.name | replace("_rsc_dat", "") }};
+{% endif %}
+{% endfor %}
+  {{ module }}_top u (
+{% for p in data %}
+    .{{ p.name }}({{ p.name | replace("_rsc_dat", "") }}){% if not loop.last or pulses %},{% endif %}
+{% endfor %}
+{% for p in pulses %}
+    .{{ p }}(){% if not loop.last %},{% endif %}
+{% endfor %}
+  );
+endmodule

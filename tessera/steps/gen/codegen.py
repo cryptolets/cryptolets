@@ -132,7 +132,7 @@ def _stage_bodies(kernel, run_inst):
     analyze_stage = [
         # The blackbox dir comes first, so a generated header shadows the
         # kernel's own when that dep is blackboxed.
-        "options set Input/SearchPath [file join $design_build_dir blackbox] -append",
+        "options set Input/SearchPath [file join $design_build_dir blackbox impl] -append",
         "options set Input/SearchPath {\n" + include_paths_str + "\n} -append",
         "options set Input/SearchPath [file join $design_build_dir include] -append",
         "solution file add [file join $design_build_dir src " + f"{kernel.name}_top.cpp]",

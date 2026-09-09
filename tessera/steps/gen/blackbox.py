@@ -6,18 +6,28 @@ import re
 import yaml
 
 from tessera.parser.common import norm_to_cpp_conv
-from tessera.templating import render
+from tessera.templating import env, render
 
 
-def copy_rtl(rtl, kernel_name, module, include_dir):
+def wrap_sequential(module, ports):
+    "module <module>(args) wrapping <module>_top, x_rsc_dat -> x, pulses left open"
+    data = [p for p in ports if p["name"].endswith("_rsc_dat") or p["name"] in ("clk", "rst")]
+    pulses = [p["name"] for p in ports if p["name"].endswith("_triosy_lz")]
+    return env.get_template("dc_wrapper.v.j2").render(module=module, data=data, pulses=pulses)
+
+
+def copy_rtl(rtl, kernel_name, module, rtl_dir, combinational, ports):
     """
     Copy RTL from the design's build dir into parent's blackbox dir
     The child is named to avoid conflict between multiple instances
     of the same kernel used in a parent.
     """
+    top = module if combinational else f"{module}_top"
     renamed = re.sub(rf"\b{kernel_name}(_[a-zA-Z0-9_]+)?\b",
-                     lambda m: f"{module}{m[1] or ''}", rtl.read_text())
-    out = include_dir / f"{module}.v"
+                     lambda m: f"{module}{m[1]}" if m[1] else top, rtl.read_text())
+    if not combinational:
+        renamed += "\n" + wrap_sequential(module, ports)
+    out = rtl_dir / f"{module}.v"
     out.write_text(renamed)
     return out
 
@@ -38,8 +48,13 @@ def blackbox_metrics(manifest, syn_metrics, child_design):
 def gen_blackbox_headers(design, run_inst):
     gen_only = run_inst.to == "gen"
     syn_metrics = run_inst.sweep_flags["bb_syn_metrics"]
-    include_dir = design.build_dir / "blackbox"
-    include_dir.mkdir(parents=True)
+    blackbox_dir = design.build_dir / "blackbox"
+    impl_dir = blackbox_dir / "impl"
+    rtl_dir = blackbox_dir / "rtl"
+    wrapper_dir = blackbox_dir / "wrapper"
+    impl_dir.mkdir(parents=True, exist_ok=True)
+    rtl_dir.mkdir(parents=True, exist_ok=True)
+    wrapper_dir.mkdir(parents=True, exist_ok=True)
 
     for child_name, child_designs in design.deps.items():
         designs_tmpl_ctx = []
@@ -53,20 +68,33 @@ def gen_blackbox_headers(design, run_inst):
             child_kernel = child_design.kernel
 
             rtl = copy_rtl(package_dir / manifest["rtl"], child_name,
-                           child_design.blackbox_module, include_dir)
+                           child_design.blackbox_module, rtl_dir,
+                           manifest["combinational"], manifest["ports"])
+            if not manifest["combinational"]:
+                wrapper = wrap_sequential(child_design.blackbox_module, manifest["ports"])
+                (wrapper_dir / f"{child_design.blackbox_module}_wrapper.v").write_text(wrapper)
 
             tmpl_params = [{"name": f"_{p['name'].upper()}", "type": p["type"],
                             "value": norm_to_cpp_conv(child_design.design[p["name"]])}
                            for p in child_kernel.impl_spec["tmpl_params"]]
+                           
+            run_param_names = {p["name"] for p in child_kernel.impl_spec["run_params"]}
+            outputs = []
+            for p in manifest["ports"]:
+                if p["direction"] != "output":
+                    continue
+                arg_name = p["name"].removesuffix("_rsc_dat")
+                if arg_name in run_param_names:
+                    outputs.append(arg_name)
 
             designs_tmpl_ctx.append({
                 "module": child_design.blackbox_module,
                 "rtl": rtl.resolve(),
                 "tmpl_params": tmpl_params,
                 "ports": [p["text"] for p in child_kernel.impl_spec["run_params"]],
-                "outputs": [p["name"] for p in manifest["ports"]
-                            if p["direction"] == "output" and p["name"] not in ("clk", "rst")],
+                "outputs": outputs,
                 "combinational": manifest["combinational"],
+                "init_delay": manifest.get("params", {}).get("ii", 1),
                 **blackbox_metrics(manifest, syn_metrics, child_design),
                 "latency": manifest["latency"],
             })
@@ -78,13 +106,13 @@ def gen_blackbox_headers(design, run_inst):
                 raise Exception(
                     f"'{child_name}' is not fully built, '{design.build_dir.name}' cannot blackbox it"
                 )
-            render("blackbox_todo.h.j2", include_dir / f"{child_name}_impl.h", kernel=child_name)
+            render("blackbox_todo.h.j2", impl_dir / f"{child_name}_impl.h", kernel=child_name)
             continue
 
         impl = child_kernel.path / "impl" / f"{child_name}_impl.h"
         render(
             template="blackbox.h.j2",
-            path=include_dir / f"{child_name}_impl.h",
+            path=impl_dir / f"{child_name}_impl.h",
             kernel=child_name,
             impl=str(impl.resolve()),
             designs=designs_tmpl_ctx,

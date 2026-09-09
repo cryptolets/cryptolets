@@ -21,9 +21,15 @@ set_message_info -id UID-341 -stop_on
 # Children keep their own synthesis, so DC links them instead of flattening.
 {% for child in children %}
 read_ddc {{ child.ddc }}
+{% if child.combinational %}
 rename_design {{ child.module }} {{ child.renamed }}
+{% else %}
+rename_design {{ child.module }} {{ child.renamed_top }}
+analyze -library WORK -format sverilog {{ child.wrapper }}
+elaborate {{ child.renamed }}
+{% endif %}
 {% endfor %}
-set_dont_touch [get_designs { {{ children | map(attribute='renamed') | join(' ') }} }]
+set_dont_touch [get_designs { {{ dont_touch }} }]
 {% endif %}
 
 analyze -library WORK -format sverilog {{ rtl }}

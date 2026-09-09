@@ -38,7 +38,7 @@ public:
 {% if d.combinational %}
             .delay({{ d.delay }})
 {% else %}
-            .clock_name("clk").latency({{ d.latency }}).init_delay(1)
+            .clock_name("clk").latency({{ d.latency }}).init_delay({{ d.init_delay }})
 {% endif %}
             .end();
     }

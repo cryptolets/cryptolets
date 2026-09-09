@@ -26,9 +26,18 @@ def child_designs(design):
                                 f"cannot link it")
 
             manifest = yaml.safe_load((package_dir / "manifest.yaml").read_text())
-            children.append({"module": manifest["module"],
-                             "renamed": child.blackbox_module,
-                             "ddc": str(ddc.resolve())})
+            child_info = {"module": manifest["module"],
+                          "renamed": child.blackbox_module,
+                          "ddc": str(ddc.resolve()),
+                          "combinational": manifest["combinational"]}
+            if manifest["combinational"]:
+                child_info["dont_touch"] = child.blackbox_module
+            else:
+                wrapper = design.build_dir / "blackbox" / "wrapper" / f"{child.blackbox_module}_wrapper.v"
+                child_info["wrapper"] = str(wrapper.resolve())
+                child_info["renamed_top"] = f"{child.blackbox_module}_top"
+                child_info["dont_touch"] = f"{child.blackbox_module}_top {child.blackbox_module}"
+            children.append(child_info)
 
     return children
 
@@ -48,6 +57,8 @@ def gen_dc_tcl(design, kernel, run_inst):
         (design.build_dir / "reports" / "dc" / f"pass_{n}").mkdir(parents=True, exist_ok=True)
         (design.build_dir / "dc" / f"pass_{n}").mkdir(parents=True, exist_ok=True)
 
+    children = child_designs(design) if design.uses_blackboxes else []
+
     render(
         "dc.tcl.j2",
         design.build_dir / "dc.tcl",
@@ -57,7 +68,8 @@ def gen_dc_tcl(design, kernel, run_inst):
         period=design.design["period"],
         combinational=manifest["combinational"],
         target_library=str(Path(tech.lib_db).expanduser()),
-        children=child_designs(design) if design.uses_blackboxes else [],
+        children=children,
+        dont_touch=" ".join(c["dont_touch"] for c in children),
         max_cores=run_inst.threads_per_process,
         passes=passes,
         constraints_tcl=str(Path(run_inst.root_dir, "tessera", "tcl", "dc", "constraints.tcl").resolve()),
