@@ -4,7 +4,6 @@ from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor
 
 from tessera.models.config import RunConfig
-from tessera.models.common import is_fpga
 
 from tessera.models.sweep import SweepConfig
 from tessera.models.run import Run
@@ -63,7 +62,7 @@ def run(kernel, threads, threads_per_process, sweep, frm, to, only):
     sweep_conf = SweepConfig.load(sweep)
     sweep_conf_map = sweep_conf.model_dump()
     sweep_flags = sweep_conf_map['flags']
-    fpga_run = is_fpga(sweep_conf_map["sweep"]["tech_type"][0])
+    fpga_run = sweep_conf.is_fpga_run()
 
     # bb_syn_metrics uses child's DC metrics when blackboxing Catapult designs
     # Therefore, we need to ensure --syn is ran to use them.
@@ -104,6 +103,7 @@ def run(kernel, threads, threads_per_process, sweep, frm, to, only):
 
     run_inst = Run(
         target=kernel,
+        is_fpga_run=fpga_run,
         threads=threads,
         threads_per_process=threads_per_process,
         workers=num_workers,

@@ -2,7 +2,6 @@
 Pydantic models for sweep files.
 """
 from typing import Literal, Optional, get_args
-
 from pydantic import BaseModel, model_validator
 
 from tessera.const import ARB_FIELD
@@ -110,10 +109,12 @@ class SweepConfig(BaseModel):
     sweep: Sweep
     flags: SweepFlags
 
+    def is_fpga_run(self):
+        return any(is_fpga(tech) for tech in self.sweep.tech_type)
+
     @model_validator(mode="after")
     def _check_fpga_flags(self):
-        is_fpga_sweep = any(is_fpga(tech) for tech in self.sweep.tech_type)
-        if is_fpga_sweep and self.flags.bb_syn_metrics:
+        if self.is_fpga_run() and self.flags.bb_syn_metrics:
             raise ValueError("FPGA does not support bb_syn_metrics=true. Set bb_syn_metrics=false.")
         return self
 

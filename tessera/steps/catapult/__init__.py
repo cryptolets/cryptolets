@@ -51,7 +51,8 @@ class CatapultHLS(Step):
             "test_cpp_only": run_inst.to == "cpp",
             "verify_rtl": has_stage("rtl", run_inst.frm, run_inst.to),
             # FPGA "syn" is Vivado inside Catapult. Run it only for the target.
-            "run_vivado": has_stage("syn", run_inst.frm, run_inst.to)
+            "run_vivado": run_inst.is_fpga_run
+                          and has_stage("syn", run_inst.frm, run_inst.to)
                           and kernel.name == run_inst.target,
         }
 
