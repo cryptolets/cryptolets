@@ -43,7 +43,7 @@ run_verify_rtl $verify_rtl $design_build_dir
 
 # An FPGA design is synthesized here rather than in a phase of its own. The
 # table is written again, since Vivado's numbers only exist once it has run.
-if {[is_fpga $tech_type]} {
+if {[is_fpga $tech_type] && $run_vivado} {
     run_fpga_syn $tech_type {{ threads_per_process }}
     save_table [file join $design_build_dir reports metrics.csv]
 }

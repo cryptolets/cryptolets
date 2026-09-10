@@ -39,7 +39,7 @@ class CatapultHLS(Step):
                 build_dware(conf.tools["dc"], conf.tools["catapult"], conf.tools["questa"], log)
 
     @staticmethod
-    def flags(run_inst):
+    def flags(run_inst, kernel):
         "What the kernel tcl reads, which the range decides rather than the sweep"
         from tessera.steps import has_stage
         return {
@@ -50,6 +50,9 @@ class CatapultHLS(Step):
             # Stopping at cpp leaves catapult nothing to do after the test
             "test_cpp_only": run_inst.to == "cpp",
             "verify_rtl": has_stage("rtl", run_inst.frm, run_inst.to),
+            # FPGA "syn" is Vivado inside Catapult. Run it only for the target.
+            "run_vivado": has_stage("syn", run_inst.frm, run_inst.to)
+                          and kernel.name == run_inst.target,
         }
 
     @staticmethod
@@ -69,6 +72,8 @@ class CatapultHLS(Step):
         design_name = design.build_dir.name
         start_time = time.time()
         logging.info(f"Running Catapult for {design_name}")
+        if self.flags(run_inst, kernel)["run_vivado"]:
+            logging.info(f"Running Vivado FPGA for {design_name} after")
 
         # First Catapult run
         return_code = self.run_catapult(kernel.build_dir, design.build_dir)

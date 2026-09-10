@@ -72,6 +72,9 @@ FPGA_METRICS = {
 
 def parse_catapult_fpga(design):
     "The resources Vivado used, from the section it adds to metrics.csv"
-    vivado = parse_catapult_csv(design.build_dir / "reports" / "metrics.csv", "Vivado")
+    metrics_path = design.build_dir / "reports" / "metrics.csv"
+    if "Vivado" not in metrics_path.read_text().splitlines():
+        return {}
+    vivado = parse_catapult_csv(metrics_path, "Vivado")
     return {name: float(vivado[column] or 0)
             for name, column in FPGA_METRICS.items() if column in vivado}

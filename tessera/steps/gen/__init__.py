@@ -20,7 +20,7 @@ class Generate(Step):
         Setup ran once per kernel to write kernel.tcl
         """
         kernel.build_dir.mkdir(parents=True, exist_ok=True)
-        gen_catapult_kernel_tcl(CatapultHLS.flags(run_inst), kernel, run_inst)
+        gen_catapult_kernel_tcl(CatapultHLS.flags(run_inst, kernel), kernel, run_inst)
 
     def run(self, design, kernel, run_inst):
         # A design that reaches here is not built, so its old files move aside

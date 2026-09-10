@@ -1,12 +1,41 @@
 """
 Parse Verilog code with tree-sitter.
 """
+import re
 from pathlib import Path
 import tree_sitter_verilog
 from tree_sitter import Language, Parser
 from simpleeval import simple_eval
 
 from tessera.parser.common import parse_text, find_nodes_by_type
+
+
+def normalize_verilog_ints(expr):
+    """
+    Replace Verilog int literals in an expression with decimal ints.
+
+    Examples:
+      "32'd4"            -> "4"
+      "8'hff + 1"        -> "255 + 1"
+      "width_a-1"        -> "width_a-1"   (unchanged)
+      "4'b10xz"          -> "4'b10xz"     (unchanged, contains x/z)
+      "16'h0f_0f + var"  -> "3855 + var"
+    """
+    def to_dec(match):
+        base = {"d": 10, "h": 16, "o": 8, "b": 2}[match.group(1).lower()]
+        digits = match.group(2).lower().replace("_", "")
+        if "x" in digits or "z" in digits:
+            return match.group(0)
+        return str(int(digits, base))
+
+    # Match Verilog based literals like 32'd4, 'hff, 8'b1010, 6'o77 (case-insensitive),
+    # capture base and digits, then replace each match with its decimal value via to_dec.
+    return re.compile(r"(?i)\b(?:\d+)?'([dhob])([0-9a-f_xz]+)\b").sub(to_dec, expr)
+
+
+def eval_expr(expr, variables):
+    "Evaluate simple width/parameter expressions, including 32'd4 style literals."
+    return simple_eval(normalize_verilog_ints(expr), names=variables)
 
 
 def parse_module_name(module_decl_node):
@@ -24,9 +53,8 @@ def parse_module_ports(module_decl_node):
 
     for param_decl_node in param_decl_nodes:
         var = parse_text(find_nodes_by_type(param_decl_node, "simple_identifier")[0])
-        val = parse_text(find_nodes_by_type(param_decl_node, "constant_expression")[0])
-        if not val.isdigit(): continue
-        variables[var] = val
+        expr = parse_text(find_nodes_by_type(param_decl_node, "constant_expression")[0])
+        variables[var] = eval_expr(expr, variables)
 
     for port_node in port_decl_nodes:
         name = parse_text(find_nodes_by_type(port_node, "port_identifier")[0])
@@ -42,10 +70,7 @@ def parse_module_ports(module_decl_node):
 
         widths = find_nodes_by_type(port_node, "constant_expression")
         for i in range(len(widths)):
-            width = parse_text(widths[i])
-            for var, val in variables.items():
-                width = width.replace(var, val)
-            widths[i] = simple_eval(str(width))
+            widths[i] = eval_expr(parse_text(widths[i]), variables)
 
         width = max(widths) - min(widths) + 1 if widths else 1
 

@@ -4,6 +4,7 @@ from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor
 
 from tessera.models.config import RunConfig
+from tessera.models.common import is_fpga
 
 from tessera.models.sweep import SweepConfig
 from tessera.models.run import Run
@@ -62,11 +63,20 @@ def run(kernel, threads, threads_per_process, sweep, frm, to, only):
     sweep_conf = SweepConfig.load(sweep)
     sweep_conf_map = sweep_conf.model_dump()
     sweep_flags = sweep_conf_map['flags']
+    fpga_run = is_fpga(sweep_conf_map["sweep"]["tech_type"][0])
 
     # bb_syn_metrics uses child's DC metrics when blackboxing Catapult designs
     # Therefore, we need to ensure --syn is ran to use them.
     if sweep_flags["bb_syn_metrics"] and STAGES.index(to) < STAGES.index("syn"):
         raise Exception(f"bb_syn_metrics needs --to syn or later, got '{to}'")
+
+    if fpga_run:
+        if sweep_flags["bb_syn_metrics"]:
+            raise ValueError("FPGA does not support bb_syn_metrics=true. Set bb_syn_metrics=false.")
+        if has_stage("gls", frm, to) or has_stage("pwr", frm, to):
+            raise ValueError("FPGA does not support gls/pwr stages in this flow.")
+        if has_stage("syn", frm, to) and not has_stage("hls", frm, to):
+            raise ValueError("FPGA syn runs inside Catapult hls; use --from gen/cpp/hls.")
 
     # Flatten the sweep, and reuse stored flattened sweep if
     # the generate (first) stage is skipped
@@ -120,6 +130,9 @@ def run(kernel, threads, threads_per_process, sweep, frm, to, only):
 
     steps_to_run = [step for step in PIPELINE
                     if any(has_stage(s, frm, to) for s in step.stages)]
+    if fpga_run:
+        logging.info("FPGA flow: using Catapult-embedded Vivado; skipping standalone syn/gls/pwr steps.")
+        steps_to_run = [step for step in steps_to_run if step.name not in ("syn", "gls", "pwr")]
 
     # Main loop to run steps for each kernel and designs
     summary = {}

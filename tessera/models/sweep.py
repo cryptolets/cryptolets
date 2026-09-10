@@ -110,6 +110,13 @@ class SweepConfig(BaseModel):
     sweep: Sweep
     flags: SweepFlags
 
+    @model_validator(mode="after")
+    def _check_fpga_flags(self):
+        is_fpga_sweep = any(is_fpga(tech) for tech in self.sweep.tech_type)
+        if is_fpga_sweep and self.flags.bb_syn_metrics:
+            raise ValueError("FPGA does not support bb_syn_metrics=true. Set bb_syn_metrics=false.")
+        return self
+
     @classmethod
     def load(cls, path):
         return load_and_validate_yaml(cls, path)

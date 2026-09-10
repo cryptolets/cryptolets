@@ -5,7 +5,6 @@ from graphlib import TopologicalSorter
 from simpleeval import simple_eval
 
 from tessera.const import HW_CONSTRAINTS_PARAMS
-from tessera.models.common import is_fpga
 from tessera.models.design import Design, PARAMS_MAPPED_TO_STRUCT
 from tessera.models.kernel import Kernel
 from tessera.models.sweep import get_sweep_enum_vars
@@ -168,9 +167,8 @@ def get_schedule(kernel_name: str, designs: list[Design]):
     for parent_name in reversed(kernel_order):
         for design in kernel_designs_map[parent_name].values():
             design.attach(kernels[parent_name])
-            # FPGA designs never blackbox: Vivado can't take a packaged dep
-            design.uses_blackboxes = (bool(kernel_graph[parent_name])
-                                      and not is_fpga(design.design["tech_type"]))
+            # Blackboxed deps are reused through Catapult-side blackbox bindings.
+            design.uses_blackboxes = bool(kernel_graph[parent_name])
 
         for child_name in kernel_graph[parent_name]:
             resolve_designs(
