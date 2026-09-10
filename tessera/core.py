@@ -63,6 +63,10 @@ def run(kernel, threads, threads_per_process, sweep, frm, to, only):
     sweep_conf_map = sweep_conf.model_dump()
     sweep_flags = sweep_conf_map['flags']
 
+    # bb_syn_metrics uses child's DC metrics when blackboxing Catapult designs
+    # Therefore, we need to ensure --syn is ran to use them.
+    if sweep_flags["bb_syn_metrics"] and STAGES.index(to) < STAGES.index("syn"):
+        raise Exception(f"bb_syn_metrics needs --to syn or later, got '{to}'")
 
     # Flatten the sweep, and reuse stored flattened sweep if
     # the generate (first) stage is skipped
