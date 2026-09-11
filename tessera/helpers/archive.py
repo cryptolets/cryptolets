@@ -2,7 +2,7 @@
 import uuid
 
 
-KEEP = ("prior", "ccore_cache") # these don't get archived
+KEEP = ("prior", "ccore_cache", "gcc") # these don't get archived
 
 def _move(design_build_dir, names, label):
     if not names:

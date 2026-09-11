@@ -126,8 +126,3 @@ class SweepConfig(BaseModel):
     def load(cls, path):
         return load_and_validate_yaml(cls, path)
 
-
-def get_sweep_enum_vars():
-    return {value: value
-            for values in Sweep.enums().values() for value in values}
-

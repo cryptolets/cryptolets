@@ -70,29 +70,6 @@ class Design:
             struct = struct[part]
         return struct
 
-    @staticmethod
-    def _flatten_struct(prefix, struct, names):
-        for key, value in struct.items():
-            name = f"{prefix}__{key}"
-            if isinstance(value, dict):
-                Design._flatten_struct(name, value, names)
-            else:
-                names[name] = value
-
-    def get_expr_vars(self):
-        vars = dict(self.design)
-
-        # A struct named directly in an arg, e.g. BN254_SCALAR::W -> bn254_scalar__w
-        for name, struct in self.structs.items():
-            Design._flatten_struct(name, struct, vars)
-
-        # A struct reached through a param, e.g. _FIELD::W -> field__w
-        for param in PARAMS_MAPPED_TO_STRUCT:
-            if param in self.design:
-                Design._flatten_struct(param, self.get_param_struct(param), vars)
-
-        return vars
-
     def get_name(self, design_key=None):
         """
         The design spelled out as param_value pairs, its readable identity

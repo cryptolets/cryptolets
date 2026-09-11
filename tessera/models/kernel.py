@@ -6,7 +6,7 @@ from pydantic import BaseModel, model_validator
 
 from tessera.const import BUILD_DIR, KERNELS_DIR
 from tessera.models.common import load_and_validate_yaml
-from tessera.parser.cpp import parse_kernel_impl
+from tessera.parser.cpp import parse_header
 
 
 class KernelConfig(BaseModel):
@@ -39,7 +39,7 @@ class Kernel:
         self.name = name
         self.path = Kernel.find(name)
         self.build_dir = BUILD_DIR / name
-        self.impl_spec = parse_kernel_impl(self.path / "impl" / f"{name}_impl.h")
+        self.impl_spec = parse_header(self.path / "impl" / f"{name}_impl.h")
         self.config = KernelConfig.load(self.path)
 
     @staticmethod

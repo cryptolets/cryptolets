@@ -27,7 +27,8 @@ CATAPULT_STAGES = [
 SAVE_TABLE_STAGES = {"schedule", "dpfsm", "extract"}
 
 
-def gen_params_h(design):
+def gen_params_h(design, out_dir=None):
+    out_dir = out_dir or design.build_dir
     enums = {
         norm_to_cpp_conv(value): i
         for values in Sweep.enums().values()
@@ -50,7 +51,7 @@ def gen_params_h(design):
 
     render(
         "params.h.j2",
-        design.build_dir / 'include' / 'params.h',
+        out_dir / 'include' / 'params.h',
         enums=enums,
         params=defines,
         usings=usings,
@@ -72,11 +73,12 @@ def fixed_member(port, design):
     return port.upper()
 
 
-def gen_kernel_top(design, kernel, combinational=False):
+def gen_kernel_top(design, kernel, combinational=False, out_dir=None):
     """
     Generate the top header and the source file Catapult synthesizes.
     A combinational kernel is wrapped, a sequential one is the top itself.
     """
+    out_dir = out_dir or design.build_dir
     template_args = ", ".join(p["name"].upper()
                               for p in kernel.impl_spec["tmpl_params"])
 
@@ -100,8 +102,8 @@ def gen_kernel_top(design, kernel, combinational=False):
         template_args=template_args,
     )
 
-    render("kernel_top.h.j2", design.build_dir / 'include' / f'{kernel.name}_top.h', **ctx)
-    render("kernel.cpp.j2", design.build_dir / 'src' / f'{kernel.name}_top.cpp', **ctx)
+    render("kernel_top.h.j2", out_dir / 'include' / f'{kernel.name}_top.h', **ctx)
+    render("kernel.cpp.j2", out_dir / 'src' / f'{kernel.name}_top.cpp', **ctx)
     
 
 def gen_catapult_design_tcl(design, kernel, comb_chk=False, combinational=False):
