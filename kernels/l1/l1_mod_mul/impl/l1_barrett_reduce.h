@@ -4,14 +4,14 @@
 #include <ac_int.h>
 #include "params.h"
 #include "l0_int_mul_impl.h"
-#include "l0_int_mul_par_impl.h"
+#include "l1_mul_par.h"
 #include "l0_int_cmul_impl.h"
 
 // Barrett reduction, t mod q
 template<class _FIELD>
 class l1_barrett_reduce {
     l0_int_mul_impl<_FIELD::W>          int_mul_inst;
-    l0_int_mul_par_impl<2*_FIELD::W, 1> mul_red_inst;
+    l1_mul_par<2*_FIELD::W>             mul_red_inst;
     l0_int_cmul_impl<2*_FIELD::W, typename _FIELD::MU, CMUL_OUTPUT_HI>   cmul_mu_inst;
     l0_int_cmul_impl<_FIELD::W,   typename _FIELD::Q,  CMUL_OUTPUT_FULL> cmul_q_inst;
 

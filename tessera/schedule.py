@@ -111,7 +111,9 @@ def resolve_designs(
                             text = arg["name"]
                         else:
                             text = "__".join(arg["parts"])
-                        child_design[param] = simple_eval(text, names=expr_vars)
+                        # C++ truncates when it divides ints, python does not
+                        value = simple_eval(text, names=expr_vars)
+                        child_design[param] = int(value) if isinstance(value, float) else value
                 elif param in design.design:
                     # If parent doesn't define the child param in its inst args
                     # fallback to using the parent's design params

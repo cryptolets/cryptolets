@@ -9,7 +9,8 @@
 // Montgomery reduction, t * R^-1 mod q
 template<class _FIELD>
 class l1_mont_reduce {
-    l0_int_mul_impl<_FIELD::W> int_mul_inst;
+    l0_int_mul_impl<_FIELD::W>                 int_mul_inst;
+    l0_int_mul_impl<_FIELD::W, MUL_OUTPUT_LO>  mul_lo_inst;
     l0_int_cmul_impl<_FIELD::W, typename _FIELD::Q_PRIME, CMUL_OUTPUT_LO>   cmul_q_prime_inst;
     l0_int_cmul_impl<_FIELD::W, typename _FIELD::Q,       CMUL_OUTPUT_FULL> cmul_q_inst;
 
@@ -28,7 +29,7 @@ public:
             cmul_q_prime_inst.run(t_red, m_red); // compile to constant multiplier
         } else {
             ac_int<2*_FIELD::W, false> m;
-            int_mul_inst.run(t_red, q_prime, m);
+            mul_lo_inst.run(t_red, q_prime, m); // only the low half is read
             m_red = m.template slc<_FIELD::W>(0); // Extract lower BITWIDTH bits
         }
 

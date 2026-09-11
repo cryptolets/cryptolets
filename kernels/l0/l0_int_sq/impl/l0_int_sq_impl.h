@@ -3,7 +3,6 @@
 
 #include <ac_int.h>
 #include "params.h"
-#include "l0_int_mul_impl.h"
 #include "l0_int_mul_sb.h"
 #include "l0_int_mul_kar.h"
 
@@ -52,8 +51,6 @@ template<int _BITWIDTH,
          int _BASE_MUL_WIDTH = BASE_MUL_WIDTH,
          int _KAR_BASE_MUL_WIDTH = KAR_BASE_MUL_WIDTH>
 class l0_int_sq_impl {
-    l0_int_mul_impl<_BITWIDTH, _MUL_TYPE, _BASE_MUL_WIDTH, _KAR_BASE_MUL_WIDTH> int_mul_inst;
-
 public:
     void run(
         const ac_int<_BITWIDTH, false> x,

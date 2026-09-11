@@ -32,7 +32,11 @@ class Sweep(BaseModel):
 
     # normal (DesignWare mults), schoolbook, karatsuba multipliers
     mul_type: Optional[list[Literal["mul_nor", "mul_sb", "mul_kar"]]] = None
-    skip_upper: Optional[list[int]] = None
+
+    # which part of the product a mul keeps
+    mul_output_type: Optional[list[Literal[
+        "mul_output_full", "mul_output_lo", "mul_output_hi"
+    ]]] = None
 
     # which constant to use, specifically for the l0_int_cmul kernel
     cmul_const: Optional[list[str]] = None

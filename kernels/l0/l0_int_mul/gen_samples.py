@@ -3,6 +3,7 @@ from reference import integer
 
 def generate(design, sweep_flags):
     bitwidth = design.design["bitwidth"]
+    mul_output_type = design.design["mul_output_type"]
     num_samples = sweep_flags.get("num_test_samples", 10)
     rng = get_rng()
 
@@ -31,6 +32,6 @@ def generate(design, sweep_flags):
             samples.append((x, y))
 
     for x, y in samples:
-        goldens.append((integer.mul(x, y),))
+        goldens.append((integer.mul(x, y, bitwidth, mul_output_type),))
 
     write_csvs(samples, goldens, design.build_dir)
