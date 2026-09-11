@@ -21,10 +21,18 @@ vector<string> run_per_row(vector<string>& samples_row) {
   PointExtProj<FIELD> R;
   CCS_DESIGN(l2_point_add_te_top) dut;
 
-#if defined(Q_TYPE) && Q_TYPE == FIXED_Q
-  dut.run(aff_to_ext_proj<FIELD>(P, q), aff_to_ext_proj<FIELD>(Q, q), rc, R);
+  PointExtProj<FIELD> P0 = aff_to_ext_proj<FIELD>(P, q);
+  PointExtProj<FIELD> P1 = aff_to_ext_proj<FIELD>(Q, q);
+
+  // A fixed constant is baked into the design, so it has no port
+#if Q_TYPE == FIXED_Q && REDC_TYPE == FIXED_RC
+  dut.run(P0, P1, R);
+#elif Q_TYPE == FIXED_Q
+  dut.run(P0, P1, rc, R);
+#elif REDC_TYPE == FIXED_RC
+  dut.run(P0, P1, q, R);
 #else
-  dut.run(aff_to_ext_proj<FIELD>(P, q), aff_to_ext_proj<FIELD>(Q, q), q, rc, R);
+  dut.run(P0, P1, q, rc, R);
 #endif
 
   PointAff<FIELD> A = ext_proj_to_aff<FIELD>(R, q);

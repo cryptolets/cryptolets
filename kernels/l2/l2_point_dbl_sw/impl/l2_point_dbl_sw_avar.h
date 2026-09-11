@@ -15,7 +15,8 @@ class l2_point_dbl_sw_avar {
     l1_mod_mul_impl<_FIELD, _MRED> modmul_inst;
     l1_mod_add_impl<_FIELD>        modadd_inst;
     l1_mod_sub_impl<_FIELD>        modsub_inst;
-    l1_mod_cmul_impl<_FIELD, typename _FIELD::A_MONT, _MRED> cmul_a_inst;
+    l1_mod_cmul_impl<_FIELD, typename _FIELD::A_MONT, _MRED> cmul_a_mont_inst;
+    l1_mod_cmul_impl<_FIELD, typename _FIELD::A, _MRED>      cmul_a_inst;
 
     typedef ac_int<_FIELD::W, false> fe;
     typedef ac_int<l1_mod_mul_consts<_FIELD,_MRED>::RC, false> rc_t;
@@ -38,7 +39,11 @@ public:
         modsub_inst.run(t2, YYYY, q, t3);            // t3 = t2-YYYY
         modadd_inst.run(t3, t3, q, S);               // S = 2*t3
         modmul_inst.run(ZZ, ZZ, q, rc, t4);          // t4 = ZZ^2
-        cmul_a_inst.run(t4, q, rc, t5);              // t5 = a*t4
+        if constexpr (_MRED == MRED_MONT) {          // t5 = a*t4
+            cmul_a_mont_inst.run(t4, q, rc, t5);
+        } else {
+            cmul_a_inst.run(t4, q, rc, t5);
+        }
         modadd_inst.run(XX, XX, q, t6);              // t6 = XX+XX
         modadd_inst.run(t6, XX, q, t6);              // t6 = t6+XX
         modadd_inst.run(t6, t5, q, M);               // M = t6+t5

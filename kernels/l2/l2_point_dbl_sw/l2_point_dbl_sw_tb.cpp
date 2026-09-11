@@ -19,8 +19,13 @@ vector<string> run_per_row(vector<string>& samples_row) {
   PointJac<FIELD> R;
   CCS_DESIGN(l2_point_dbl_sw_top) dut;
 
-#if defined(Q_TYPE) && Q_TYPE == FIXED_Q
+  // A fixed constant is baked into the design, so it has no port
+#if Q_TYPE == FIXED_Q && REDC_TYPE == FIXED_RC
+  dut.run(aff_to_jac<FIELD>(P), R);
+#elif Q_TYPE == FIXED_Q
   dut.run(aff_to_jac<FIELD>(P), rc, R);
+#elif REDC_TYPE == FIXED_RC
+  dut.run(aff_to_jac<FIELD>(P), q, R);
 #else
   dut.run(aff_to_jac<FIELD>(P), q, rc, R);
 #endif

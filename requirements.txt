@@ -4,5 +4,6 @@ Jinja2==3.1.4             # the TCL, C++ and makefile templates
 pydantic==2.13.4          # config and sweep validation
 PyYAML==6.0.3             # config, sweeps and manifests
 sympy==1.14.0             # primes and modular arithmetic for the samples
-tree-sitter==0.23.2       # reads a kernel's C++ to find its ports and deps
+tree-sitter==0.23.2       # reads a kernel's C++ to find its ports and template parameters
 tree-sitter-cpp==0.23.4
+pyelftools==0.32          # reads the DWARF of a compiled design to find its children

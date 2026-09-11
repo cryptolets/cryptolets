@@ -13,10 +13,12 @@
 template<class _FIELD, int _MRED>
 class l2_point_add_te_add {
     l1_mod_mul_impl<_FIELD, _MRED>          modmul_inst;
-    l1_mod_cmul_impl<_FIELD, _MRED, CMUL_A> cmul_a_inst;
-    l1_mod_cmul_impl<_FIELD, _MRED, CMUL_D> cmul_d_inst;
     l1_mod_add_impl<_FIELD>                 modadd_inst;
     l1_mod_sub_impl<_FIELD>                 modsub_inst;
+    l1_mod_cmul_impl<_FIELD, typename _FIELD::A_MONT, _MRED> cmul_a_mont_inst;
+    l1_mod_cmul_impl<_FIELD, typename _FIELD::A, _MRED>      cmul_a_inst;
+    l1_mod_cmul_impl<_FIELD, typename _FIELD::D_MONT, _MRED> cmul_d_mont_inst;
+    l1_mod_cmul_impl<_FIELD, typename _FIELD::D, _MRED>      cmul_d_inst;
 
     typedef ac_int<_FIELD::W, false> fe;
     typedef ac_int<l1_mod_mul_consts<_FIELD,_MRED>::RC, false> rc_t;
@@ -31,7 +33,11 @@ public:
         fe A, B, t0, C, D, t1, t2, t3, t4, E, F, G, t5, H;
         modmul_inst.run(P0.X, P1.X, q, rc, A);       // A = X1*X2
         modmul_inst.run(P0.Y, P1.Y, q, rc, B);       // B = Y1*Y2
-        cmul_d_inst.run(P1.T, q, rc, t0);            // t0 = d*T2
+        if constexpr (_MRED == MRED_MONT) {          // t0 = d*T2
+            cmul_d_mont_inst.run(P1.T, q, rc, t0);
+        } else {
+            cmul_d_inst.run(P1.T, q, rc, t0);
+        }
         modmul_inst.run(P0.T, t0, q, rc, C);         // C = T1*t0
         modmul_inst.run(P0.Z, P1.Z, q, rc, D);       // D = Z1*Z2
         modadd_inst.run(P0.X, P0.Y, q, t1);          // t1 = X1+Y1
@@ -41,7 +47,11 @@ public:
         modsub_inst.run(t4, B, q, E);                // E = t4-B
         modsub_inst.run(D, C, q, F);                 // F = D-C
         modadd_inst.run(D, C, q, G);                 // G = D+C
-        cmul_a_inst.run(A, q, rc, t5);               // t5 = a*A
+        if constexpr (_MRED == MRED_MONT) {          // t5 = a*A
+            cmul_a_mont_inst.run(A, q, rc, t5);
+        } else {
+            cmul_a_inst.run(A, q, rc, t5);
+        }
         modsub_inst.run(B, t5, q, H);                // H = B-t5
 
         modmul_inst.run(E, F, q, rc, R.X);           // X3 = E*F
