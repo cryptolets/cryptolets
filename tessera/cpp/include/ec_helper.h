@@ -3,6 +3,7 @@
 
 #include <ac_int.h>
 #include "params.h"
+#include "field_helper.h"
 
 // A point in each coordinate system the formulas work in, and the
 // conversions between them, which only the testbench runs.
@@ -24,35 +25,6 @@ template<class _FIELD>
 struct PointExtProj {
     ac_int<_FIELD::W, false> X, Y, Z, T;
 };
-
-// The conversions need plain modular arithmetic, which no kernel runs
-// x * y mod q, on a width that holds the product
-template<class _FIELD>
-ac_int<_FIELD::W, false> mod_mul(const ac_int<_FIELD::W, false> x,
-                                 const ac_int<_FIELD::W, false> y,
-                                 const ac_int<_FIELD::W, false> q) {
-    ac_int<2*_FIELD::W, false> t = x * y;
-    return (ac_int<_FIELD::W, false>)(t % q);
-}
-
-// x^-1 mod q by the extended euclidean algorithm
-template<class _FIELD>
-ac_int<_FIELD::W, false> mod_inv(const ac_int<_FIELD::W, false> x,
-                                 const ac_int<_FIELD::W, false> q) {
-    ac_int<2*_FIELD::W, true> r = q, new_r = x;
-    ac_int<2*_FIELD::W, true> t = 0, new_t = 1;
-
-    while (new_r != 0) {
-        ac_int<2*_FIELD::W, true> quot = r / new_r;
-        ac_int<2*_FIELD::W, true> tmp = t - quot * new_t;
-        t = new_t; new_t = tmp;
-        tmp = r - quot * new_r;
-        r = new_r; new_r = tmp;
-    }
-    if (t < 0) t += q;
-    return (ac_int<_FIELD::W, false>)t;
-}
-
 
 // Z is free, so a converted affine point takes the cheapest one
 
@@ -77,8 +49,6 @@ PointExtProj<_FIELD> aff_to_ext_proj(const PointAff<_FIELD> P,
     R.T = mod_mul<_FIELD>(P.x, P.y, q);
     return R;
 }
-
-// Converting back needs a modular inverse, which the testbench alone runs
 
 // jacobian to affine
 // x = X/Z^2 and y = Y/Z^3
@@ -107,6 +77,29 @@ PointAff<_FIELD> ext_proj_to_aff(const PointExtProj<_FIELD> P,
     R.x = mod_mul<_FIELD>(P.X, z_inv, q);
     R.y = mod_mul<_FIELD>(P.Y, z_inv, q);
     return R;
+}
+
+// A point in the Montgomery domain carries R on every coordinate
+template<class _FIELD>
+PointJac<_FIELD> to_mont(const PointJac<_FIELD> P, const ac_int<_FIELD::W, false> q) {
+    return {to_mont<_FIELD>(P.X, q), to_mont<_FIELD>(P.Y, q), to_mont<_FIELD>(P.Z, q)};
+}
+
+template<class _FIELD>
+PointJac<_FIELD> from_mont(const PointJac<_FIELD> P, const ac_int<_FIELD::W, false> q) {
+    return {from_mont<_FIELD>(P.X, q), from_mont<_FIELD>(P.Y, q), from_mont<_FIELD>(P.Z, q)};
+}
+
+template<class _FIELD>
+PointExtProj<_FIELD> to_mont(const PointExtProj<_FIELD> P, const ac_int<_FIELD::W, false> q) {
+    return {to_mont<_FIELD>(P.X, q), to_mont<_FIELD>(P.Y, q),
+            to_mont<_FIELD>(P.Z, q), to_mont<_FIELD>(P.T, q)};
+}
+
+template<class _FIELD>
+PointExtProj<_FIELD> from_mont(const PointExtProj<_FIELD> P, const ac_int<_FIELD::W, false> q) {
+    return {from_mont<_FIELD>(P.X, q), from_mont<_FIELD>(P.Y, q),
+            from_mont<_FIELD>(P.Z, q), from_mont<_FIELD>(P.T, q)};
 }
 
 #endif /* _EC_HELPER_H_ */

@@ -1,5 +1,4 @@
 from reference.field import modmul
-from reference.redc import to_mont
 from tessera.samples import get_rng, get_q, get_rc, write_csvs
 
 
@@ -8,10 +7,7 @@ def generate(design, sweep_flags):
     num_samples = sweep_flags.get("num_test_samples", 10)
     rng = get_rng()
     q = get_q(design)
-    mont = design.design["mred"] == "mred_mont"
     rc = get_rc(design)
-
-    goldens = []
 
     max_val = q - 1
     mid_val = max_val // 2
@@ -36,13 +32,7 @@ def generate(design, sweep_flags):
             y = rng.randint(0, min(sub_max, max_val))
             samples.append((x, y, q, rc))
 
-    # Montgomery works in its own domain, so x*y*R^-1 on the converted operands
-    # is x*y*R on the plain ones
-    R = 1 << bitwidth
-    for x, y, q, rc in samples:
-        goldens.append(((x * y * R) % q if mont else modmul(x, y, q),))
-
-    if mont:
-        samples = [(to_mont(x, q), to_mont(y, q), q, rc) for x, y, q, rc in samples]
-
+    # The testbench moves the operands into the Montgomery domain when the
+    # design needs it, so the samples and goldens are plain
+    goldens = [(modmul(x, y, q),) for x, y, q, rc in samples]
     write_csvs(samples, goldens, design.build_dir)

@@ -1,9 +1,5 @@
 """
 Which kernels to build, in what order, and which designs of each.
-
-A kernel's blackboxed deps come from its kernel.yaml. Which designs of a dep
-a parent design needs comes from the compiler, since the parent's impl picks
-its children with `if constexpr` on the design's parameters.
 """
 import logging
 from graphlib import TopologicalSorter
@@ -53,7 +49,7 @@ def resolve_designs(parent_kernel, parent_designs, kernels, kernel_designs):
 
         for child_name in parent_kernel.config.blackbox:
             if child_name not in instances:
-                logging.warning(f"{parent_kernel.name} {parent.build_dir.name} "
+                logging.debug(f"{parent_kernel.name} {parent.build_dir.name} "
                                 f"does not use blackboxed dep '{child_name}'")
                 continue
 

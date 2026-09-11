@@ -2,7 +2,6 @@
 #include "tb_helper.h"
 #include "ec_helper.h"
 
-// The reduction constant is q_prime for Montgomery and the wider mu for Barrett
 #if MRED == MRED_BAR
 static constexpr int RC_W = 2*BITWIDTH;
 #else
@@ -16,18 +15,27 @@ vector<string> run_per_row(vector<string>& samples_row) {
   ac_int<BITWIDTH, false> q = parse_ac_int<BITWIDTH>(samples_row[2]);
   ac_int<RC_W, false> rc = parse_ac_int<RC_W>(samples_row[3]);
 
+  PointJac<FIELD> P0 = aff_to_jac<FIELD>(P);
+
+#if MRED == MRED_MONT
+  P0 = to_mont<FIELD>(P0, q);
+#endif
+
   PointJac<FIELD> R;
   CCS_DESIGN(l2_point_dbl_sw_top) dut;
 
-  // A fixed constant is baked into the design, so it has no port
 #if Q_TYPE == FIXED_Q && REDC_TYPE == FIXED_RC
-  dut.run(aff_to_jac<FIELD>(P), R);
+  dut.run(P0, R);
 #elif Q_TYPE == FIXED_Q
-  dut.run(aff_to_jac<FIELD>(P), rc, R);
+  dut.run(P0, rc, R);
 #elif REDC_TYPE == FIXED_RC
-  dut.run(aff_to_jac<FIELD>(P), q, R);
+  dut.run(P0, q, R);
 #else
-  dut.run(aff_to_jac<FIELD>(P), q, rc, R);
+  dut.run(P0, q, rc, R);
+#endif
+
+#if MRED == MRED_MONT
+  R = from_mont<FIELD>(R, q);
 #endif
 
   PointAff<FIELD> A = jac_to_aff<FIELD>(R, q);

@@ -1,5 +1,5 @@
 from reference.field import modmul
-from reference.redc import to_mont
+from reference.redc import from_mont
 from tessera.samples import get_rng, get_q, get_rc, get_cmul_const, write_csvs
 
 
@@ -8,11 +8,13 @@ def generate(design, sweep_flags):
     num_samples = sweep_flags.get("num_test_samples", 10)
     rng = get_rng()
     q = get_q(design)
-    mont = design.design["mred"] == "mred_mont"
     rc = get_rc(design)
     _, const = get_cmul_const(design)
 
-    goldens = []
+    # The testbench moves x into the Montgomery domain and the result out of
+    # it, so the constant the design bakes in is read as a plain value too
+    if design.design["mred"] == "mred_mont":
+        const = from_mont(const, q)
 
     max_val = q - 1
     mid_val = max_val // 2
@@ -33,12 +35,5 @@ def generate(design, sweep_flags):
             sub_max = (1 << sub_bw) - 1
             samples.append((rng.randint(0, min(sub_max, max_val)), q, rc))
 
-    # Montgomery works in its own domain, so x*c*R^-1 on a converted operand
-    # is x*c on the plain one
-    for x, q, rc in samples:
-        goldens.append((modmul(x, const, q),))
-
-    if mont:
-        samples = [(to_mont(x, q), q, rc) for x, q, rc in samples]
-
+    goldens = [(modmul(x, const, q),) for x, q, rc in samples]
     write_csvs(samples, goldens, design.build_dir)

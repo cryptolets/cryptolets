@@ -18,13 +18,17 @@ vector<string> run_per_row(vector<string>& samples_row) {
   ac_int<BITWIDTH, false> q = parse_ac_int<BITWIDTH>(samples_row[4]);
   ac_int<RC_W, false> rc = parse_ac_int<RC_W>(samples_row[5]);
 
-  PointExtProj<FIELD> R;
-  CCS_DESIGN(l2_point_add_te_top) dut;
-
   PointExtProj<FIELD> P0 = aff_to_ext_proj<FIELD>(P, q);
   PointExtProj<FIELD> P1 = aff_to_ext_proj<FIELD>(Q, q);
 
-  // A fixed constant is baked into the design, so it has no port
+#if MRED == MRED_MONT
+  P0 = to_mont<FIELD>(P0, q);
+  P1 = to_mont<FIELD>(P1, q);
+#endif
+
+  PointExtProj<FIELD> R;
+  CCS_DESIGN(l2_point_add_te_top) dut;
+
 #if Q_TYPE == FIXED_Q && REDC_TYPE == FIXED_RC
   dut.run(P0, P1, R);
 #elif Q_TYPE == FIXED_Q
@@ -33,6 +37,10 @@ vector<string> run_per_row(vector<string>& samples_row) {
   dut.run(P0, P1, q, R);
 #else
   dut.run(P0, P1, q, rc, R);
+#endif
+
+#if MRED == MRED_MONT
+  R = from_mont<FIELD>(R, q);
 #endif
 
   PointAff<FIELD> A = ext_proj_to_aff<FIELD>(R, q);

@@ -1,7 +1,7 @@
 #include "l1_mod_mul_top.h"
 #include "tb_helper.h"
+#include "field_helper.h"
 
-// The reduction constant is q_prime for Montgomery and the wider mu for Barrett
 #if MRED == MRED_BAR
 static constexpr int RC_W = 2*BITWIDTH;
 #else
@@ -14,10 +14,15 @@ vector<string> run_per_row(vector<string>& samples_row) {
   ac_int<BITWIDTH, false> q = parse_ac_int<BITWIDTH>(samples_row[2]);
   ac_int<RC_W, false> rc = parse_ac_int<RC_W>(samples_row[3]);
 
+  // A Montgomery multiplier works on operands scaled by R
+#if MRED == MRED_MONT
+  x = to_mont<FIELD>(x, q);
+  y = to_mont<FIELD>(y, q);
+#endif
+
   ac_int<BITWIDTH, false> result;
   CCS_DESIGN(l1_mod_mul_top) dut;
 
-  // A fixed constant is baked into the design, so it has no port
 #if Q_TYPE == FIXED_Q && REDC_TYPE == FIXED_RC
   dut.run(x, y, result);
 #elif Q_TYPE == FIXED_Q
@@ -26,6 +31,10 @@ vector<string> run_per_row(vector<string>& samples_row) {
   dut.run(x, y, q, result);
 #else
   dut.run(x, y, q, rc, result);
+#endif
+
+#if MRED == MRED_MONT
+  result = from_mont<FIELD>(result, q);
 #endif
 
   return {result.to_string(AC_DEC)};

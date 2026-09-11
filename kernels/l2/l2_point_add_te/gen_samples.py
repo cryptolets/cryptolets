@@ -3,7 +3,6 @@ import random
 from tessera.samples import get_rng, get_q, get_rc, write_csvs
 from reference.ec import TwistedEdwards
 from reference.coordinates import PointInfinity
-from reference.redc import to_mont
 
 
 def generate(design, sweep_flags):
@@ -13,7 +12,6 @@ def generate(design, sweep_flags):
 
     q = get_q(design)
     rc = get_rc(design)
-    mont = design.design["mred"] == "mred_mont"
 
     field = design.structs[design.design["field"]]
     curve = TwistedEdwards(q, int(field["a"]["val"], 16), int(field["d"]["val"], 16))
@@ -25,10 +23,7 @@ def generate(design, sweep_flags):
         if R is PointInfinity:
             continue
 
-        pts = [P.x, P.y, Q.x, Q.y]
-        if mont:
-            pts = [to_mont(v, q) for v in pts]
-        samples.append((*pts, q, rc))
-        goldens.append((to_mont(R.x, q), to_mont(R.y, q)) if mont else (R.x, R.y))
+        samples.append((P.x, P.y, Q.x, Q.y, q, rc))
+        goldens.append((R.x, R.y))
 
     write_csvs(samples, goldens, design.build_dir)
