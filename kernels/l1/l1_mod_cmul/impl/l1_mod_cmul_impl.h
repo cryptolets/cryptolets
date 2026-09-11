@@ -4,8 +4,7 @@
 #include <ac_int.h>
 #include "params.h"
 #include "l0_int_cmul_impl.h"
-#include "l1_mont_reduce.h"
-#include "l1_barrett_reduce.h"
+#include "l1_mod_mul_impl.h"
 
 // One operand is a field constant, so only the multiply differs from a
 // l1_mod_mul. The reduction is the same one.
@@ -14,7 +13,7 @@ template<class _FIELD,
          int _MRED=MRED>
 class l1_mod_cmul_impl {
     // Declared so the shared reductions are on the include path
-    l0_int_cmul_impl<_FIELD, _CMUL_CONST> cmul_inst;
+    l0_int_cmul_impl<_FIELD::W, _CMUL_CONST> cmul_inst;
     l1_mont_reduce<_FIELD>                mont_inst;
     l1_barrett_reduce<_FIELD>             barrett_inst;
 
