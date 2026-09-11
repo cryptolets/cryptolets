@@ -10,15 +10,20 @@ static constexpr int RC_W = BITWIDTH;
 
 vector<string> run_per_row(vector<string>& samples_row) {
   ac_int<BITWIDTH, false> x = parse_ac_int<BITWIDTH>(samples_row[0]);
+  ac_int<BITWIDTH, false> q = parse_ac_int<BITWIDTH>(samples_row[1]);
   ac_int<RC_W, false> rc = parse_ac_int<RC_W>(samples_row[2]);
 
   ac_int<BITWIDTH, false> result;
   CCS_DESIGN(l1_mod_cmul_top) dut;
 
-#if defined(Q_TYPE) && Q_TYPE == FIXED_Q
+  // A fixed constant is baked into the design, so it has no port
+#if Q_TYPE == FIXED_Q && REDC_TYPE == FIXED_RC
+  dut.run(x, result);
+#elif Q_TYPE == FIXED_Q
   dut.run(x, rc, result);
+#elif REDC_TYPE == FIXED_RC
+  dut.run(x, q, result);
 #else
-  ac_int<BITWIDTH, false> q = parse_ac_int<BITWIDTH>(samples_row[1]);
   dut.run(x, q, rc, result);
 #endif
 

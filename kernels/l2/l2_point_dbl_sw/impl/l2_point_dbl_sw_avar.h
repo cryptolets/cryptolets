@@ -15,7 +15,7 @@ class l2_point_dbl_sw_avar {
     l1_mod_mul_impl<_FIELD, _MRED> modmul_inst;
     l1_mod_add_impl<_FIELD>        modadd_inst;
     l1_mod_sub_impl<_FIELD>        modsub_inst;
-    l1_mod_cmul_impl<_FIELD, _MRED, CMUL_A> cmul_a_inst;
+    l1_mod_cmul_impl<_FIELD, typename _FIELD::A_MONT, _MRED> cmul_a_inst;
 
     typedef ac_int<_FIELD::W, false> fe;
     typedef ac_int<l1_mod_mul_consts<_FIELD,_MRED>::RC, false> rc_t;

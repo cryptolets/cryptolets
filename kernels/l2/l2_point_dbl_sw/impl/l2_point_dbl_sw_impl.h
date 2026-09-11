@@ -12,6 +12,7 @@ template<class _FIELD,
          int _MRED = MRED, 
          int _PDBL_FORM = PDBL_FORM>
 class l2_point_dbl_sw_impl {
+    l1_mod_mul_impl<_FIELD, _MRED>      modmul_inst;
     l2_point_dbl_sw_a0<_FIELD, _MRED>   a0_inst;
     l2_point_dbl_sw_a3<_FIELD, _MRED>   a3_inst;
     l2_point_dbl_sw_avar<_FIELD, _MRED> avar_inst;
@@ -30,7 +31,9 @@ public:
         if constexpr (_PDBL_FORM == PDBL_A0) {
             a0_inst.run(P0, q, rc, R);
         } else if constexpr (_PDBL_FORM == PDBL_A3) {
-            a3_inst.run(P0, q, rc, R);
+            fe Z1Z1;
+            modmul_inst.run(P0.Z, P0.Z, q, rc, Z1Z1); // Z1Z1 = Z1^2
+            a3_inst.run(P0, Z1Z1, q, rc, R);
         } else { // PDBL_AVAR
             avar_inst.run(P0, q, rc, R);
         }

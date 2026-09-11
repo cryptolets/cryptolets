@@ -7,18 +7,23 @@
 #include "l1_mod_mul_impl.h"
 #include "l1_mod_add_impl.h"
 #include "l1_mod_sub_impl.h"
-#include "l2_point_dbl_sw_impl.h"
+#include "l2_point_dbl_sw_a0.h"
+#include "l2_point_dbl_sw_a3.h"
+#include "l2_point_dbl_sw_avar.h"
 
-// Short Weierstrass point addition 
-// with doubling branched after point equality check.
-
-// Should _PDBL_FORM be here?
-template<class _FIELD, int _MRED = MRED>
+// Short Weierstrass point addition, add-2007-bl. The doubling formula
+// takes over when both points are the same one, and reads the Z1^2
+// the addition already computed.
+template<class _FIELD,
+         int _MRED = MRED,
+         int _PDBL_FORM = PDBL_FORM>
 class l2_point_add_sw_impl {
-    l1_mod_mul_impl<_FIELD, _MRED>  modmul_inst;
-    l1_mod_add_impl<_FIELD>         modadd_inst;
-    l1_mod_sub_impl<_FIELD>         modsub_inst;
-    l2_point_dbl_sw_impl<_FIELD>    double_inst;
+    l1_mod_mul_impl<_FIELD, _MRED>      modmul_inst;
+    l1_mod_add_impl<_FIELD>             modadd_inst;
+    l1_mod_sub_impl<_FIELD>             modsub_inst;
+    l2_point_dbl_sw_a0<_FIELD, _MRED>   a0_inst;
+    l2_point_dbl_sw_a3<_FIELD, _MRED>   a3_inst;
+    l2_point_dbl_sw_avar<_FIELD, _MRED> avar_inst;
 
     typedef ac_int<_FIELD::W, false> fe;
 
@@ -42,42 +47,43 @@ public:
         modmul_inst.run(P0.Z, Z1Z1, q, rc, t1);      // t1 = Z1*Z1Z1
         modmul_inst.run(P1.Y, t1, q, rc, S2);        // S2 = Y2*t1
 
-        fe H, t2, I, J, t3, r, V;
-        modsub_inst.run(U2, U1, q, H);               // H = U2-U1
-        modadd_inst.run(H, H, q, t2);                // t2 = 2*H
-        modmul_inst.run(t2, t2, q, rc, I);           // I = t2^2
-        modmul_inst.run(H, I, q, rc, J);             // J = H*I
-        modsub_inst.run(S2, S1, q, t3);              // t3 = S2-S1
-        modadd_inst.run(t3, t3, q, r);               // r = 2*t3
-        modmul_inst.run(U1, I, q, rc, V);            // V = U1*I
-
-        fe t4, t5, t6, t7, t8, t9, t10;
-        PointJac<_FIELD> A;
-        modmul_inst.run(r, r, q, rc, t4);            // t4 = r^2
-        modadd_inst.run(V, V, q, t5);                // t5 = 2*V
-        modsub_inst.run(t4, J, q, t6);               // t6 = t4-J
-        modsub_inst.run(t6, t5, q, A.X);             // X3 = t6-t5
-        modsub_inst.run(V, A.X, q, t7);              // t7 = V-X3
-        modmul_inst.run(S1, J, q, rc, t8);           // t8 = S1*J
-        modadd_inst.run(t8, t8, q, t9);              // t9 = 2*t8
-        modmul_inst.run(r, t7, q, rc, t10);          // t10 = r*t7
-        modsub_inst.run(t10, t9, q, A.Y);            // Y3 = t10-t9
-
-        fe t11, t12, t13, t14;
-        modadd_inst.run(P0.Z, P1.Z, q, t11);         // t11 = Z1+Z2
-        modmul_inst.run(t11, t11, q, rc, t12);       // t12 = t11^2
-        modsub_inst.run(t12, Z1Z1, q, t13);          // t13 = t12-Z1Z1
-        modsub_inst.run(t13, Z2Z2, q, t14);          // t14 = t13-Z2Z2
-        modmul_inst.run(t14, H, q, rc, A.Z);         // Z3 = t14*H
-
         // The two points are the same one, so the chord is a tangent
-        PointJac<_FIELD> D;
-        double_inst.run(P0, q, rc, D);
+        if (U1 == U2 && S1 == S2) {
+            if constexpr (_PDBL_FORM == PDBL_A0) {
+                a0_inst.run(P0, q, rc, R);
+            } else if constexpr (_PDBL_FORM == PDBL_A3) {
+                a3_inst.run(P0, Z1Z1, q, rc, R);
+            } else { // PDBL_AVAR
+                avar_inst.run(P0, q, rc, R);
+            }
+        } else {
+            fe H, t2, I, J, t3, r, V;
+            modsub_inst.run(U2, U1, q, H);               // H = U2-U1
+            modadd_inst.run(H, H, q, t2);                // t2 = 2*H
+            modmul_inst.run(t2, t2, q, rc, I);           // I = t2^2
+            modmul_inst.run(H, I, q, rc, J);             // J = H*I
+            modsub_inst.run(S2, S1, q, t3);              // t3 = S2-S1
+            modadd_inst.run(t3, t3, q, r);               // r = 2*t3
+            modmul_inst.run(U1, I, q, rc, V);            // V = U1*I
 
-        bool same = (U1 == U2) && (S1 == S2);
-        R.X = same ? D.X : A.X;
-        R.Y = same ? D.Y : A.Y;
-        R.Z = same ? D.Z : A.Z;
+            fe t4, t5, t6, t7, t8, t9, t10;
+            modmul_inst.run(r, r, q, rc, t4);            // t4 = r^2
+            modadd_inst.run(V, V, q, t5);                // t5 = 2*V
+            modsub_inst.run(t4, J, q, t6);               // t6 = t4-J
+            modsub_inst.run(t6, t5, q, R.X);             // X3 = t6-t5
+            modsub_inst.run(V, R.X, q, t7);              // t7 = V-X3
+            modmul_inst.run(S1, J, q, rc, t8);           // t8 = S1*J
+            modadd_inst.run(t8, t8, q, t9);              // t9 = 2*t8
+            modmul_inst.run(r, t7, q, rc, t10);          // t10 = r*t7
+            modsub_inst.run(t10, t9, q, R.Y);            // Y3 = t10-t9
+
+            fe t11, t12, t13, t14;
+            modadd_inst.run(P0.Z, P1.Z, q, t11);         // t11 = Z1+Z2
+            modmul_inst.run(t11, t11, q, rc, t12);       // t12 = t11^2
+            modsub_inst.run(t12, Z1Z1, q, t13);          // t13 = t12-Z1Z1
+            modsub_inst.run(t13, Z2Z2, q, t14);          // t14 = t13-Z2Z2
+            modmul_inst.run(t14, H, q, rc, R.Z);         // Z3 = t14*H
+        }
     }
 };
 

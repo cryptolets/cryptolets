@@ -3,7 +3,7 @@ import time
 import subprocess
 from pathlib import Path
 
-from tessera.const import DWARE_DIR
+from tessera.const import DONE_DIR, DWARE_DIR
 from tessera.models.config import RunConfig
 from tessera.steps.base import Step
 from tessera.steps.questagls.libs import build_dware
@@ -26,6 +26,12 @@ class CatapultHLS(Step):
     stages = ("cpp", "hls", "rtl")
     license = "catapult_ultra"
     multi_threaded = False
+
+    def mark_done(self, design):
+        packaged = (design.build_dir / "package" / "manifest.yaml").exists()
+        path = design.build_dir / DONE_DIR / f"{'hls' if packaged else 'cpp'}.done"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.touch()
 
     def setup(self, kernel, designs, run_inst):
         # A blackboxed child's RTL names DesignWare parts Catapult did not map
@@ -96,7 +102,7 @@ class CatapultHLS(Step):
 
         # A parent blackboxes the design through its package, so only a
         # successful run leaves one
-        if return_code == 0:
+        if return_code == 0 and not self.flags(run_inst, kernel)["test_cpp_only"]:
             write_package(design, kernel, combinational)
 
         return log_elapsed(self.name, design_name, return_code, start_time)

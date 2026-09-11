@@ -56,6 +56,7 @@ def gen_blackbox_headers(design, run_inst):
     rtl_dir.mkdir(parents=True, exist_ok=True)
     wrapper_dir.mkdir(parents=True, exist_ok=True)
 
+    complete = True
     for child_name, child_designs in design.deps.items():
         designs_tmpl_ctx = []
         child_kernel = None
@@ -107,6 +108,7 @@ def gen_blackbox_headers(design, run_inst):
                     f"'{child_name}' is not fully built, '{design.build_dir.name}' cannot blackbox it"
                 )
             render("blackbox_todo.h.j2", impl_dir / f"{child_name}_impl.h", kernel=child_name)
+            complete = False
             continue
 
         impl = child_kernel.path / "impl" / f"{child_name}_impl.h"
@@ -117,3 +119,5 @@ def gen_blackbox_headers(design, run_inst):
             impl=str(impl.resolve()),
             designs=designs_tmpl_ctx,
         )
+
+    return complete

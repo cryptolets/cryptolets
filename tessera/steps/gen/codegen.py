@@ -65,6 +65,13 @@ FIXABLE_PORTS = {
 }
 
 
+def fixed_member(port, design):
+    "The struct member a fixed port's constant lives in"
+    if port == "rc":
+        return "Q_PRIME" if design["mred"] == "mred_mont" else "MU"
+    return port.upper()
+
+
 def gen_kernel_top(design, kernel, combinational=False):
     """
     Generate the top header and the source file Catapult synthesizes.
@@ -77,7 +84,7 @@ def gen_kernel_top(design, kernel, combinational=False):
     for param in kernel.impl_spec["run_params"]:
         fixed_by, fixed_value = FIXABLE_PORTS.get(param["name"], (None, None))
         if fixed_by and design.design.get(fixed_by) == fixed_value:
-            args.append(f"FIELD::{param['name'].upper()}::VALUE()")
+            args.append(f"FIELD::{fixed_member(param['name'], design.design)}::VALUE()")
             continue
 
         # A template param _X resolves through the params.h name X at the top

@@ -19,14 +19,15 @@ class l2_point_dbl_sw_a3 {
     typedef ac_int<l1_mod_mul_consts<_FIELD,_MRED>::RC, false> rc_t;
 
 public:
+    // delta = Z1^2, which a caller that already squared Z1 passes in
     void run(
         const PointJac<_FIELD> P0,
+        const fe delta,
         const fe q, const rc_t rc,
         PointJac<_FIELD> &R
     ) {
-        fe delta, gamma, beta, t0, t1, t2, alpha, t3, t4, t8, t5, t6, t7;
+        fe gamma, beta, t0, t1, t2, alpha, t3, t4, t8, t5, t6, t7;
         fe t9, t10, t11, t12;
-        modmul_inst.run(P0.Z, P0.Z, q, rc, delta);   // delta = Z1^2
         modmul_inst.run(P0.Y, P0.Y, q, rc, gamma);   // gamma = Y1^2
         modmul_inst.run(P0.X, gamma, q, rc, beta);   // beta = X1*gamma
         modsub_inst.run(P0.X, delta, q, t0);         // t0 = X1-delta

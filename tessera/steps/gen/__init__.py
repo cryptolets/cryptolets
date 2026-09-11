@@ -22,6 +22,12 @@ class Generate(Step):
         kernel.build_dir.mkdir(parents=True, exist_ok=True)
         gen_catapult_kernel_tcl(CatapultHLS.flags(run_inst, kernel), kernel, run_inst)
 
+    def mark_done(self, design):
+        # A todo header stands in for a child that is not built yet, so the
+        # design is not generated completely until gen runs again with the child packaged
+        if design.blackboxed:
+            super().mark_done(design)
+
     def run(self, design, kernel, run_inst):
         # A design that reaches here is not built, so its old files move aside
         archive_design(design.build_dir)
@@ -36,7 +42,6 @@ class Generate(Step):
         write_test_samples(design, kernel, run_inst) # Write the test samples by calling gen_samples for the kernel
         gen_params_h(design)
         gen_kernel_top(design, kernel)
-        if design.uses_blackboxes:
-            gen_blackbox_headers(design, run_inst)
+        design.blackboxed = gen_blackbox_headers(design, run_inst) if design.uses_blackboxes else True
         gen_catapult_design_tcl(design, kernel, comb_chk=True)
         return True # success

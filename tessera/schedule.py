@@ -74,7 +74,8 @@ def resolve_designs(
         expr_vars = {**get_sweep_enum_vars(), **design.get_expr_vars()}
 
         for parent_inst in parent_inst_args:
-            child_design = {}
+            child_design = {k: design.design[k] for k in design_key
+                            if k in design.design}
             num_child_params = len(child_tmpl_params)
             num_parent_inst_params = len(parent_inst)
 
