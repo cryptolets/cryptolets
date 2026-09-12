@@ -60,15 +60,15 @@ python -m tessera run l1_mod_mul -s sweeps/quick_start_l1_mod_mul.yaml --to rtl
 
 ## How it works
 
-A run starts from one *kernel* and one *sweep* file. The sweep lists values for each parameter, and Tessera crosses them into one *design* per combination. Tessera then resolves the dependencies of every design, recursively. A modular multiplier (`l1_mod_mul`) uses an integer multiplier (`l0_int_mul`) and a constant multiplier (`l0_int_cmul`). Each of those is its own kernel. Tessera derives the child designs a parent needs from the defined kernel implementation conventions, and through compiling and parsing of the parent design. A child designs are reused efficiently. Each child then goes through the full flow the parent needs. Overall, this process is designed to maximize design reuse, reduces runtime, and accelerates developer productivity.
-
 ### Designs and Dependency Scheduling Flow Diagram
 <img src="imgs/design_dep_sch.png" alt="Designs and dependency scheduling" width="75%">
 
-Per design, Tessera fully automates the end-to-end *flow*. The flow is a sequence of *steps*: code generation, C++ verification, HLS RTL generation, RTL simulation and verification, logic synthesis, gate-level simulation and verification, and activity-annotated power analysis. Each step runs a tool and records its metrics in the design's *package*. Tessera supports both ASIC and FPGA flows. For ASICs, OSCI does the C++ verification, Siemens Catapult HLS generates the RTL, Siemens QuestaSim runs the RTL and gate-level simulations, Synopsys Design Compiler performs the logic synthesis, and Synopsys PrimePower measures power from the recorded switching activity. FPGA synthesis is performed with Vivado.
+A run starts from one *kernel* and one *sweep* file. The sweep lists values for each parameter, and Tessera crosses them into one *design* per combination. Tessera then resolves the dependencies of every design, recursively. A modular multiplier (`l1_mod_mul`) uses an integer multiplier (`l0_int_mul`) and a constant multiplier (`l0_int_cmul`). Each of those is its own kernel. Tessera derives the child designs a parent needs from the defined kernel implementation conventions, and through compiling and parsing of the parent design. A child designs are reused efficiently. Each child then goes through the full flow the parent needs. Overall, this process is designed to maximize design reuse, reduces runtime, and accelerates developer productivity.
 
 ### Per-Design Flow Diagram
 ![Per design flow](imgs/per_design_flow.png)
+
+Per design, Tessera fully automates the end-to-end *flow*. The flow is a sequence of *steps*: code generation, C++ verification, HLS RTL generation, RTL simulation and verification, logic synthesis, gate-level simulation and verification, and activity-annotated power analysis. Each step runs a tool and records its metrics in the design's *package*. Tessera supports both ASIC and FPGA flows. For ASICs, OSCI does the C++ verification, Siemens Catapult HLS generates the RTL, Siemens QuestaSim runs the RTL and gate-level simulations, Synopsys Design Compiler performs the logic synthesis, and Synopsys PrimePower measures power from the recorded switching activity. FPGA synthesis is performed with Vivado.
 
 ## Authors
 Gaurav Kuwar
