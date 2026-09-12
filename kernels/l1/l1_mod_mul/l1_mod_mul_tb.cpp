@@ -23,11 +23,11 @@ vector<string> run_per_row(vector<string>& samples_row) {
   ac_int<BITWIDTH, false> result;
   CCS_DESIGN(l1_mod_mul_top) dut;
 
-#if Q_TYPE == FIXED_Q && REDC_TYPE == FIXED_RC
+#if Q_TYPE == FIXED_Q && RC_TYPE == FIXED_RC
   dut.run(x, y, result);
 #elif Q_TYPE == FIXED_Q
   dut.run(x, y, rc, result);
-#elif REDC_TYPE == FIXED_RC
+#elif RC_TYPE == FIXED_RC
   dut.run(x, y, q, result);
 #else
   dut.run(x, y, q, rc, result);

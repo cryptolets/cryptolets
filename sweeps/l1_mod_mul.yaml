@@ -27,7 +27,7 @@ sweep:
 
   # fixed bakes the constant into the hardware, var takes it as a port
   q_type: [fixed_q, var_q]
-  redc_type: [var_rc]
+  rc_type: [var_rc]
 
   # Which modular reduction the multiply uses
   mred: [mred_mont]

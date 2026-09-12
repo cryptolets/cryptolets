@@ -1,9 +1,9 @@
 sweep:
-  bitwidth: [254]
+  bitwidth: [255]
   tech_type: [gf12_highperf]
   period: [1]
   ii: [1]
-  mul_type: [mul_nor]
+  mul_type: [mul_nor, mul_kar, mul_sb]
   dep_period_ratio: [1]
 
   base_mul_width:
@@ -22,14 +22,14 @@ sweep:
     762: [381, 190, 95, 47]
 
   # fixed bakes the constant into the hardware, var takes it as a port
-  q_type: [var_q]
-  redc_type: [var_rc]
+  q_type: [fixed_q, var_q]
+  rc_type: [fixed_rc, var_rc]
 
   # Which modular reduction the multiply uses
-  mred: [mred_bar]
+  mred: [mred_mont]
 
   # Which twisted edwards addition
-  padd_te_form: [padd_te_add, padd_te_cyclone]
+  padd_te_form: [padd_te_add]
 
   # field; arb_field is a random prime of the bitwidth
   field: [ed25519_base]

@@ -24,7 +24,7 @@ public:
     ) {
         // m = (t * mu) >> 2W, only the high half is read
         ac_int<_FIELD::W, false> m_red;
-        if constexpr (REDC_TYPE == FIXED_RC) {
+        if constexpr (RC_TYPE == FIXED_RC) {
             // The cmul keeps every bit above 2W, but m < q < 2^W
             ac_int<_FIELD::W+1, false> m_hi;
             cmul_mu_inst.run(t, m_hi);

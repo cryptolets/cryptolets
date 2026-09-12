@@ -8,6 +8,7 @@ from tessera.models.sweep import Sweep
 from tessera.templating import render
 from tessera.parser.common import norm_to_cpp_conv, strip_tmpl_prefix
 from tessera.models.design import PARAMS_MAPPED_TO_STRUCT
+from tessera.models.ports import is_fixed, fixed_member
 from tessera.const import DWARE_DIR, HW_CONSTRAINTS_PARAMS, KERNELS_DIR
 
 CATAPULT_STAGES = [
@@ -59,20 +60,6 @@ def gen_params_h(design, out_dir=None):
     )
 
 
-# Ports a design can fix, mapped to the param and value that fix them
-FIXABLE_PORTS = {
-    "q": ("q_type", "fixed_q"),
-    "rc": ("redc_type", "fixed_rc")
-}
-
-
-def fixed_member(port, design):
-    "The struct member a fixed port's constant lives in"
-    if port == "rc":
-        return "Q_PRIME" if design["mred"] == "mred_mont" else "MU"
-    return port.upper()
-
-
 def gen_kernel_top(design, kernel, combinational=False, out_dir=None):
     """
     Generate the top header and the source file Catapult synthesizes.
@@ -84,9 +71,9 @@ def gen_kernel_top(design, kernel, combinational=False, out_dir=None):
 
     ports, args = [], []
     for param in kernel.impl_spec["run_params"]:
-        fixed_by, fixed_value = FIXABLE_PORTS.get(param["name"], (None, None))
-        if fixed_by and design.design.get(fixed_by) == fixed_value:
-            args.append(f"FIELD::{fixed_member(param['name'], design.design)}::VALUE()")
+        if is_fixed(param["name"], design.design):
+            member = fixed_member(param["name"], design.design)
+            args.append(f"FIELD::{member.upper()}::VALUE()")
             continue
 
         # A template param _X resolves through the params.h name X at the top

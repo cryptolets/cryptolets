@@ -1,36 +1,24 @@
 sweep:
   bitwidth: [254]
   tech_type: [gf12_highperf]
-  period: [1]
+  period: [1.0]
   ii: [1]
   mul_type: [mul_nor]
   dep_period_ratio: [1]
 
   base_mul_width:
     254: [63]
-    255: [63]
-    381: [47]
-    508: [63]
-    510: [63]
-    762: [47]
   kar_base_mul_width:
-    254: [127, 63]
-    255: [127, 63]
-    381: [190, 95, 47]
-    508: [254, 127, 63]
-    510: [255, 127, 63]
-    762: [381, 190, 95, 47]
+    254: [127]
 
   # fixed bakes the constant into the hardware, var takes it as a port
-  q_type: [var_q, fixed_q]
+  q_type: [var_q]
   rc_type: [var_rc]
 
   # Which modular reduction the multiply uses
-  mred: [mred_mont, mred_bar]
+  mred: [mred_mont]
 
-  cmul_const: [bn254_base-b, bn254_base-b_mont]
-
-  # field; arb_field is a random prime of the bitwidth
+  # field; a named field sets the bitwidth
   field: [bn254_base]
 
 flags:

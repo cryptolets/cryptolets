@@ -24,11 +24,11 @@ vector<string> run_per_row(vector<string>& samples_row) {
   PointJac<FIELD> R;
   CCS_DESIGN(l2_point_dbl_sw_top) dut;
 
-#if Q_TYPE == FIXED_Q && REDC_TYPE == FIXED_RC
+#if Q_TYPE == FIXED_Q && RC_TYPE == FIXED_RC
   dut.run(P0, R);
 #elif Q_TYPE == FIXED_Q
   dut.run(P0, rc, R);
-#elif REDC_TYPE == FIXED_RC
+#elif RC_TYPE == FIXED_RC
   dut.run(P0, q, R);
 #else
   dut.run(P0, q, rc, R);

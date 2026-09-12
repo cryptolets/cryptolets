@@ -1,12 +1,12 @@
 sweep:
-  bitwidth: [32]
+  bitwidth: [64, 128, 254, 381]
   tech_type: [gf12_highperf]
-  period: [1]
-  ii: [1]
+  period: [0.8, 1.0]
+  ii: [1, 2]
 
   # We generate a random constant with a given width and hamming weight
-  cmul_const_w: [16, 32]
-  cmul_hamming: [0.25, 0.5, 0.75]
+  cmul_const_w: [16, 32, 64, 128]
+  cmul_hamming: [0.125, 0.25, 0.5, 0.75]
   cmul_output_type: [cmul_output_full, cmul_output_lo, cmul_output_hi]
 
 flags:

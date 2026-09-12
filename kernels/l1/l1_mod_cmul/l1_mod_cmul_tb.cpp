@@ -20,11 +20,11 @@ vector<string> run_per_row(vector<string>& samples_row) {
   ac_int<BITWIDTH, false> result;
   CCS_DESIGN(l1_mod_cmul_top) dut;
 
-#if Q_TYPE == FIXED_Q && REDC_TYPE == FIXED_RC
+#if Q_TYPE == FIXED_Q && RC_TYPE == FIXED_RC
   dut.run(x, result);
 #elif Q_TYPE == FIXED_Q
   dut.run(x, rc, result);
-#elif REDC_TYPE == FIXED_RC
+#elif RC_TYPE == FIXED_RC
   dut.run(x, q, result);
 #else
   dut.run(x, q, rc, result);

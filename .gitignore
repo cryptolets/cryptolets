@@ -9,6 +9,5 @@ __pycache__/
 config.yaml
 experiments/
 catapult_docs/
-
-00_OLD/
 future.md
+run.sh

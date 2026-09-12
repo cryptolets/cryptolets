@@ -6,6 +6,7 @@ from pathlib import Path
 
 from tessera.const import GOLDENS_PATH, SAMPLES_PATH
 from tessera.structs.field import SEED
+from tessera.models.ports import fixed_member
 
 def get_rng(seed=SEED):
     return random.Random(seed)
@@ -44,7 +45,7 @@ def get_q(design):
 
 def get_rc(design):
     field = design.design["field"]
-    const = "q_prime" if design.design["mred"] == "mred_mont" else "mu"
+    const = fixed_member("rc", design.design)
     return int(design.structs[field][const]["val"], 16)
 
 

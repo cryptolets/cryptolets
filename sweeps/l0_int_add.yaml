@@ -1,0 +1,11 @@
+sweep:
+  bitwidth: [64, 128, 254, 381]
+  tech_type: [gf12_highperf]
+  period: [0.8, 1.0]
+  ii: [1, 2]
+
+flags:
+  num_test_samples: 100
+  syn_sel: all
+  bb_syn_metrics: false
+  syn_passes: 1

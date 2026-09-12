@@ -1,15 +1,11 @@
 sweep:
-  bitwidth: [32, 64]
+  bitwidth: [64, 128]
   tech_type: [gf12_highperf]
-  period: [1]
+  period: [1.0]
   ii: [1]
 
-  # 0 keeps the low product, 1 keeps the high one
-  skip_upper: [0, 1]
-
-  base_mul_width:
-    32: [16]
-    64: [32]
+  # arb_field is a random prime of the bitwidth
+  field: [arb_field]
 
 flags:
   num_test_samples: 100

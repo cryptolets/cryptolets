@@ -28,7 +28,7 @@ class Sweep(BaseModel):
     q_type: Optional[list[Literal["fixed_q", "var_q"]]] = None # modulus prime q
 
     # reduction constant q_prime for montgomery reduction and mu for barrett reduction
-    redc_type: Optional[list[Literal["fixed_rc", "var_rc"]]] = None
+    rc_type: Optional[list[Literal["fixed_rc", "var_rc"]]] = None
 
     # normal (DesignWare mults), schoolbook, karatsuba multipliers
     mul_type: Optional[list[Literal["mul_nor", "mul_sb", "mul_kar"]]] = None

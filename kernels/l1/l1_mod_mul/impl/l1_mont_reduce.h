@@ -25,7 +25,7 @@ public:
 
         // (t_red * q_prime) & (R-1)
         ac_int<_FIELD::W, false> m_red;
-        if constexpr (REDC_TYPE == FIXED_RC) {
+        if constexpr (RC_TYPE == FIXED_RC) {
             cmul_q_prime_inst.run(t_red, m_red); // compile to constant multiplier
         } else {
             ac_int<2*_FIELD::W, false> m;

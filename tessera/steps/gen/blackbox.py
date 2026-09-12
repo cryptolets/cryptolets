@@ -5,6 +5,7 @@ We do this by using metrics, rtl and impl header of the child kernel.
 import re
 import yaml
 
+from tessera.models.ports import is_fixed
 from tessera.parser.common import norm_to_cpp_conv
 from tessera.templating import env, render
 
@@ -88,11 +89,17 @@ def gen_blackbox_headers(design, run_inst):
                 if arg_name in run_param_names:
                     outputs.append(arg_name)
 
+            # A fixed port is baked into the RTL, so it is not one of its ports
+            run_params = child_kernel.impl_spec["run_params"]
+            rtl_params = [p for p in run_params if not is_fixed(p["name"], child_design.design)]
+
             designs_tmpl_ctx.append({
                 "module": child_design.blackbox_module,
                 "rtl": rtl.resolve(),
                 "tmpl_params": tmpl_params,
-                "ports": [p["text"] for p in child_kernel.impl_spec["run_params"]],
+                "ports": [p["text"] for p in run_params],
+                "rtl_ports": [p["text"] for p in rtl_params],
+                "rtl_args": [p["name"] for p in rtl_params],
                 "outputs": outputs,
                 "combinational": manifest["combinational"],
                 "init_delay": manifest.get("params", {}).get("ii", 1),

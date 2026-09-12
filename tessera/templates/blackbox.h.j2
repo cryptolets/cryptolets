@@ -26,9 +26,17 @@ class {{ kernel }}_impl<{{ d.tmpl_params | map(attribute='value') | join(', ') }
 public:
     {{ kernel }}_impl() {}
 
-    #pragma hls_design interface ccore blackbox
+    // A constant the design bakes in is not a port, so it stops here
     void run(
 {% for p in d.ports %}        {{ p }}{{ "," if not loop.last }}
+{% endfor %}    ) {
+        rtl({{ d.rtl_args | join(', ') }});
+    }
+
+    // The packaged RTL, with the ports it was built with
+    #pragma hls_design interface ccore blackbox
+    void rtl(
+{% for p in d.rtl_ports %}        {{ p }}{{ "," if not loop.last }}
 {% endfor %}    ) {
         ac_blackbox()
             .entity("{{ d.module }}")

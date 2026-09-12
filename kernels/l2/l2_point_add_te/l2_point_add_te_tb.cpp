@@ -29,11 +29,11 @@ vector<string> run_per_row(vector<string>& samples_row) {
   PointExtProj<FIELD> R;
   CCS_DESIGN(l2_point_add_te_top) dut;
 
-#if Q_TYPE == FIXED_Q && REDC_TYPE == FIXED_RC
+#if Q_TYPE == FIXED_Q && RC_TYPE == FIXED_RC
   dut.run(P0, P1, R);
 #elif Q_TYPE == FIXED_Q
   dut.run(P0, P1, rc, R);
-#elif REDC_TYPE == FIXED_RC
+#elif RC_TYPE == FIXED_RC
   dut.run(P0, P1, q, R);
 #else
   dut.run(P0, P1, q, rc, R);
