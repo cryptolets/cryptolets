@@ -22,7 +22,7 @@ Sweep design parameters:
 Verifies the C+\\+, generates the RTL with HLS, then verifies the RTL with the same testbench.
 
 ```
-python -m tessera run l0_int_add -s sweeps/l0_int_add.yaml --to rtl
+python -m tessera run l0_int_add -s sweeps/l0_int.yaml --to rtl
 ```
 
 ## Test Sample Generation Strategy
@@ -34,7 +34,7 @@ The samples are the edge cases (zero, the maximum and the midpoint, in every pai
 Synthesizes the generated RTL to a gate netlist and reports its area, delay and power estimate.
 
 ```
-python -m tessera run l0_int_add -s sweeps/l0_int_add.yaml --only syn
+python -m tessera run l0_int_add -s sweeps/l0_int.yaml --only syn
 ```
 
 ## Authors
