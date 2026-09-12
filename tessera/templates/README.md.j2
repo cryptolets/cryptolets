@@ -1,8 +1,42 @@
-# Name of IP
+# `{{ kernel }}` - Operation Name
+
 ## Description
-## Getting Started
-### Dependencies
-### Installation
-## Running simulation
-## Running synthesis
+
+One line with the math, then how it is computed and the variants a parameter picks.
+
+| port | direction | width |
+|------|-----------|-------|
+| `x`  | in        | `BITWIDTH` |
+
+Sweep design parameters:
+
+- `bitwidth` — the width of the inputs
+- `period` — the target clock period, in ns
+- `tech_type` — the target technology node or FPGA part
+- `ii` — the initiation interval, the number of cycles between two accepted inputs
+
+## Dependencies
+
+The child kernels this kernel uses, and which of them are blackboxed. Remove this section if there are none.
+
+## HLS RTL Generation and Simulation
+
+Verifies the C+\\+, generates the RTL with HLS, then verifies the RTL with the same testbench.
+
+```
+python -m tessera run {{ kernel }} -s sweeps/{{ kernel }}.yaml --to rtl
+```
+
+## Test Sample Generation Strategy
+
+The edge cases, how the random samples are spread, and what the golden output is and where it is computed.
+
+## Running Logic Synthesis
+
+Synthesizes the generated RTL to a gate netlist and reports its area, delay and power estimate.
+
+```
+python -m tessera run {{ kernel }} -s sweeps/{{ kernel }}.yaml --only syn
+```
+
 ## Authors

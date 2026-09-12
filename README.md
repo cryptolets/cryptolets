@@ -2,7 +2,7 @@
 
 # Tessera: A Framework for Cryptographic Hardware Kernels
 
-Tessera is a fully automated design space exploration (DSE) framework for cryptographic hardware kernels, covering integer and modular arithmetic through elliptic curve point operations; kernels that dominate Zero-Knowledge Proofs (ZKPs) and Fully Homomorphic Encryption (FHE). A kernel is specified once in HLS C++, and a sweep as a set of parameter values. Each combination is built through high level synthesis (HLS), logic synthesis and power analysis. A single testbench verifies the design at the C++, RTL and gate level against a reference implementation of the arithmetic, and the resulting area, latency and power measurements are collected into one table. Together these define a highly productive methodology for hardware DSE of cryptographic kernels.
+Tessera is a fully automated design space exploration (DSE) framework for cryptographic hardware kernels, covering integer and modular arithmetic through elliptic curve point operations; kernels that dominate Zero-Knowledge Proofs (ZKPs) and Fully Homomorphic Encryption (FHE). A kernel is specified once in HLS C+\\+, and a sweep as a set of parameter values. Each combination is built through high level synthesis (HLS), logic synthesis and power analysis. A single testbench verifies the design at the C+\\+, RTL and gate level against a reference implementation of the arithmetic, and the resulting area, latency and power measurements are collected and visualize with an analyze tool. Together these define a highly productive methodology for hardware DSE of cryptographic kernels.
 
 ## Setup
 
@@ -28,7 +28,7 @@ cp config.yaml.tmpl config.yaml
 
 ## Quick Start
 
-Build `l1_mod_add` at 64 and 128 bits to RTL. Catapult makes the RTL, and the testbench verifies the C++ and the RTL:
+Build `l1_mod_add` at 64 and 128 bits to RTL. Catapult makes the RTL, and the testbench verifies the C+\\+ and the RTL:
 
 ```
 python -m tessera run l1_mod_add -s sweeps/quick_start_l1_mod_add.yaml --to rtl
@@ -68,7 +68,7 @@ A run starts from one *kernel* and one *sweep* file. The sweep lists values for 
 ### Per-Design Flow
 ![Per design flow](imgs/per_design_flow.png)
 
-Per design, Tessera fully automates the end-to-end *flow*. The flow is a sequence of *steps*: code generation, C++ verification, HLS RTL generation, RTL simulation and verification, logic synthesis, gate-level simulation and verification, and activity-annotated power analysis. Each step runs a tool and records its metrics in the design's *package*. Tessera supports both ASIC and FPGA flows. For ASICs, OSCI does the C++ verification, Siemens Catapult HLS generates the RTL, Siemens QuestaSim runs the RTL and gate-level simulations, Synopsys Design Compiler performs the logic synthesis, and Synopsys PrimePower measures power from the recorded switching activity. FPGA synthesis is performed with Vivado.
+Per design, Tessera fully automates the end-to-end *flow*. The flow is a sequence of *steps*: code generation, C+\\+ verification, HLS RTL generation, RTL simulation and verification, logic synthesis, gate-level simulation and verification, and activity-annotated power analysis. Each step runs a tool and records its metrics in the design's *package*. Tessera supports both ASIC and FPGA flows. For ASICs, OSCI does the C+\\+ verification, Siemens Catapult HLS generates the RTL, Siemens QuestaSim runs the RTL and gate-level simulations, Synopsys Design Compiler performs the logic synthesis, and Synopsys PrimePower measures power from the recorded switching activity. FPGA synthesis is performed with Vivado.
 
 ## Authors
 Gaurav Kuwar
