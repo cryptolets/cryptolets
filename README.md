@@ -22,7 +22,7 @@ Tessera is tested against the following tool and dependency versions:
 bash setup.sh
 source .venv/bin/activate    # activate.csh for tcsh
 
-# Fill in config.yaml with the tool and library paths for your site.
+# Fill in config.yaml with the tool and library paths
 cp config.yaml.tmpl config.yaml
 ```
 
