@@ -2,7 +2,7 @@
 
 # Tessera: A Framework for Cryptographic Hardware Kernels
 
-Tessera is a fully automated design space exploration (DSE) framework for cryptographic hardware kernels, covering integer and modular arithmetic through elliptic curve point operations; kernels that dominate Zero-Knowledge Proofs (ZKPs) and Fully Homomorphic Encryption (FHE). A kernel is specified once in HLS C++, and a sweep as a set of parameter values. Each combination is built through high level synthesis (HLS), logic synthesis and power analysis. A single testbench verifies the design at the C++, RTL and gate level against a reference implementation of the arithmetic, and the resulting area, latency and power measurements are collected and visualize with an analyze tool. Together these define a highly productive methodology for hardware DSE of cryptographic kernels.
+Tessera is a fully automated design space exploration (DSE) framework for cryptographic hardware kernels, covering integer and modular arithmetic through elliptic curve point operations; kernels that dominate Zero-Knowledge Proofs (ZKPs) and Fully Homomorphic Encryption (FHE). A kernel is specified once in HLS C++, and a sweep as a set of parameter values. Each combination is built through high level synthesis (HLS), logic synthesis and power analysis. A single testbench verifies the design at the C++, RTL and gate level against a reference implementation of the arithmetic, and the resulting area, latency and power measurements are collected and visualized with an analyze tool. Together these define a highly productive methodology for hardware DSE of cryptographic kernels.
 
 ## Setup
 
