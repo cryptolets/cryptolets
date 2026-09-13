@@ -1,7 +1,7 @@
 # `l0_int_mul` - Integer Multiplication
 
 ## Description
-Multiplication of unsigned integers, $z = x \cdot y$, with $W$-bit inputs and a $2W$-bit product. The output type selects which part of the product is kept: the full product, the low $W$ bits or the high $W$ bits. A truncated output lets the tools drop the logic that only fed the bits that were cut.
+Multiplication of unsigned integers, $z = x \cdot y$, with $W$-bit inputs and a $2W$-bit product. The output type selects which part of the product is kept: the full product, the low $W$ bits or the high $W$ bits. A truncated output lets the HLS tool drop the logic that only fed the bits that were cut, reducing multiplier area.
 
 The multiplier is a recursive model with three layers, Karatsuba → schoolbook → native. Each layer splits the operands into smaller partial products until they reach a base width. `mul_type` selects the top layer, and the base widths select where each layer ends.
 
