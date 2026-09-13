@@ -6,4 +6,6 @@ PyYAML==6.0.3             # config, sweeps and manifests
 sympy==1.14.0             # primes and modular arithmetic for the samples
 tree-sitter==0.23.2       # reads a kernel's C++ to find its ports and template parameters
 tree-sitter-cpp==0.23.4
+tree-sitter-verilog==1.0.3
+simpleeval==1.0.7
 pyelftools==0.32          # reads the DWARF of a compiled design to find its children
