@@ -3,7 +3,7 @@
 ## Description
 Multiplication of unsigned integers, $z = x \cdot y$, with $W$-bit inputs and a $2W$-bit product. The output type selects which part of the product is kept: the full product, the low $W$ bits or the high $W$ bits. A truncated output lets the HLS tool drop the logic that only fed the bits that were cut, reducing multiplier area.
 
-The multiplier is a recursive model with three layers, Karatsuba → schoolbook → native. Each layer splits the operands into smaller partial products until they reach a base width. `mul_type` selects the top layer, and the base widths select where each layer ends.
+A large multiplication is decomposed into smaller partial products, with schoolbook or Karatsuba, so the hardware is built from smaller multipliers. The multiplier is a recursive model with three layers, Karatsuba → schoolbook → native. Each layer splits the operands into smaller partial products until they reach a base width. `mul_type` selects the top layer, and the base widths select where each layer ends.
 
 The two base widths are not swept directly. In the sweep file each is a map from `bitwidth` to a list of widths, and every design gets one entry from the list for its bitwidth:
 
@@ -49,7 +49,7 @@ Each partial product is split again until both operands fit in `base_mul_width`,
 
 ### Karatsuba
 
-`mul_kar` splits the operands the same way but computes only three products:
+`mul_kar` splits the operands the same way but computes only three products [1]:
 
 $$z_0 = x_0 y_0, \quad z_2 = x_1 y_1, \quad z_1 = (x_0 + x_1)(y_0 + y_1)$$
 
@@ -80,3 +80,7 @@ python -m tessera run l0_int_mul -s sweeps/l0_int_mul.yaml --only syn
 ## Authors
 
 Gaurav Kuwar
+
+## References
+
+[1] Anatolii Alexeevich Karatsuba. 1995. The complexity of computations. Proceedings of the Steklov Institute of Mathematics 211, 169–183.

@@ -1,7 +1,7 @@
 # `l1_mod_mul` - Modular Multiplication
 
 ## Description
-Multiplication in the prime field $\mathbb{F}_q$, $z = x \cdot y \bmod q$, where $0 \le x, y < q$, $0 \le z < q$ and $q$ is the prime modulus. The kernel computes the $2W$-bit product $t = x \cdot y$ with a `l0_int_mul`, then reduces it modulo $q$. A direct reduction needs a division, so this kernel supports two standard reduction algorithms that replace it with multiplications by a precomputed reduction constant, `rc`, which can either be $q'$ or $\mu$. `q_type` and `rc_type` select whether $q$ and `rc` are ports or constants baked into the hardware. A fixed constant is multiplied with a `l0_int_cmul`, a variable one with a `l0_int_mul`.
+Multiplication in the prime field $\mathbb{F}_q$, $z = x \cdot y \bmod q$, where $0 \le x, y < q$, $0 \le z < q$ and $q$ is the prime modulus. The kernel computes the $2W$-bit product $t = x \cdot y$ with a `l0_int_mul`, then reduces it modulo $q$. A direct reduction needs a division, so this kernel supports the two standard reduction algorithms that avoid it, Montgomery and Barrett. Both replace the division with multiplications by a precomputed reduction constant, `rc`, which is $q'$ for Montgomery and $\mu$ for Barrett; `mred` selects between them. `q_type` and `rc_type` select whether $q$ and `rc` are ports or constants baked into the hardware. A fixed constant is multiplied with a `l0_int_cmul`, a variable one with a `l0_int_mul`.
 
 | port | direction | width |
 |------|-----------|-------|
@@ -28,7 +28,7 @@ Sweep design parameters:
 
 ### Montgomery Reduction
 
-Montgomery reduction keeps field elements scaled by a power of two, so the reduction divides by that power of two, a shift, instead of by $q$. The drawback is that operands must be converted into and out of this scaled domain, the Montgomery domain. The conversion is only needed once, at the start and at the end: any sequence of modular operations can run entirely in the domain, since the outputs of one are valid inputs of the next.
+Montgomery reduction [1] keeps field elements scaled by a power of two, so the reduction divides by that power of two, a shift, instead of by $q$. The drawback is that operands must be converted into and out of this scaled domain, the Montgomery domain. The conversion is only needed once, at the start and at the end: any sequence of modular operations can run entirely in the domain, since the outputs of one are valid inputs of the next.
 
 With `mred_mont` the scale is $R = 2^W$, so a field element $x$ is represented as $\tilde{x} = xR \bmod q$. The product of two such elements, $t = \tilde{x}\tilde{y}$, carries a factor $R^2$, and the reduction divides one $R$ out:
 
@@ -38,7 +38,7 @@ where $q' = -q^{-1} \bmod R$ is the reduction constant, $W$ bits wide. Adding $m
 
 ### Barrett Reduction
 
-Barrett reduction estimates the quotient of $t$ by $q$ with a precomputed approximation of $1/q$, then corrects the small error with conditional subtractions. It works on plain operands, so no domain conversion is needed.
+Barrett reduction [2] estimates the quotient of $t$ by $q$ with a precomputed approximation of $1/q$, then corrects the small error with conditional subtractions. It works on plain operands, so no domain conversion is needed.
 
 With `mred_bar` the approximation is $\mu = \lfloor 2^{2W} / q \rfloor$, the reduction constant. The quotient estimate and the remainder are
 
@@ -78,3 +78,9 @@ python -m tessera run l1_mod_mul -s sweeps/l1_mod_mul.yaml --only syn
 ## Authors
 
 Gaurav Kuwar, Jianqiao Mo
+
+## References
+
+[1] Peter L. Montgomery. 1985. Modular Multiplication Without Trial Division. Mathematics of Computation 44, 170, 519–521.
+
+[2] Paul Barrett. 1986. Implementing the Rivest Shamir and Adleman Public Key Encryption Algorithm on a Standard Digital Signal Processor. In Advances in Cryptology, CRYPTO '86.
