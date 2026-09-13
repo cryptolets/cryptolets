@@ -6,6 +6,7 @@ __pycache__/
 .vscode/
 .claude/
 .rce/
+papers/
 config.yaml
 experiments/
 catapult_docs/
