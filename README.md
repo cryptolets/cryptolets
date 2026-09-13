@@ -28,7 +28,7 @@ cp config.yaml.tmpl config.yaml
 
 ## Quick Start
 
-Build `l1_mod_add` at 64 and 128 bits to RTL. Catapult makes the RTL, and the testbench verifies the C++ and the RTL:
+Build `l1_mod_add` at 64, 128 and 256 bits to RTL. Catapult makes the RTL, and the testbench verifies the C++ and the RTL:
 
 ```
 python -m tessera run l1_mod_add -s sweeps/quick_start_l1_mod_add.yaml --to rtl
