@@ -32,10 +32,15 @@ Sweep design parameters:
 
 ## Dependencies
 
-- `l1_mod_mul` — every product
-- `l1_mod_cmul` — the product by $a$ in the `pdbl_avar` doubling
-- `l1_mod_add`, `l1_mod_sub` — the sums and differences
-- `l2_point_dbl_sw` — the doubling formulas for the equal-points case
+- `l0_int_add` with parameters `bitwidth = FIELD::W` and `FIELD::W + 1` — through `l1_mod_add` and `l1_mod_sub`
+- `l0_int_sub` with parameters `bitwidth = FIELD::W` and `FIELD::W + 1` — through `l1_mod_add` and `l1_mod_sub`
+- `l0_int_mul` with parameters `bitwidth = FIELD::W` — through `l1_mod_mul` and `l1_mod_cmul`
+- `l0_int_cmul` with parameters `bitwidth = FIELD::W` — through `l1_mod_mul` and `l1_mod_cmul`
+- `l1_mod_add` with parameters `field` — the sums
+- `l1_mod_sub` with parameters `field` — the differences
+- `l1_mod_mul` with parameters `field`, `mred` — every product
+- `l1_mod_cmul` with parameters `field`, `mred`, `cmul_const = a` — the product by $a$ in the `pdbl_avar` doubling
+- `l2_point_dbl_sw` with parameters `field`, `mred`, `pdbl_form` — the doubling formulas for the equal-points case
 
 ## Test Sample Generation Strategy
 
