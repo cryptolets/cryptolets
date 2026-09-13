@@ -18,6 +18,9 @@ METRICS = ["cycles", "latency", "area (um^2)", "area_dc (um^2)", "area (mm^2)",
            "luts", "ffs", "dsps", "brams", "carry",
            "power (uW)", "power_dc (uW)", "gls"]
 
+# The order rows are shown in, by the first key, then the next within it
+SORT_KEYS = ["tech_type", "period", "bitwidth"]
+
 # What a column is called, and what its value is scaled by to suit that name
 COLUMNS = {
     "latency": ("cycles", 1),
@@ -106,6 +109,13 @@ def _matches(value, wanted):
         return str(value) == str(wanted)
 
 
+def sort_rows(rows):
+    "Rows in SORT_KEYS order, with a row that lacks a key after those that have it"
+    def key(row):
+        return [(row.get(k) is None, row.get(k)) for k in SORT_KEYS]
+    return sorted(rows, key=key)
+
+
 def drop_empty_columns(rows):
     "Hide what the sweep did not vary or has not measured yet"
     if not rows:
@@ -176,7 +186,7 @@ def run(kernel, where=(), csv_path=None, all_columns=False, build="build"):
     filters = dict(pair.split("=", 1) for pair in where)
 
     design_key = KernelConfig.load(Kernel.find(kernel)).design_key
-    rows = where_rows(collect(Path(build, kernel), design_key), filters)
+    rows = sort_rows(where_rows(collect(Path(build, kernel), design_key), filters))
 
     if not all_columns:
         rows = drop_empty_columns(rows)

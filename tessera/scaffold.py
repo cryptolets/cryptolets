@@ -38,3 +38,4 @@ def new(kernel, level, force=False):
     render("gen_samples.py.j2", p / "gen_samples.py", **ctx)
     render("kernel.yaml.j2", p / "kernel.yaml", **ctx)
     render("README.md.j2", p / "README.md", **ctx)
+    (p / "examples").mkdir(exist_ok=True)
