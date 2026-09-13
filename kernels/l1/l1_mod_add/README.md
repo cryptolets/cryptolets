@@ -1,7 +1,7 @@
-# `l1_mod_sub` - Modular Subtraction
+# `l1_mod_add` - Modular Addition
 
 ## Description
-Subtraction in the prime field $\mathbb{F}_q$, $z = (a - b) \bmod q$, where $0 \le a, b < q$, $0 \le z < q$ and $q$ is the prime modulus.
+Addition in the prime field $\mathbb{F}_q$, $z = (a + b) \bmod q$, where $0 \le a, b < q$, $0 \le z < q$ and $q$ is the prime modulus.
 
 | port | direction | width |
 |------|-----------|-------|
@@ -21,19 +21,19 @@ Sweep design parameters:
 
 ## Dependencies
 
-- `l0_int_sub` with parameters `bitwidth = FIELD::W`
-- `l0_int_add` with parameters `bitwidth = FIELD::W + 1`
+- `l0_int_add` with parameters `bitwidth = FIELD::W`
+- `l0_int_sub` with parameters `bitwidth = FIELD::W + 1`
 
 ## Test Sample Generation Strategy
 
-The samples are the edge cases (`0`, `q - 1` and the midpoint, in every pairing) plus random operand pairs. The random pairs are spread across every bitwidth up to `bitwidth`, so small values are covered as well as full-width ones, and about half of the differences are negative. Every operand is kept below the prime modulus `q`, so the samples are cryptographically sound. The golden output is `(a - b) mod q`, which is computed in the reference library.
+The samples are the edge cases (`0`, `q - 1` and the midpoint, in every pairing) plus random operand pairs. The random pairs are spread across every bitwidth up to `bitwidth`, so small values are covered as well as full-width ones. Every operand is kept below the prime modulus `q`, so the samples are cryptographically sound. The golden output is `(a + b) mod q`, which is computed in the reference library.
 
 ## HLS RTL Generation and Simulation
 
 Verifies the C++, generates the RTL with HLS, then verifies the RTL with the same testbench.
 
 ```
-python -m tessera run l1_mod_sub -s sweeps/l1_mod.yaml --to rtl
+python -m tessera run l1_mod_add -s sweeps/l1_mod.yaml --to rtl
 ```
 
 ## Running Logic Synthesis
@@ -41,7 +41,7 @@ python -m tessera run l1_mod_sub -s sweeps/l1_mod.yaml --to rtl
 Synthesizes the generated RTL to a gate netlist and reports its area, delay and power estimate.
 
 ```
-python -m tessera run l1_mod_sub -s sweeps/l1_mod.yaml --only syn
+python -m tessera run l1_mod_add -s sweeps/l1_mod.yaml --only syn
 ```
 
 ## Authors
