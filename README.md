@@ -19,8 +19,6 @@ Tessera is tested against the following tool and dependency versions:
 
 ### Initial Setup
 ```
-git clone https://github.com/cryptolets/cryptolets.git
-
 bash setup.sh
 source .venv/bin/activate    # activate.csh for tcsh
 
