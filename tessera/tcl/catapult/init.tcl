@@ -1,4 +1,4 @@
-proc init_options {questa dc vivado threads_per_process} {
+proc init_options {questa dc vivado threads_per_process vcd_size_limit} {
     options defaults
     options set /Input/CppStandard c++14
     options set /Input/TargetPlatform x86_64
@@ -15,6 +15,7 @@ proc init_options {questa dc vivado threads_per_process} {
     # QSIM_HOME stops Questa from picking up Catapult's MGC_HOME
     options set Flows/SCVerify/USE_QUESTASIM true
     options set Flows/QuestaSIM/Path $questa/linux_x86_64
+    options set Flows/QuestaSIM/VCD_SIZE_LIMIT $vcd_size_limit
     set ::env(QSIM_HOME) $questa
 
     # Questa reads the license server from SALT_LICENSE_SERVER

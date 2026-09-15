@@ -5,6 +5,9 @@ threads_per_process: 1
 # than this much memory free as an ultimate safeguard
 min_free_gb: 10
 
+# Size cap on the gate level VCD that power analysis reads, in MB
+vcd_size_limit_mb: 10000
+
 # How far a run goes, which --from, --to or --only overrides.
 # Stages in order: gen, cpp, hls, rtl, syn, gls, pwr
 frm: gen

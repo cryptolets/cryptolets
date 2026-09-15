@@ -187,6 +187,7 @@ def gen_catapult_kernel_tcl(flags, kernel, run_inst):
         catapult_vivado_tcl=(tcl_dir / 'vivado.tcl').resolve(),
         flags=flags,
         threads_per_process=run_inst.threads_per_process,
+        vcd_size_limit=RunConfig.load().vcd_size_limit_mb,
         stages=stages,
         tools={k: str(Path(v).expanduser()) for k, v in RunConfig.load().tools.items()},
     )

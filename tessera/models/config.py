@@ -36,6 +36,7 @@ class RunConfig(BaseModel):
     total_threads: int
     threads_per_process: int
     min_free_gb: int
+    vcd_size_limit_mb: int
     frm: str
     to: str
     tools: dict[str, str] = {}
