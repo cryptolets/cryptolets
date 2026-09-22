@@ -1,5 +1,10 @@
 #!/usr/bin/env bash
 
+# Resolve configuration and output paths relative to the repository root.
+REPRODUCE_ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)" || exit 1
+cd "${REPRODUCE_ROOT_DIR}" || exit 1
+mkdir -p run_logs || exit 1
+
 # Global toggles
 DRY_RUN=""               # "--dry-run" to enable
 GEN_ONLY="--gen-only"    # "--gen-only" to enable
@@ -30,85 +35,85 @@ echo "------------------------------------------------"
 echo "Running Single-Precision Short Weierstrass arbitrary nor sweep..."
 python3 run.py point_add --threads ${NUM_THREADS} --tp ${THREADS_PER_PROCESS} \
   --core-script "${CORE}" \
-  --sweep-file full_sweeps_configs/padd_sw_sweep_sp_arb_nor.yaml "${FLAGS[@]}" > run_logs/full_padd_sw_sp_arb_nor.log
+  --sweep-file custom_sweeps_configs/padd_sw_sweep_sp_arb_nor.yaml "${FLAGS[@]}" > run_logs/full_padd_sw_sp_arb_nor.log
 
 echo "Running Single-Precision Twisted Edwards nor arbitrary sweep..."
 python3 run.py point_add_te --threads ${NUM_THREADS} --tp ${THREADS_PER_PROCESS} \
   --core-script "${CORE}" \
-  --sweep-file full_sweeps_configs/padd_te_sweep_sp_arb_nor.yaml "${FLAGS[@]}" > run_logs/full_padd_te_sp_arb_nor.log
+  --sweep-file custom_sweeps_configs/padd_te_sweep_sp_arb_nor.yaml "${FLAGS[@]}" > run_logs/full_padd_te_sp_arb_nor.log
 
 echo "Running Twisted Edwards CycloneMSM on ASIC sweep..."
 python3 run.py point_add_cyclonemsm --threads ${NUM_THREADS} --tp ${THREADS_PER_PROCESS} \
   --core-script "${CORE}" \
-  --sweep-file full_sweeps_configs/padd_cyclonemsm_sweep.yaml "${FLAGS[@]}" > run_logs/full_padd_cyclonemsm.log
+  --sweep-file custom_sweeps_configs/padd_cyclonemsm_sweep.yaml "${FLAGS[@]}" > run_logs/full_padd_cyclonemsm.log
 
 # Run normal sweeps first to cache clusters
 echo "Running Single-Precision Short Weierstrass nor sweep..."
 python3 run.py point_add --threads ${NUM_THREADS} --tp ${THREADS_PER_PROCESS} \
   --core-script "${CORE}" \
-  --sweep-file full_sweeps_configs/padd_sw_sweep_sp_nor.yaml "${FLAGS[@]}" > run_logs/full_padd_sw_sp_nor.log
+  --sweep-file custom_sweeps_configs/padd_sw_sweep_sp_nor.yaml "${FLAGS[@]}" > run_logs/full_padd_sw_sp_nor.log
 
 echo "Running Twisted Edwards CycloneMSM on ASIC nor sweep..."
 python3 run.py point_add_cyclonemsm --threads ${NUM_THREADS} --tp ${THREADS_PER_PROCESS} \
   --core-script "${CORE}" \
-  --sweep-file full_sweeps_configs/padd_cyclonemsm_sweep_nor.yaml "${FLAGS[@]}" > run_logs/full_padd_cyclonemsm_nor.log
+  --sweep-file custom_sweeps_configs/padd_cyclonemsm_sweep_nor.yaml "${FLAGS[@]}" > run_logs/full_padd_cyclonemsm_nor.log
 
 echo "Running Single-Precision Short Weierstrass sweep..."
 python3 run.py point_add --threads ${NUM_THREADS} --tp ${THREADS_PER_PROCESS} \
   --core-script "${CORE}" \
-  --sweep-file full_sweeps_configs/padd_sw_sweep_sp.yaml "${FLAGS[@]}" > run_logs/full_padd_sw_sp.log
+  --sweep-file custom_sweeps_configs/padd_sw_sweep_sp.yaml "${FLAGS[@]}" > run_logs/full_padd_sw_sp.log
 
 echo "Running Single-Precision Short Weierstrass MNT4753 sweep..."
 python3 run.py point_add --threads ${NUM_THREADS} --tp ${THREADS_PER_PROCESS} \
   --core-script "${CORE}" \
-  --sweep-file full_sweeps_configs/padd_sw_sweep_sp_mnt4753.yaml "${FLAGS[@]}" > run_logs/full_padd_sw_sp_mnt4753.log
+  --sweep-file custom_sweeps_configs/padd_sw_sweep_sp_mnt4753.yaml "${FLAGS[@]}" > run_logs/full_padd_sw_sp_mnt4753.log
 
 # Run first to cache clusters 
 echo "Running Single-Precision Twisted Edwards nor sweep..."
 python3 run.py point_add_te --threads ${NUM_THREADS} --tp ${THREADS_PER_PROCESS} \
   --core-script "${CORE}" \
-  --sweep-file full_sweeps_configs/padd_te_sweep_sp_nor.yaml "${FLAGS[@]}" > run_logs/full_padd_te_sp_nor.log
+  --sweep-file custom_sweeps_configs/padd_te_sweep_sp_nor.yaml "${FLAGS[@]}" > run_logs/full_padd_te_sp_nor.log
 
 echo "Running Single-Precision Twisted Edwards ED448 nor sweep..."
 python3 run.py point_add_te --threads ${NUM_THREADS} --tp ${THREADS_PER_PROCESS} \
   --core-script "${CORE}" \
-  --sweep-file full_sweeps_configs/padd_te_sweep_sp_ed448_nor.yaml "${FLAGS[@]}" > run_logs/full_padd_te_sp_ed448_nor.log
+  --sweep-file custom_sweeps_configs/padd_te_sweep_sp_ed448_nor.yaml "${FLAGS[@]}" > run_logs/full_padd_te_sp_ed448_nor.log
 
 # MNT4753 sweeps separate because they take a long time to run
 echo "Running Single-Precision Short Weierstrass MNT4753 nor sweep..."
 python3 run.py point_add --threads ${NUM_THREADS} --tp ${THREADS_PER_PROCESS} \
   --core-script "${CORE}" \
-  --sweep-file full_sweeps_configs/padd_sw_sweep_sp_mnt4753_nor.yaml "${FLAGS[@]}" > run_logs/full_padd_sw_sp_mnt4753_nor.log
+  --sweep-file custom_sweeps_configs/padd_sw_sweep_sp_mnt4753_nor.yaml "${FLAGS[@]}" > run_logs/full_padd_sw_sp_mnt4753_nor.log
 
 echo "Running Single-Precision Twisted Edwards sweep..."
 python3 run.py point_add_te --threads ${NUM_THREADS} --tp ${THREADS_PER_PROCESS} \
   --core-script "${CORE}" \
-  --sweep-file full_sweeps_configs/padd_te_sweep_sp.yaml "${FLAGS[@]}" > run_logs/full_padd_te_sp.log
+  --sweep-file custom_sweeps_configs/padd_te_sweep_sp.yaml "${FLAGS[@]}" > run_logs/full_padd_te_sp.log
 
 echo "Running Single-Precision Twisted Edwards ED448 sweep..."
 python3 run.py point_add_te --threads ${NUM_THREADS} --tp ${THREADS_PER_PROCESS} \
   --core-script "${CORE}" \
-  --sweep-file full_sweeps_configs/padd_te_sweep_sp_ed448.yaml "${FLAGS[@]}" > run_logs/full_padd_te_sp_ed448.log
+  --sweep-file custom_sweeps_configs/padd_te_sweep_sp_ed448.yaml "${FLAGS[@]}" > run_logs/full_padd_te_sp_ed448.log
 
 echo "Running Single-Precision Twisted Edwards arbitrary sweep..."
 python3 run.py point_add_te --threads ${NUM_THREADS} --tp ${THREADS_PER_PROCESS} \
   --core-script "${CORE}" \
-  --sweep-file full_sweeps_configs/padd_te_sweep_sp_arb.yaml "${FLAGS[@]}" > run_logs/full_padd_te_sp_arb.log
+  --sweep-file custom_sweeps_configs/padd_te_sweep_sp_arb.yaml "${FLAGS[@]}" > run_logs/full_padd_te_sp_arb.log
 
 echo "Running Single-Precision Short Weierstrass arbitrary sweep..."
 python3 run.py point_add --threads ${NUM_THREADS} --tp ${THREADS_PER_PROCESS} \
   --core-script "${CORE}" \
-  --sweep-file full_sweeps_configs/padd_sw_sweep_sp_arb.yaml "${FLAGS[@]}" > run_logs/full_padd_sw_sp_arb.log
+  --sweep-file custom_sweeps_configs/padd_sw_sweep_sp_arb.yaml "${FLAGS[@]}" > run_logs/full_padd_sw_sp_arb.log
 
 echo "Running Multi-Precision Short Weierstrass sweep..."
 python3 run.py point_add --threads ${NUM_THREADS} --tp ${THREADS_PER_PROCESS} \
   --core-script "${CORE}" \
-  --sweep-file full_sweeps_configs/padd_sw_sweep_mp.yaml "${FLAGS[@]}" > run_logs/full_padd_sw_mp.log
+  --sweep-file custom_sweeps_configs/padd_sw_sweep_mp.yaml "${FLAGS[@]}" > run_logs/full_padd_sw_mp.log
 
 echo "Running Multi-Precision Twisted Edwards sweep..."
 python3 run.py point_add_te --threads ${NUM_THREADS} --tp ${THREADS_PER_PROCESS} \
   --core-script "${CORE}" \
-  --sweep-file full_sweeps_configs/padd_te_sweep_mp.yaml "${FLAGS[@]}" > run_logs/full_padd_te_mp.log
+  --sweep-file custom_sweeps_configs/padd_te_sweep_mp.yaml "${FLAGS[@]}" > run_logs/full_padd_te_mp.log
 
 # Custom II>1 for pareto optimal points
 # Warning: Need to find optimal designs and edit tmp_configs json file first

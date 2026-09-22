@@ -4,9 +4,13 @@ import csv
 import json
 import os
 import random
+import sys
 from pathlib import Path
 
-from ntt_sw_utils import (
+# Support direct invocation by Catapult from its project directory.
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+
+from lvl2.ntt.common.utils import (
     bit_rev_shuffle,
     check_ntt_modulus,
     find_ntt_modulus,
@@ -14,19 +18,19 @@ from ntt_sw_utils import (
     normalize_intt,
     ntt_naive,
 )
-from ntt_standard_sw_models import (
+from lvl2.ntt.common.standard import (
     ntt_dif_nr,
     ntt_dif_rn,
     ntt_dit_nr,
     ntt_dit_rn,
 )
-from ntt_constant_geometry_sw_models import (
+from lvl2.ntt.common.constant_geometry import (
     ntt_dif_pease,
     ntt_dit_pease,
     ntt_dif_korn_lambiotte,
     ntt_dit_korn_lambiotte,
 )
-from ntt_stockham_models import ntt_stockham_dif, ntt_stockham_dit
+from lvl2.ntt.common.stockham import ntt_stockham_dif, ntt_stockham_dit
 
 NATURAL_TO_BIT_REVERSED = {"dif_nr", "dit_nr"}
 BIT_REVERSED_TO_NATURAL = {"dif_rn", "dit_rn"}

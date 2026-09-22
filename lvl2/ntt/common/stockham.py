@@ -1,4 +1,10 @@
-from ntt_sw_utils import (
+import sys
+from pathlib import Path
+
+# Keep the standalone model demo runnable from any working directory.
+sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
+
+from lvl2.ntt.common.utils import (
     _ntt_shape,
     bit_rev_shuffle,
     find_ntt_modulus,
@@ -6,7 +12,7 @@ from ntt_sw_utils import (
     normalize_intt,
     ntt_naive,
 )
-from ntt_constant_geometry_sw_models import _debug_constant_geometry_butterfly
+from lvl2.ntt.common.constant_geometry import _debug_constant_geometry_butterfly
 
 def ntt_stockham_dif(in_arr, q, omegas, debug=False):
     n, num_stages = _ntt_shape(in_arr)

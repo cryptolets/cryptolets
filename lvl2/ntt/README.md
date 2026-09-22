@@ -1,4 +1,4 @@
-# NTT Implementation Flow
+# Number Theoretic Transform (NTT) Implementation Flow
 
 This directory contains the C++ Catapult NTT implementation and the Python software models used to generate test vectors and validate algorithm variants.
 
@@ -35,13 +35,13 @@ The family-specific variant variable selects the butterfly schedule:
 Korn-Lambiotte DIF GUI demo:
 
 ```bash
-./demo/run_ntt_kl_dif_demo.sh
+./scripts/ntt_demo/run_ntt_kl_dif_demo.sh
 ```
 
 Korn-Lambiotte DIF sweep:
 
 ```bash
-./demo/run_ntt_kl_dif_sweep.sh
+./scripts/ntt_demo/run_ntt_kl_dif_sweep.sh
 ```
 
 This also writes:
@@ -54,13 +54,13 @@ lvl2/ntt/Catapult/ntt_kl_dif_area_breakdown.png
 Stockham DIT GUI demo:
 
 ```bash
-./demo/run_ntt_stockham_dit_demo.sh
+./scripts/ntt_demo/run_ntt_stockham_dit_demo.sh
 ```
 
 Stockham DIT sweep:
 
 ```bash
-./demo/run_ntt_stockham_dit_sweep.sh
+./scripts/ntt_demo/run_ntt_stockham_dit_sweep.sh
 ```
 
 This also writes:
@@ -73,10 +73,10 @@ lvl2/ntt/Catapult/ntt_stockham_dit_area_breakdown.png
 Area breakdown plot for the most recent sweep:
 
 ```bash
-./demo/summarize_ntt_kl_dif_sweep.sh
-./demo/plot_ntt_kl_dif_area_breakdown.sh
-./demo/summarize_ntt_stockham_dit_sweep.sh
-./demo/plot_ntt_stockham_dit_area_breakdown.sh
+./scripts/ntt_demo/summarize_ntt_kl_dif_sweep.sh
+./scripts/ntt_demo/plot_ntt_kl_dif_area_breakdown.sh
+./scripts/ntt_demo/summarize_ntt_stockham_dit_sweep.sh
+./scripts/ntt_demo/plot_ntt_stockham_dit_area_breakdown.sh
 ```
 
 The plotter groups Catapult RTL area into `Control Logic`, `Datapath`, `Reg`, and `Memory`.
@@ -86,7 +86,7 @@ The sweep scripts write the area chart as PNG; pass `--out-svg` to `utils/plot_n
 KL-DIF versus Stockham DIT normalized area comparison:
 
 ```bash
-./demo/plot_ntt_kl_vs_stockham_dit_area_compare.sh
+./scripts/ntt_demo/plot_ntt_kl_vs_stockham_dit_area_compare.sh
 ```
 
 This writes:
@@ -145,15 +145,15 @@ Korn-Lambiotte DIF demo and sweep:
 ```text
 custom_sweeps_configs/ntt_dif_korn_lambiotte_demo.yaml
 custom_sweeps_configs/ntt_dif_korn_lambiotte_sweep.yaml
-demo/demo_env.sh
-demo/run_ntt_kl_dif_demo.sh
-demo/run_ntt_kl_dif_sweep.sh
-demo/plot_ntt_area_breakdown.sh
-demo/summarize_ntt_kl_dif_sweep.sh
-demo/plot_ntt_kl_dif_area_breakdown.sh
-demo/summarize_ntt_stockham_dit_sweep.sh
-demo/plot_ntt_stockham_dit_area_breakdown.sh
-demo/plot_ntt_kl_vs_stockham_dit_area_compare.sh
+scripts/ntt_demo/demo_env.sh
+scripts/ntt_demo/run_ntt_kl_dif_demo.sh
+scripts/ntt_demo/run_ntt_kl_dif_sweep.sh
+scripts/ntt_demo/plot_ntt_area_breakdown.sh
+scripts/ntt_demo/summarize_ntt_kl_dif_sweep.sh
+scripts/ntt_demo/plot_ntt_kl_dif_area_breakdown.sh
+scripts/ntt_demo/summarize_ntt_stockham_dit_sweep.sh
+scripts/ntt_demo/plot_ntt_stockham_dit_area_breakdown.sh
+scripts/ntt_demo/plot_ntt_kl_vs_stockham_dit_area_compare.sh
 utils/summarize_ntt_tables.py
 utils/plot_ntt_area_breakdown.py
 utils/plot_ntt_area_compare.py
@@ -165,8 +165,8 @@ Stockham DIT demo and sweep:
 ```text
 custom_sweeps_configs/ntt_stockham_dit_demo.yaml
 custom_sweeps_configs/ntt_stockham_dit_sweep.yaml
-demo/run_ntt_stockham_dit_demo.sh
-demo/run_ntt_stockham_dit_sweep.sh
+scripts/ntt_demo/run_ntt_stockham_dit_demo.sh
+scripts/ntt_demo/run_ntt_stockham_dit_sweep.sh
 ```
 
 This README:
