@@ -493,11 +493,18 @@ proc get_field_const {curve_type const root_dir} {
     return [exec python3 -c "import json;print(json.load(open('$json_fp'))\['$curve_type'\]\['$const'\])"]
 }
 
+# Certain mgc_mul and mgc_mul_pipe implementations have characterization errors
+# in Catapult at large multiplier bitwidths. The delay interpolation formula
+# breaks for larger bitwidths used in Cryptographic kernels, 
+# where as the bitwidth increases: the predicted delay decreases toward zero
+# and, beyond a certain width, becomes negative. These values do not reflect
+# the multiplier's actual delay. Using them breaks Catapult's timing estimation
+# and leads to incorrect scheduling. We therefore filter out the
+# affected library implementations.
 proc remove_broken_mul_libs { tech_type } {
-    # Make sure mgc_mul's with blank MinClkPrd are not used
 
     if {![is_fpga $tech_type]} {
-        # Don't use mgc_mul or mgc_sqr > 64b, up till 2999b
+        # Exclude matching resources with first width 70-99, then 100-2999.
         for {set i 7} {$i <= 9} {incr i 1} {
             for {set j 0} {$j <= 9} {incr j 1} {
                 directive set "/.../*mgc_mul(${i}${j},*)" -match glob -QUANTITY 0
