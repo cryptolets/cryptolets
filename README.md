@@ -1,6 +1,6 @@
 # Cryptolets
 
-Cryptolets is a framework for generating and exploring cryptographic hardware. It builds from arithmetic primitives to modular operations, elliptic-curve point operations, and number theoretic transforms (NTTs). Each kernel can be configured, tested, and synthesized independently using Catapult HLS, with parallel sweeps for comparing hardware designs.
+Cryptolets is a framework for generating and exploring cryptographic hardware. It builds from arithmetic primitives to modular operations, elliptic-curve point operations, and number theoretic transforms (NTTs). Each kernel can be configured, tested, and synthesized independently using Catapult HLS.
 
 ## Setup
 
