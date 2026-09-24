@@ -35,14 +35,29 @@ The first command is a dry run of sweep generation: it shows which configuration
 
 [run_config.yaml](configs/run_config.yaml) maps each kernel to a default sweep and a Catapult Tcl script. Edit the corresponding YAML in [default_sweeps_configs/](default_sweeps_configs/) to choose the designs to explore.
 
-List-valued parameters define sweep choices. For example, the default bitshift sweep combines two widths and two shift directions on the Nangate 45nm library at 5 ns:
+List-valued parameters define sweep choices. The framework generates one design for each valid combination. For example, edit [modmul_sweep.yaml](default_sweeps_configs/modmul_sweep.yaml) to sweep the Montgomery modular multiplier (`modmul_mont`):
 
 ```yaml
-BITWIDTH: [64, 128]
-TECH_TYPE: [45nm]
-TARGET_PERIOD: [5]  # ns
-BITSHIFT_DIRECTION: [BITSHIFT_LEFT, BITSHIFT_RIGHT]
+BITWIDTH: [254]
+TARGET_PERIOD: [5]                         # ns
+MUL_TYPE: [MUL_SCHOOLBOOK, MUL_KARATSUBA]  # multiplier decomposition
+Q_TYPE: [FIXED_Q, VAR_Q]                   # modulus: constant or input
+REDC_TYPE: [FIXED_RC, VAR_RC]              # reduction constant: constant or input
+CURVE_TYPE: [BN254, RAND_CURVE]
 ```
+
+Common sweep parameters:
+
+| Parameter                              | Values                                                           | Meaning                                                               |
+| -------------------------------------- | ---------------------------------------------------------------- | --------------------------------------------------------------------- |
+| `BITWIDTH`                             | Integer widths, for example `[254, 381]`                         | Operand width in bits. Named curves set their own width.              |
+| `TECH_TYPE`                            | `45nm`, `gf12`, `saed32`, `fpga_vu9p`, `fpga_hbmvh1782`, ...     | Target technology library                                             |
+| `TARGET_PERIOD`                        | Clock period in ns                                               | Target clock for scheduling                                           |
+| `MUL_TYPE`                             | `MUL_NORMAL`, `MUL_SCHOOLBOOK`, `MUL_KARATSUBA`                  | Native Catapult multiplier, or decomposed into smaller ones           |
+| `Q_TYPE`, `REDC_TYPE`                  | `FIXED_*`, `VAR_*`                                               | Fixed values become constant multipliers. Variable values are inputs. |
+| `CURVE_TYPE`                           | A curve in [field_const.json](field_const.json), or `RAND_CURVE` | Field and curve constants                                             |
+| `PREC_TYPE`, `WBW`                     | `SINGLE_PREC`, `MULTI_PREC`; word width                          | Full-width or word-serial arithmetic                                  |
+| `BASE_MUL_WIDTH`, `KAR_BASE_MUL_WIDTH` | Width per `BITWIDTH`                                             | Base multiplier sizes. Add an entry for each swept width.             |
 
 `SWEEP_ORDER` defines parameter expansion order. Preserve dependency ordering from the supplied configurations: [custom_sweep_overrides.py](utils/custom_sweep_overrides.py) adjusts curve widths, limb widths, and multiplier settings and filters unsupported or redundant combinations. The resulting sweep is therefore not always a simple Cartesian product.
 
