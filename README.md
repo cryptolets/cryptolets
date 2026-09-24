@@ -107,7 +107,7 @@ NTT also has [dedicated summaries and area-comparison plots](docs/ntt.md#demo-an
 | Level 2 — Point operations and transforms | `point_add`, `point_double`, `point_add_te`, `point_add_cyclonemsm`, `point_add_rcb`, `ntt` |
 
 
-The [MTU scheduler](lvl2/mtu/Readme.md) is a standalone RTL component with its own simulation files.
+The [MTU scheduler](lvl2/mtu/README.md) is a standalone RTL component with its own simulation files.
 
 ## Documentation
 
