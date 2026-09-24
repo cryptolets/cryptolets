@@ -2,7 +2,12 @@
 # run_catapult_parallel.sh
 # Parallel Catapult execution from JSON configs produced by generate_sweep.py
 
-source utils/parallel_helpers.sh
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+source "$ROOT_DIR/utils/parallel_helpers.sh" || exit 1
+if [ -f "$ROOT_DIR/configs/config.local.sh" ]; then
+  source "$ROOT_DIR/configs/config.local.sh" || exit 1
+fi
+CATAPULT_BIN=${CATAPULT_BIN:-catapult}
 
 CORE_CATAPULT_SCRIPT=$1
 KERNEL_NAME=$2
@@ -21,6 +26,14 @@ for flag in "$@"; do
     *) echo "Unknown flag: $flag"; exit 1 ;;
   esac
 done
+
+if [ "$DRY_RUN_FLAG" != "--dry-run" ] && ! command -v "$CATAPULT_BIN" >/dev/null; then
+  echo "Catapult not found: $CATAPULT_BIN. Set CATAPULT_BIN in configs/config.local.sh."
+  exit 1
+fi
+
+CONFIG_FILE="$(realpath "$CONFIG_FILE")" || exit 1
+cd "$ROOT_DIR" || exit 1
 
 if [ "$GUI_FLAG" = "--gui" ]; then
   export GUI_MODE=true
@@ -88,7 +101,6 @@ if [ "$GUI_FLAG" = "--gui" ] && [ "$TOTAL_CONFIGS" -gt 1 ]; then
 fi
 
 # --- Setup directories and counters ---
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 LOGS_DIR="$ROOT_DIR/logs/$KERNEL_NAME"
 mkdir -p "$LOGS_DIR"
 
@@ -120,9 +132,9 @@ run_config() {
 
 	if [ "$DRY_RUN_FLAG" != "--dry-run" ]; then
 		if [ "$GUI_FLAG" = "--gui" ]; then
-			catapult -f "$ROOT_DIR/$CORE_CATAPULT_SCRIPT"
+			"$CATAPULT_BIN" -f "$ROOT_DIR/$CORE_CATAPULT_SCRIPT"
 		else
-			catapult -shell -f "$ROOT_DIR/$CORE_CATAPULT_SCRIPT" > "$log_file" 2>&1
+			"$CATAPULT_BIN" -shell -f "$ROOT_DIR/$CORE_CATAPULT_SCRIPT" > "$log_file" 2>&1
 		fi
 	fi
 
@@ -175,9 +187,9 @@ launch_config() {
 		echo "  Config Params: $config_params_print"
 		if [ "$DRY_RUN_FLAG" = "--dry-run" ]; then
 			if [ "$GUI_FLAG" = "--gui" ]; then
-				echo "  [DRY RUN]	catapult -f $ROOT_DIR/$CORE_CATAPULT_SCRIPT"
+				echo "  [DRY RUN] \"$CATAPULT_BIN\" -f \"$ROOT_DIR/$CORE_CATAPULT_SCRIPT\""
 			else
-				echo "  [DRY RUN] catapult -shell -f $ROOT_DIR/$CORE_CATAPULT_SCRIPT > $log_file 2>&1"
+				echo "  [DRY RUN] \"$CATAPULT_BIN\" -shell -f \"$ROOT_DIR/$CORE_CATAPULT_SCRIPT\" > \"$log_file\" 2>&1"
 			fi
 		fi
 	else

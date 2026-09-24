@@ -7,10 +7,17 @@ Cryptolets is a framework for generating and exploring cryptographic hardware. I
 Run commands from the repository root unless stated otherwise.
 
 - **Catapult HLS:** required to generate hardware. RTL verification uses QuestaSIM; downstream synthesis uses Design Compiler for ASICs or Vivado for FPGAs.
-- **Technology libraries:** configure the target libraries and tool paths in [utils/util.tcl](utils/util.tcl) and the [Design Compiler scripts](dc_custom_scripts/). The checked-in paths refer to the development environment.
+- **Tool and library paths:** copy [configs/config.example.sh](configs/config.example.sh) to `configs/config.local.sh`. Then set the paths for your machine.
 
 ```bash
 ./setup.sh
+cp configs/config.example.sh configs/config.local.sh
+```
+
+Before you run commands, go to the repository root and activate the environment. Run all commands from the repository root.
+
+```bash
+source .venv/bin/activate
 ```
 
 
@@ -28,19 +35,20 @@ The first command is a dry run of sweep generation: it shows which configuration
 
 ## Sweeping a Kernel
 
-[run_config.yaml](run_config.yaml) maps each kernel to a default sweep and a Catapult Tcl script. Edit the corresponding YAML in [default_sweeps_configs/](default_sweeps_configs/) to choose the designs to explore.
+[run_config.yaml](configs/run_config.yaml) maps each kernel to a default sweep and a Catapult Tcl script. Edit the corresponding YAML in [default_sweeps_configs/](default_sweeps_configs/) to choose the designs to explore.
 
-List-valued parameters define sweep choices. For example, the current bitshift sweep combines two widths, two clock periods, and two shift directions:
+List-valued parameters define sweep choices. For example, the default bitshift sweep combines two widths and two shift directions on the Nangate 45nm library at 5 ns:
 
 ```yaml
 BITWIDTH: [64, 128]
-TARGET_PERIOD: [1, 2]  # ns
+TECH_TYPE: [45nm]
+TARGET_PERIOD: [5]  # ns
 BITSHIFT_DIRECTION: [BITSHIFT_LEFT, BITSHIFT_RIGHT]
 ```
 
 `SWEEP_ORDER` defines parameter expansion order. Preserve dependency ordering from the supplied configurations: [custom_sweep_overrides.py](utils/custom_sweep_overrides.py) adjusts curve widths, limb widths, and multiplier settings and filters unsupported or redundant combinations. The resulting sweep is therefore not always a simple Cartesian product.
 
-Set `TEST` to check C++,++ `SIM` ++to verify RTL, and++ `SYN` ++to run downstream synthesis. For C++ testing only, enable both `TEST` and `TEST_ONLY`. `NUM_TEST_SAMPLES` controls the sample count. RTL generation still runs with `SYN: false` unless `TEST_ONLY` is enabled.
+Set `TEST` to check C++, `SIM` to verify RTL, and `SYN` to run downstream synthesis. For C++ testing only, enable both `TEST` and `TEST_ONLY`. `NUM_TEST_SAMPLES` controls the sample count. RTL generation still runs with `SYN: false` unless `TEST_ONLY` is enabled.
 
 Use a specialized configuration by supplying both a sweep file and a core script:
 
@@ -67,14 +75,14 @@ Generated configurations go under `tmp_configs/`, batch logs under `logs/<kernel
 
 ## Analyze Results
 
-Pass the kernel's directory to [analyze.py](analyze.py). For ASIC results:
+Pass the kernel's directory to [analyze.py](analyze.py):
 
 ```bash
-python3 analyze.py lvl1_modops/modadd -a -t
-python3 analyze.py lvl1_modops/modadd -a -c -o
+python3 analyze.py lvl1_modops/modadd -t
+python3 analyze.py lvl1_modops/modadd -c -o
 ```
 
-The default selection is single-precision FPGA designs. Use `-a` for ASICs and `--mp` for multi-precision designs.
+The default selection is single-precision ASIC designs. Use `--fpga` for FPGAs and `--mp` for multi-precision designs.
 
 
 | Option                              | Purpose                                                         |
@@ -115,7 +123,8 @@ More documentation is available in [docs/](docs/).
 
 ## Usage Notes
 
-- Parallel jobs require sufficient Catapult licenses, memory, and disk space. Keep `--threads >= --tp > 0`; the runner uses integer division to determine the maximum job count.
+- Parallel jobs require sufficient Catapult licenses, memory, and disk space.
+- The first run that builds clusters for large (>512-bits) constant multipliers can take a few hours. For later runs, Catapult caches the clusters.
 - FPGA multiplier choices and base widths affect DSP use differently across devices. Compare configurations on the actual target.
 - The existing FPGA guidance recommends `CCORE_PERIOD_RATIO: [0.90]` for timing margin and provides custom libraries that bypass `mgc_add3`. These are target-specific tuning choices.
 - The documented FPGA flow does not support `USE_CLUSTERS`, `FIXED_Q`, or `FIXED_CURVE_PARAMS`; use the supplied FPGA-compatible settings.

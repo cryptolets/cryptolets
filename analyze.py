@@ -419,10 +419,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Analyze Catapult results")
     parser.add_argument("kernel", help="Kernel path with vl (e.g., lvl0_primitives/add_f/)")
     parser.add_argument("--mp", action="store_true", help="Enable multi-precision mode")
-    target_group = parser.add_mutually_exclusive_group()
-    target_group.add_argument("-a", "--asic", dest="target", action="store_const", const="asic", help="Show ASIC results (default)")
-    target_group.add_argument("--fpga", dest="target", action="store_const", const="fpga", help="Show FPGA results")
-    parser.set_defaults(target="asic")
+    parser.add_argument("--fpga", action="store_true", help="Show FPGA results instead of ASIC results")
     parser.add_argument("-o", "--out-txt", action="store_true", help="Write TXT output")
     parser.add_argument("-c", "--out-csv", action="store_true", help="Write CSV output")
     parser.add_argument("-t", "--tech-type", action="store_true", help="Show tech type")
@@ -440,7 +437,7 @@ if __name__ == "__main__":
     kernel = os.path.basename(os.path.normpath(args.kernel))
     kernel_path = args.kernel
     mp = args.mp
-    tech_type = args.target
+    tech_type = "fpga" if args.fpga else "asic"
 
     catapult_dir = f"{kernel_path}/{args.proj_dir}/"
     all_metrics = []

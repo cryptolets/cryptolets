@@ -1,10 +1,10 @@
 # Sweep parameters
-BITWIDTH: [128, 192, 254, 381]
-WBW: [16, 32, 64, 128] # Word Bitwidth for multi-prec
-TECH_TYPE: [gf12]  # gf12 45nm saed32 fpga_vu9p fpga_hbmvh1782 fpga_hbmvh1582
+BITWIDTH: [64, 128]
+WBW: [32] # Word Bitwidth for multi-prec
+TECH_TYPE: [45nm]  # gf12 45nm saed32 fpga_vu9p fpga_hbmvh1782 fpga_hbmvh1582
 TARGET_II: [1]
-TARGET_PERIOD: [1]  # in ns
-PREC_TYPE: [SINGLE_PREC, MULTI_PREC]  # SINGLE_PREC, MULTI_PREC
+TARGET_PERIOD: [5]  # in ns
+PREC_TYPE: [SINGLE_PREC]  # SINGLE_PREC, MULTI_PREC (needs CCORE_TOP: false)
 CMUL_TYPE: [CMUL_NORMAL] # CMUL_NORMAL, CMUL_NAF, CMUL_SA
 
 # Control flags
@@ -13,7 +13,7 @@ SYN: false
 TEST: true          # test C++ code
 TEST_ONLY: false    # only test C++ code with osci
 NUM_TEST_SAMPLES: 1000
-CCORE_TOP: true    # cannot be true when SIM or TEST are true
+CCORE_TOP: true
 USE_CLUSTERS: true # use use carry save adder for adder trees
 
 # Defines order of params before project split

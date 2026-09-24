@@ -1,9 +1,9 @@
 # Default NTT configuration: one Stockham DIT design.
 BITWIDTH: [254]
 WBW: [64]
-TECH_TYPE: [gf12]
+TECH_TYPE: [45nm]
 TARGET_II: [1]
-TARGET_PERIOD: [1]
+TARGET_PERIOD: [5]
 MUL_TYPE: [MUL_SCHOOLBOOK]
 CMUL_TYPE: [CMUL_NORMAL]
 Q_TYPE: [VAR_Q]
@@ -25,9 +25,9 @@ BASE_MUL_WIDTH:
 KAR_BASE_MUL_WIDTH:
   254: [127]
 
-SIM: false
+SIM: true
 SYN: false
-TEST: false
+TEST: true
 TEST_ONLY: false
 NUM_TEST_SAMPLES: 5
 CCORE_TOP: false

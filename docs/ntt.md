@@ -121,9 +121,9 @@ Catapult, parameter, and naming support:
 utils/include/params.h
 utils/util.tcl
 tcl_cores/catapult_ntt_core.tcl
-naming_config.yaml
-run_config.yaml
-run_catapult_parallel.sh
+configs/naming_config.yaml
+configs/run_config.yaml
+utils/run_catapult_parallel.sh
 default_sweeps_configs/ntt_sweep.yaml
 ```
 

@@ -47,7 +47,7 @@ def main():
     args = parser.parse_args()
 
     # --- load configuration ---
-    cfg = yaml.safe_load(open("run_config.yaml"))
+    cfg = yaml.safe_load(open("configs/run_config.yaml"))
 
     kernels      = cfg["KERNELS"]
     sweep_groups = cfg["SWEEP_GROUP_MAP"]
@@ -120,7 +120,7 @@ def main():
 
     # --- run parallel ---
     cmd = [
-        "./run_catapult_parallel.sh",
+        "utils/run_catapult_parallel.sh",
         core_script,        # CORE_CATAPULT_SCRIPT
         k,                  # KERNEL_NAME
         out_file,           # CONFIG_FILE

@@ -40,13 +40,13 @@ Use [utils/util.tcl](../utils/util.tcl) for common setup, parameter generation, 
 
 Create a default sweep from [bitshift_sweep.yaml](../default_sweeps_configs/bitshift_sweep.yaml). Include each swept parameter in `SWEEP_ORDER`, along with the required control flags.
 
-For symbolic parameters, add definitions to [params.h](../utils/include/params.h). Bitshift defines `BITSHIFT_LEFT` and `BITSHIFT_RIGHT` there. Add short keys, display keys, and symbolic-value mappings to [naming_config.yaml](../naming_config.yaml).
+For symbolic parameters, add definitions to [params.h](../utils/include/params.h). Bitshift defines `BITSHIFT_LEFT` and `BITSHIFT_RIGHT` there. Add short keys, display keys, and symbolic-value mappings to [naming_config.yaml](../configs/naming_config.yaml).
 
 Add rules to [custom_sweep_overrides.py](../utils/custom_sweep_overrides.py) only when the new parameter needs dependent values or compatibility filtering.
 
 ## Kernel Registration and Reporting
 
-Register the name in all three places in [run_config.yaml](../run_config.yaml):
+Register the name in all three places in [run_config.yaml](../configs/run_config.yaml):
 
 - `KERNELS`.
 - `SWEEP_GROUP_MAP`, which selects the default YAML.
