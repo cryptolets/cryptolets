@@ -26,41 +26,35 @@ source .venv/bin/activate
 
 ## Quick Start
 
-Preview the modular addition sweep, then run it:
+Preview the short Weierstrass point-addition sweep, then run it:
 
 ```bash
-python3 run.py modadd --threads 16 --tp 1 --gen-only
-python3 run.py modadd --threads 16 --tp 1
+python3 run.py point_add --threads 16 --tp 1 --gen-only
+python3 run.py point_add --threads 16 --tp 1
 ```
 
-The first command is a dry run of sweep generation: it shows which configurations will run and saves them to `tmp_configs/modadd_configs.json` without launching Catapult. The second runs the sweep with a max of 16 designs in parallel, with 1 thread per design.
+The first command is a dry run of sweep generation: it shows which configurations will run and saves them to `tmp_configs/point_add_configs.json` without launching Catapult. The second runs the sweep with a max of 16 designs in parallel, with 1 thread per design.
 
 ## Sweeping a Kernel
 
 [run_config.yaml](configs/run_config.yaml) maps each kernel to a default sweep and a Catapult Tcl script. Edit the corresponding YAML in [default_sweeps_configs/](default_sweeps_configs/) to choose the designs to explore.
 
-List-valued parameters define sweep choices. For example, the default bitshift sweep combines two widths and two shift directions on the Nangate 45nm library at 5 ns:
+List-valued parameters define sweep choices. For example, edit [padd_sw_sweep.yaml](default_sweeps_configs/padd_sw_sweep.yaml) to sweep PADD design choices from the paper:
 
 ```yaml
-BITWIDTH: [64, 128]
-TECH_TYPE: [45nm]
-TARGET_PERIOD: [5]  # ns
-BITSHIFT_DIRECTION: [BITSHIFT_LEFT, BITSHIFT_RIGHT]
+CURVE_TYPE: [BN254, RAND_CURVE]
+MODMUL_TYPE: [MODMUL_TYPE_MONT, MODMUL_TYPE_BARRETT]
+MUL_TYPE: [MUL_SCHOOLBOOK, MUL_KARATSUBA]
+Q_TYPE: [FIXED_Q, VAR_Q]                             # prime modulus q
+REDC_TYPE: [FIXED_RC, VAR_RC]                        # reduction constant
+CURVE_PARAMS_TYPE: [FIXED_CURVE_PARAMS, VAR_CURVE_PARAMS]  # curve coefficients
 ```
+
+A `FIXED_*` value makes the constant part of the hardware, so Catapult builds a constant multiplier. A `VAR_*` value makes it an input. To add a curve with a different bitwidth, also add its width to `BASE_MUL_WIDTH` and `KAR_BASE_MUL_WIDTH`.
 
 `SWEEP_ORDER` defines parameter expansion order. Preserve dependency ordering from the supplied configurations: [custom_sweep_overrides.py](utils/custom_sweep_overrides.py) adjusts curve widths, limb widths, and multiplier settings and filters unsupported or redundant combinations. The resulting sweep is therefore not always a simple Cartesian product.
 
 Set `TEST` to check C++, `SIM` to verify RTL, and `SYN` to run downstream synthesis. For C++ testing only, enable both `TEST` and `TEST_ONLY`. `NUM_TEST_SAMPLES` controls the sample count. RTL generation still runs with `SYN: false` unless `TEST_ONLY` is enabled.
-
-Use a specialized configuration by supplying both a sweep file and a core script:
-
-```bash
-python3 run.py ntt \
-  --sweep-file custom_sweeps_configs/ntt_stockham_dit_sweep.yaml \
-  --core-script tcl_cores/catapult_ntt_core.tcl \
-  --gen-only
-```
-
 
 | Runner option       | Purpose                                                              |
 | ------------------- | -------------------------------------------------------------------- |
@@ -79,8 +73,9 @@ Generated configurations go under `tmp_configs/`, batch logs under `logs/<kernel
 Pass the kernel's directory to [analyze.py](analyze.py):
 
 ```bash
-python3 analyze.py lvl1_modops/modadd -t
-python3 analyze.py lvl1_modops/modadd -c -o
+python3 analyze.py lvl2/point_add -t
+python3 analyze.py lvl2/point_add -c -o
+python3 analyze.py lvl2/point_add --find-optimal BN254
 ```
 
 The default selection is single-precision ASIC designs. Use `--fpga` for FPGAs and `--mp` for multi-precision designs.
