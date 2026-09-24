@@ -21,12 +21,14 @@ def gen_random_field_const(bitwidth, field_a, seed=42):
     b = 1 % q # fixed b=1
     d = 2 % q # fixed d=2
     k = (2 * d) % q
+    b3 = (3 * b) % q
 
     return {
         "a": to_hex(a),
         "b": to_hex(b),
         "d": to_hex(d),
         "k": to_hex(k),
+        "b3": to_hex(b3),
         "q": to_hex(q),
         "bitwidth": bitwidth,
     }

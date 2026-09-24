@@ -23,6 +23,12 @@ class EC_point_J(ECPointBase):
         self.Y = Y
         self.Z = Z
 
+class EC_point_P(ECPointBase):
+    def __init__(self, X=0, Y=0, Z=0):
+        self.X = X
+        self.Y = Y
+        self.Z = Z
+
 class EC_point_EP(ECPointBase):
     def __init__(self, X=0, Y=0, Z=0, T=0):
         self.X = X
@@ -165,6 +171,33 @@ class ShortWeierstrass:
 
         x = (X * Z2_inv) % self.q
         y = (Y * Z3_inv) % self.q
+        return EC_point_A(x, y)
+    
+    def aff_to_proj(self, P: EC_point_A):
+        """Convert affine (x, y) to projective (X, Y, Z)"""
+        if P is None:
+            return EC_point_P(0, 1, 0)  # point at infinity
+
+        x, y = P.x % self.q, P.y % self.q
+        Z = random.randrange(1, self.q)  # pick random nonzero Z
+
+        X = (x * Z) % self.q
+        Y = (y * Z) % self.q
+        return EC_point_P(X, Y, Z)
+
+    def proj_to_aff(self, Pp: EC_point_P):
+        """Convert projective (X, Y, Z) to affine (x, y)."""
+        X, Y, Z = Pp.X, Pp.Y, Pp.Z
+        if Z == 0:
+            return None  # point at infinity
+
+        try:
+            Z_inv = mod_inverse(Z, self.q)
+        except ValueError:
+            return None
+
+        x = (X * Z_inv) % self.q
+        y = (Y * Z_inv) % self.q
         return EC_point_A(x, y)
 
 

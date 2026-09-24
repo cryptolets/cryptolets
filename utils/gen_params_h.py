@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import argparse, json, pathlib, re, sys
 from common import FIELD_CONTS, to_hex, compute_naf
-from field_helpers import get_q_prime, get_mu, to_mont
+from field_helpers import get_q_prime, get_mu, to_mont, modadd
 
 def is_int(v): return re.fullmatch(r"-?\d+", v)
 def is_bool(v): return v.lower() in {"true", "false"}
@@ -45,6 +45,12 @@ lines = ["#ifndef TMP_PARAMS_H", "#define TMP_PARAMS_H", ""]
 
 q = int(consts.get("q", "1"), 16)
 curve_bitwidth = consts.get("bitwidth", None)
+
+# For RCB Weierstrass curve point addition
+if "b" in consts and "b3" not in consts:
+    b = int(consts["b"], 16)
+    b3 = modadd(modadd(b, b, q), b, q)
+    consts["b3"] = to_hex(b3)
 
 for k in FIELD_CONTS:
     v = consts.get(k, "0")

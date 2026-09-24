@@ -4,8 +4,6 @@ Cryptolets is a framework for generating and exploring cryptographic hardware. I
 
 ## Setup
 
-Run commands from the repository root unless stated otherwise.
-
 - **Catapult HLS:** required to generate hardware. RTL verification uses QuestaSIM; downstream synthesis uses Design Compiler for ASICs or Vivado for FPGAs.
 - **Tool and library paths:** copy [configs/config.example.sh](configs/config.example.sh) to `configs/config.local.sh`. Then set the paths for your machine.
 
@@ -27,11 +25,11 @@ source .venv/bin/activate
 Preview the modular addition sweep, then run it:
 
 ```bash
-python3 run.py modadd --threads 16 --tp 4 --gen-only
-python3 run.py modadd --threads 16 --tp 4
+python3 run.py modadd --threads 16 --tp 1 --gen-only
+python3 run.py modadd --threads 16 --tp 1
 ```
 
-The first command is a dry run of sweep generation: it shows which configurations will run and saves them to `tmp_configs/modadd_configs.json` without launching Catapult. The second runs the sweep with up to four Catapult processes, using four threads per process.
+The first command is a dry run of sweep generation: it shows which configurations will run and saves them to `tmp_configs/modadd_configs.json` without launching Catapult. The second runs the sweep with a max of 16 designs in parallel, with 1 thread per design.
 
 ## Sweeping a Kernel
 
@@ -103,11 +101,11 @@ NTT also has [dedicated summaries and area-comparison plots](docs/ntt.md#demo-an
 ## Library of Kernels
 
 
-| Level                                     | Kernels                                                                    |
-| ----------------------------------------- | -------------------------------------------------------------------------- |
-| Level 0 — Primitives                      | `add_f`, `sub_f`, `cmul_f`, `bitshift`, `mul_f`, `sq_f`                    |
-| Level 1 — Modular arithmetic              | `modadd`, `modsub`, `modmul_mont`, `modmul_barrett`                        |
-| Level 2 — Point operations and transforms | `point_add`, `point_double`, `point_add_te`, `point_add_cyclonemsm`, `ntt` |
+| Level                                     | Kernels                                                                                     |
+| ----------------------------------------- | ------------------------------------------------------------------------------------------- |
+| Level 0 — Primitives                      | `add_f`, `sub_f`, `cmul_f`, `bitshift`, `mul_f`, `sq_f`                                     |
+| Level 1 — Modular arithmetic              | `modadd`, `modsub`, `modmul_mont`, `modmul_barrett`                                         |
+| Level 2 — Point operations and transforms | `point_add`, `point_double`, `point_add_te`, `point_add_cyclonemsm`, `point_add_rcb`, `ntt` |
 
 
 The [MTU scheduler](lvl2/mtu/README.md) is a standalone RTL component with its own simulation files.

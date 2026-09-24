@@ -6,7 +6,7 @@ FIELD_JSON = "field_const.json"
 
 # Configs
 FIELD_CONTS = [
-    "a", "b", "k", "d",
+    "a", "b", "k", "d", "b3",
 ]
 
 SUPPORTED_A_ASSUMPTIONS = {

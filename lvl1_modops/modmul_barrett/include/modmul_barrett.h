@@ -29,6 +29,10 @@ wide_t modsq_barrett_core(
     wide_t cmodmul_k_barrett_core(const wide_t x, const wide_t q, const wide_2x_t mu);
 #endif
 
+#ifdef FIELD_B3_HEX
+    wide_t cmodmul_b3_barrett_core(const wide_t x, const wide_t q, const wide_2x_t mu);
+#endif
+
 wide_t modmul_barrett(
     const wide_t x, const wide_t y
 #if Q_TYPE == VAR_Q
