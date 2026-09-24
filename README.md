@@ -61,12 +61,11 @@ python3 run.py ntt \
 | Runner option       | Purpose                                                                |
 | ------------------- | ---------------------------------------------------------------------- |
 | `--threads`, `--tp` | Total thread budget and threads per Catapult process                   |
+| `--sweep-file`      | Use this sweep YAML instead of the default; requires `--core-script`   |
+| `--core-script`     | Use this Catapult Tcl script; requires `--sweep-file`                  |
 | `--gen-only`        | Generate configuration JSON without launching jobs                     |
 | `--run-only`        | Use an existing configuration JSON without regenerating it             |
 | `--out-file`        | Override the default configuration JSON path                           |
-| `--dry-run`         | Prepare jobs and print commands without launching Catapult             |
-| `--gui`             | Request GUI mode; requires one configuration and a supporting Tcl flow |
-| `--rtl`             | Select the downstream RTL file mode: `rtl` or `rtl_concat`             |
 
 
 Generated configurations go under `tmp_configs/`, batch logs under `logs/<kernel>/`, and Catapult projects and metric tables under `<level>/<kernel>/Catapult/`. Dry runs can still create configuration and log directories.
@@ -108,7 +107,7 @@ NTT also has [dedicated summaries and area-comparison plots](docs/ntt.md#demo-an
 | Level 2 — Point operations and transforms | `point_add`, `point_double`, `point_add_te`, `point_add_cyclonemsm`, `point_add_rcb`, `ntt` |
 
 
-The [MTU scheduler](lvl2/mtu/README.md) is a standalone RTL component with its own simulation files.
+The [MTU scheduler](lvl2/mtu/Readme.md) is a standalone RTL component with its own simulation files.
 
 ## Documentation
 
