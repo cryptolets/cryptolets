@@ -62,6 +62,13 @@ wide_t modsq_barrett_core(const wide_t x, const wide_t q, const wide_2x_t mu) {
     }
 #endif
 
+#ifdef FIELD_B3_HEX
+    wide_t cmodmul_b3_barrett_core(const wide_t x, const wide_t q, const wide_2x_t mu) {
+        wide_2x_t t = cmul_field_b3(x); // compile to constant multiplier
+        return barrett_reduction(t, q, mu);
+    }
+#endif
+
 #elif PREC_TYPE == MULTI_PREC
 
 // TODO: clean up and be consistent with other logic

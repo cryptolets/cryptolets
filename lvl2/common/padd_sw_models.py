@@ -204,3 +204,35 @@ def point_add_sw_ref(P0, P1, q, a):
         else:
             result = point_add_only_sw_core_core_ref(P0, P1, Z1Z1, Z2Z2, U1, U2, S1, S2, q)
     return result
+
+def point_add_sw_rcb_ref(P0, P1, b3, q): # P0: projective coordinates and P1: affine coordinates
+    # Source: https://eprint.iacr.org/2015/1060.pdf (Algorithm 8)
+    # Assumes a = 0
+    result = EC_point_J()
+    t0       = modmul(P0.X, P1.x, q)   # 1.  t0 = X1*X2
+    t1       = modmul(P0.Y, P1.y, q)   # 2.  t1 = Y1*Y2
+    t3       = modadd(P1.x, P1.y, q)   # 3.  t3 = X2+Y2
+    t4       = modadd(P0.X, P0.Y, q)   # 4.  t4 = X1+Y1
+    t3       = modmul(t3, t4, q)       # 5.  t3 = t3*t4
+    t4       = modadd(t0, t1, q)       # 6.  t4 = t0+t1
+    t3       = modsub(t3, t4, q)       # 7.  t3 = t3-t4
+    t4       = modmul(P1.y, P0.Z, q)   # 8.  t4 = Y2*Z1
+    t4       = modadd(t4, P0.Y, q)     # 9.  t4 = t4+Y1
+    result.Y = modmul(P1.x, P0.Z, q)   # 10. Y3 = X2*Z1
+    result.Y = modadd(result.Y, P0.X, q)  # 11. Y3 = Y3+X1
+    result.X = moddouble(t0, q)        # 12. X3 = t0+t0
+    t0       = modadd(result.X, t0, q) # 13. t0 = X3+t0
+    t2       = modmul(b3, P0.Z, q)     # 14. t2 = b3*Z1
+    result.Z = modadd(t1, t2, q)       # 15. Z3 = t1+t2
+    t1       = modsub(t1, t2, q)       # 16. t1 = t1-t2
+    result.Y = modmul(b3, result.Y, q) # 17. Y3 = b3*Y3
+    result.X = modmul(t4, result.Y, q) # 18. X3 = t4*Y3
+    t2       = modmul(t3, t1, q)       # 19. t2 = t3*t1
+    result.X = modsub(t2, result.X, q) # 20. X3 = t2-X3
+    result.Y = modmul(result.Y, t0, q) # 21. Y3 = Y3*t0
+    t1       = modmul(t1, result.Z, q) # 22. t1 = t1*Z3
+    result.Y = modadd(t1, result.Y, q) # 23. Y3 = t1+Y3
+    t0       = modmul(t0, t3, q)       # 24. t0 = t0*t3
+    result.Z = modmul(result.Z, t4, q) # 25. Z3 = Z3*t4
+    result.Z = modadd(result.Z, t0, q) # 26. Z3 = Z3+t0
+    return result

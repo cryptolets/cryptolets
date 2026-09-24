@@ -32,6 +32,10 @@ wide_2x_t cmul_field_k_mont(const wide_t x) {
     return cmul_f_gen<BITWIDTH, FIELD_K_MONT_NAF_LEN>(x, FIELD_K_MONT, FIELD_K_MONT_NAF);
 }
 
+wide_2x_t cmul_field_b3_mont(const wide_t x) {
+    return cmul_f_gen<BITWIDTH, FIELD_B3_MONT_NAF_LEN>(x, FIELD_B3_MONT, FIELD_B3_MONT_NAF);
+}
+
 // For field constant multiplications in normal domain (for barrett)
 wide_2x_t cmul_field_a(const wide_t x) {
     return cmul_f_gen<BITWIDTH, FIELD_A_NAF_LEN>(x, FIELD_A_INT, FIELD_A_NAF);
@@ -43,4 +47,8 @@ wide_2x_t cmul_field_d(const wide_t x) {
 
 wide_2x_t cmul_field_k(const wide_t x) {
     return cmul_f_gen<BITWIDTH, FIELD_K_NAF_LEN>(x, FIELD_K_INT, FIELD_K_NAF);
+}
+
+wide_2x_t cmul_field_b3(const wide_t x) {
+    return cmul_f_gen<BITWIDTH, FIELD_B3_NAF_LEN>(x, FIELD_B3_INT, FIELD_B3_NAF);
 }

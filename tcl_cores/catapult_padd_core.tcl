@@ -54,6 +54,10 @@ set HAS_CMODMUL_K [expr {
     $CURVE_PARAMS_TYPE eq "FIXED_CURVE_PARAMS" &&
     ($KERNEL_NAME eq "point_add_te" && $FIELD_A eq "ANEG1")
 }]
+set HAS_CMODMUL_B3 [expr {
+    $CURVE_PARAMS_TYPE eq "FIXED_CURVE_PARAMS" &&
+    $KERNEL_NAME eq "point_add_rcb"
+}]
 
 set HAS_CMUL_Q [expr {$CCORE_CMUL && ($Q_TYPE eq "FIXED_Q")}]
 set HAS_CMUL_Q_PRIME [expr {
@@ -219,6 +223,11 @@ if {$CCORE_CMUL} {
         set cmul_field_k_sol [cmul_op_run "cmul_field_k${cmul_suffix}" $cmul_period]
         solution table export -file [file join $WORK_DIR $table_name]
     }
+
+    if {$HAS_CMODMUL_B3} {
+        set cmul_field_b3_sol [cmul_op_run "cmul_field_b3${cmul_suffix}" $cmul_period]
+        solution table export -file [file join $WORK_DIR $table_name]
+    }
 }
 
 # I think it should be safe to use diff clock periods, 
@@ -273,7 +282,7 @@ if {$CCORE_MODMUL} {
             global TECH_TYPE MUL_TYPE CCORE_MUL_F CCORE_CMUL sq_f_sol mul_f_sol \
                 HAS_CMUL_Q HAS_CMUL_Q_PRIME HAS_CMUL_MU cmul_suffix modmul_suffix \
                 cmul_q_sol cmul_q_prime_sol cmul_mu_sol \
-                cmul_field_a_sol cmul_field_d_sol cmul_field_k_sol \
+                cmul_field_a_sol cmul_field_d_sol cmul_field_k_sol cmul_field_b3_sol \
                 CLOCK_UNCERTAINTY_PERCENT
 
             go new
@@ -292,6 +301,7 @@ if {$CCORE_MODMUL} {
                 if {$modmul_name eq "cmodmul_a_${modmul_suffix}"} { solution design set "cmul_field_a${cmul_suffix}" -ccore }
                 if {$modmul_name eq "cmodmul_d_${modmul_suffix}"} { solution design set "cmul_field_d${cmul_suffix}" -ccore }
                 if {$modmul_name eq "cmodmul_k_${modmul_suffix}"} { solution design set "cmul_field_k${cmul_suffix}" -ccore }
+                if {$modmul_name eq "cmodmul_b3_${modmul_suffix}"} { solution design set "cmul_field_b3${cmul_suffix}" -ccore }
             }
 
             solution rename "comb_check_$modmul_name"
@@ -311,6 +321,7 @@ if {$CCORE_MODMUL} {
                 if {$modmul_name eq "cmodmul_a_${modmul_suffix}"} { solution library add "\[CCORE\] $cmul_field_a_sol" }
                 if {$modmul_name eq "cmodmul_d_${modmul_suffix}"} { solution library add "\[CCORE\] $cmul_field_d_sol" }
                 if {$modmul_name eq "cmodmul_k_${modmul_suffix}"} { solution library add "\[CCORE\] $cmul_field_k_sol" }
+                if {$modmul_name eq "cmodmul_b3_${modmul_suffix}"} { solution library add "\[CCORE\] $cmul_field_b3_sol" }
             }
 
             go compile
@@ -329,6 +340,7 @@ if {$CCORE_MODMUL} {
                 if {$modmul_name eq "cmodmul_a_${modmul_suffix}"} { directive set "/${modmul_name}_core/cmul_field_a${cmul_suffix}" -MAP_TO_MODULE "\[CCORE\] $cmul_field_a_sol" }
                 if {$modmul_name eq "cmodmul_d_${modmul_suffix}"} { directive set "/${modmul_name}_core/cmul_field_d${cmul_suffix}" -MAP_TO_MODULE "\[CCORE\] $cmul_field_d_sol" }
                 if {$modmul_name eq "cmodmul_k_${modmul_suffix}"} { directive set "/${modmul_name}_core/cmul_field_k${cmul_suffix}" -MAP_TO_MODULE "\[CCORE\] $cmul_field_k_sol" }
+                if {$modmul_name eq "cmodmul_b3_${modmul_suffix}"} { directive set "/${modmul_name}_core/cmul_field_b3${cmul_suffix}" -MAP_TO_MODULE "\[CCORE\] $cmul_field_b3_sol" }
             }
 
             go architect
@@ -371,6 +383,11 @@ if {$CCORE_MODMUL} {
 
     if {$HAS_CMODMUL_K} {
         set cmodmul_k_sol [modmul_run "cmodmul_k_${modmul_suffix}" $cmodmul_period]
+        solution table export -file [file join $WORK_DIR $table_name]
+    }
+
+    if {$HAS_CMODMUL_B3} {
+        set cmodmul_b3_sol [modmul_run "cmodmul_b3_${modmul_suffix}" $cmodmul_period]
         solution table export -file [file join $WORK_DIR $table_name]
     }
 }
@@ -425,6 +442,9 @@ if {$CCORE_MODMUL} {
     if {$HAS_CMODMUL_K} {
         solution design set "cmodmul_k_${modmul_suffix}_core" -ccore
     }
+    if {$HAS_CMODMUL_B3} {
+        solution design set "cmodmul_b3_${modmul_suffix}_core" -ccore
+    }
 }
 if {$CCORE_MODADDSUB} {
     solution design set modadd_core -ccore
@@ -456,6 +476,9 @@ if {$CCORE_MODMUL} {
     if {$HAS_CMODMUL_K} {
         solution library add "\[CCORE\] $cmodmul_k_sol"
     }
+    if {$HAS_CMODMUL_B3} {
+        solution library add "\[CCORE\] $cmodmul_b3_sol"
+    }
 }
 if {$CCORE_MODADDSUB} {
     solution library add "\[CCORE\] $modadd_sol"
@@ -469,6 +492,7 @@ if {$CCORE_CMUL} {
     if {$HAS_CMODMUL_A} { solution library add "\[CCORE\] $cmul_field_a_sol" }
     if {$HAS_CMODMUL_D} { solution library add "\[CCORE\] $cmul_field_d_sol" }
     if {$HAS_CMODMUL_K} { solution library add "\[CCORE\] $cmul_field_k_sol" }
+    if {$HAS_CMODMUL_B3} { solution library add "\[CCORE\] $cmul_field_b3_sol" }
 }
 
 go libraries
@@ -478,6 +502,7 @@ if {$CCORE_MODMUL} {
     if {$HAS_CMODMUL_A} { directive set "/$KERNEL_NAME/cmodmul_a_${modmul_suffix}_core" -MAP_TO_MODULE "\[CCORE\] $cmodmul_a_sol" }
     if {$HAS_CMODMUL_D} { directive set "/$KERNEL_NAME/cmodmul_d_${modmul_suffix}_core" -MAP_TO_MODULE "\[CCORE\] $cmodmul_d_sol" }
     if {$HAS_CMODMUL_K} { directive set "/$KERNEL_NAME/cmodmul_k_${modmul_suffix}_core" -MAP_TO_MODULE "\[CCORE\] $cmodmul_k_sol" }
+    if {$HAS_CMODMUL_B3} { directive set "/$KERNEL_NAME/cmodmul_b3_${modmul_suffix}_core" -MAP_TO_MODULE "\[CCORE\] $cmodmul_b3_sol" }
 }
 if {$CCORE_MODADDSUB} {
     directive set /$KERNEL_NAME/modadd_core -MAP_TO_MODULE "\[CCORE\] $modadd_sol"

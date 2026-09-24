@@ -30,6 +30,10 @@ wide_t modsq_mont_core(
     wide_t cmodmul_k_mont_core(const wide_t x, const wide_t q, const wide_t q_prime);
 #endif
 
+#ifdef FIELD_B3_MONT_HEX
+    wide_t cmodmul_b3_mont_core(const wide_t x, const wide_t q, const wide_t q_prime);
+#endif
+
 // Public API
 wide_t modmul_mont(
     const wide_t x, const wide_t y

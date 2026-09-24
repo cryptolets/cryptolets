@@ -47,6 +47,13 @@ typedef struct {
     wide_t Z;
 } EC_point_J;
 
+// Projective coordinates
+typedef struct {
+    wide_t X;
+    wide_t Y;
+    wide_t Z;
+} EC_point_P;
+
 // Extended Projective coordinates
 typedef struct {
     wide_t X;
@@ -110,6 +117,12 @@ typedef struct {
     static const int FIELD_K_MONT_NAF_LEN = sizeof(FIELD_K_MONT_NAF) / sizeof(FIELD_K_MONT_NAF[0]);
 #endif
 
+#ifdef FIELD_B3_MONT_HEX
+    static const wide_t FIELD_B3_MONT = ac::bit_fill_hex<wide_t>(FIELD_B3_MONT_HEX);
+    static const int FIELD_B3_MONT_NAF[] = FIELD_B3_MONT_NAF_ARR;
+    static const int FIELD_B3_MONT_NAF_LEN = sizeof(FIELD_B3_MONT_NAF) / sizeof(FIELD_B3_MONT_NAF[0]);
+#endif
+
 // For Barrett Modmul
 #ifdef FIELD_A_HEX
     static const wide_t FIELD_A_INT = ac::bit_fill_hex<wide_t>(FIELD_A_HEX);
@@ -133,6 +146,12 @@ typedef struct {
     static const wide_t FIELD_K_INT = ac::bit_fill_hex<wide_t>(FIELD_K_HEX);
     static const int FIELD_K_NAF[] = FIELD_K_NAF_ARR;
     static const int FIELD_K_NAF_LEN = sizeof(FIELD_K_NAF) / sizeof(FIELD_K_NAF[0]);
+#endif
+
+#ifdef FIELD_B3_HEX
+    static const wide_t FIELD_B3_INT = ac::bit_fill_hex<wide_t>(FIELD_B3_HEX);
+    static const int FIELD_B3_NAF[] = FIELD_B3_NAF_ARR;
+    static const int FIELD_B3_NAF_LEN = sizeof(FIELD_B3_NAF) / sizeof(FIELD_B3_NAF[0]);
 #endif
 
 // #endif

@@ -1,0 +1,48 @@
+# Sweep parameters for RCB complete point addition on the Pasta curves
+# Run with: --sweep-file custom_sweeps_configs/padd_rcb_pasta_sweep.yaml --core-script tcl_cores/catapult_padd_core.tcl
+BITWIDTH: [255]
+WBW: [64] # Word Bitwidth for multi-prec
+TECH_TYPE: [45nm]  # gf12 45nm saed32 fpga_vu9p fpga_hbmvh1782 fpga_hbmvh1582
+TARGET_II: [1]
+TARGET_PERIOD: [5]  # in ns
+MUL_TYPE: [MUL_SCHOOLBOOK] # MUL_NORMAL, MUL_SCHOOLBOOK, MUL_KARATSUBA
+CMUL_TYPE: [CMUL_NORMAL] # CMUL_NORMAL, CMUL_NAF, CMUL_SA
+Q_TYPE: [FIXED_Q, VAR_Q] # VAR_Q, FIXED_Q
+REDC_TYPE: [FIXED_RC, VAR_RC] # VAR_RC, FIXED_RC
+CURVE_PARAMS_TYPE: [FIXED_CURVE_PARAMS, VAR_CURVE_PARAMS] # FIXED_CURVE_PARAMS, VAR_CURVE_PARAMS
+MODMUL_TYPE: [MODMUL_TYPE_MONT] # MODMUL_TYPE_MONT, MODMUL_TYPE_BARRETT
+
+# RCB (Algorithm 8) needs a=0: PALLAS, VESTA, or RAND_CURVE with FIELD_A=A0
+CURVE_TYPE: [PALLAS, VESTA, RAND_CURVE]
+
+PREC_TYPE: [SINGLE_PREC]  # SINGLE_PREC, MULTI_PREC
+CCORE_PERIOD_RATIO: [1]
+FIELD_A: [A0] # overridden for named curves
+
+# Base multiplier widths per BITWIDTH; add an entry for each swept BITWIDTH
+BASE_MUL_WIDTH:
+  255: [63]
+
+KAR_BASE_MUL_WIDTH:
+  255: [127]
+
+# Control flags
+SIM: true           # verify RTL
+SYN: false
+TEST: true          # test C++ code
+TEST_ONLY: false    # only test C++ code with osci
+NUM_TEST_SAMPLES: 1000
+CCORE_MUL_F: false  # make mul_f ccore, false = more compile time, better design latency
+CCORE_MODADDSUB: false # make modadd,modsub,moddouble ccore, false = more compile time, better design latency
+CCORE_MODMUL: true
+CCORE_CMUL: true
+CCORE_TOP: true
+PROCESS_LVL_HANDSHAKE: false
+USE_CLUSTERS: true # use use carry save adder for adder trees
+
+# Defines order of params before project split
+SWEEP_ORDER: [
+  TECH_TYPE, MODMUL_TYPE, CURVE_TYPE, FIELD_A, CURVE_PARAMS_TYPE, REDC_TYPE, Q_TYPE, PREC_TYPE,
+  TARGET_PERIOD, TARGET_II, MUL_TYPE, CMUL_TYPE, CCORE_PERIOD_RATIO,
+  BITWIDTH, WBW, BASE_MUL_WIDTH, KAR_BASE_MUL_WIDTH
+  ]

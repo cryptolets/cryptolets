@@ -5,7 +5,7 @@ import yaml
 from pathlib import Path
 
 # --- load mappings ---
-yaml_file = (Path(__file__).resolve().parent / "../naming_config.yaml").resolve()
+yaml_file = (Path(__file__).resolve().parent / "../configs/naming_config.yaml").resolve()
 with open(yaml_file) as f:
     data = yaml.safe_load(f)
 

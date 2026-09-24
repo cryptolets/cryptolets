@@ -52,7 +52,10 @@ ATTR_TO_COL_NAME = {
 }
 
 ASIC_TECH_TYPES = ["45nm", "gf12", "saed32", "saed14"]
-FPGA_TECH_TYPES = ["fpga", "fpgahbm", "fpgahbmvhk158"]
+
+def is_fpga(tech_type):
+    """Match the fpga* target convention used by utils/util.tcl."""
+    return isinstance(tech_type, str) and tech_type.startswith("fpga")
 
 def parse_table_csv(csv_fn, no_syn=False):
     flows = []
@@ -241,7 +244,7 @@ def derive_all_attr(parsed_raw_attrs, all_info):
             row["area (mm^2)"] = area/1e6 if area else area
             row["reg"] = to_float(a.get("reg"))
             row["memory"] = to_float(a.get("memory"))
-        elif all_info['tech_type'] in FPGA_TECH_TYPES:
+        elif is_fpga(all_info.get('tech_type')):
             row["lut"] = to_float(a.get("lut"))
             row["ff"] = to_float(a.get("ff"))
             row["dsp"] = to_float(a.get("dsp"))
@@ -416,7 +419,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Analyze Catapult results")
     parser.add_argument("kernel", help="Kernel path with vl (e.g., lvl0_primitives/add_f/)")
     parser.add_argument("--mp", action="store_true", help="Enable multi-precision mode")
-    parser.add_argument("-a", "--asic", action="store_true", help="Target ASIC (default: FPGA)")
+    parser.add_argument("--fpga", action="store_true", help="Show FPGA results instead of ASIC results")
     parser.add_argument("-o", "--out-txt", action="store_true", help="Write TXT output")
     parser.add_argument("-c", "--out-csv", action="store_true", help="Write CSV output")
     parser.add_argument("-t", "--tech-type", action="store_true", help="Show tech type")
@@ -434,7 +437,7 @@ if __name__ == "__main__":
     kernel = os.path.basename(os.path.normpath(args.kernel))
     kernel_path = args.kernel
     mp = args.mp
-    tech_type = "asic" if args.asic else "fpga"
+    tech_type = "fpga" if args.fpga else "asic"
 
     catapult_dir = f"{kernel_path}/{args.proj_dir}/"
     all_metrics = []
@@ -453,7 +456,7 @@ if __name__ == "__main__":
 
             if tech_type == "asic" and not table_info.get("tech_type") in ASIC_TECH_TYPES:
                 continue
-            if tech_type == "fpga" and not table_info.get("tech_type") in FPGA_TECH_TYPES:
+            if tech_type == "fpga" and not is_fpga(table_info.get("tech_type")):
                 continue
 
             if table_info["tech_type"] in ASIC_TECH_TYPES and os.path.isdir(catapult_proj_dir_fp):

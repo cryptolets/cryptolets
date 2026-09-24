@@ -23,6 +23,17 @@ proc assign_from_env {params} {
     }
 }
 
+proc machine_path {name {kind isdirectory}} {
+    if {![info exists ::env($name)] || $::env($name) eq ""} {
+        error "Set $name in configs/config.local.sh or the environment."
+    }
+    set path $::env($name)
+    if {![file $kind $path]} {
+        error "Invalid $kind path for $name: $path"
+    }
+    return $path
+}
+
 proc override_default_options {} {
     options defaults
     options set /Input/CppStandard c++14
@@ -31,7 +42,19 @@ proc override_default_options {} {
     options set Output/RTLSchem false ;# rtl schematics take up a ton of space
     options set Flows/SCVerify/MAX_ERROR_CNT 1
     options set Flows/DesignCompiler/OutNetlistFormat verilog
-    options set Flows/Vivado/XILINX_VIVADO /eda/xilinx//Vivado/2024.2/
+    global SYN SIM TEST_ONLY TECH_TYPE
+    if {!$TEST_ONLY} {
+        if {$SIM} {
+            options set Flows/QuestaSIM/Path [machine_path QUESTASIM_PATH]
+        }
+        if {$SYN} {
+            if {[is_fpga $TECH_TYPE]} {
+                options set Flows/Vivado/XILINX_VIVADO [machine_path VIVADO_ROOT]
+            } else {
+                options set Flows/DesignCompiler/Path [file dirname [machine_path DC_SHELL_BIN executable]]
+            }
+        }
+    }
 }
 
 proc is_fpga {tech_type} {
@@ -46,29 +69,27 @@ proc set_tech_lib {tech_type} {
     if {$tech_type eq "45nm"} {
         set custom_dc_script_path [file normalize "$ROOT_DIR/dc_custom_scripts"]
         options set Flows/DesignCompiler/CustomScriptDirPath "$custom_dc_script_path"
-        options set ComponentLibs/TechLibSearchPath [file normalize "$ROOT_DIR/../45nm_db"] -append
+        options set ComponentLibs/TechLibSearchPath [machine_path NANGATE45_DB_DIR] -append
 
         solution library add nangate-45nm_beh \
             -- -rtlsyntool DesignCompiler -vendor Nangate -technology 045nm
     } elseif {$tech_type eq "gf12"} {
         set custom_dc_script_path [file normalize "$ROOT_DIR/dc_custom_scripts"]
         options set Flows/DesignCompiler/CustomScriptDirPath "$custom_dc_script_path"
-        options set ComponentLibs/TechLibSearchPath "/ip/arm/gf12/sc7p5mcpp84_base_slvt_c14/r1p0/db" -append
+        options set ComponentLibs/TechLibSearchPath [machine_path GF12_DB_DIR] -append
 
         solution library add sc7p5mcpp84_12lp_base_slvt_c14_tt_nominal_max_0p90v_25c_dc \
-            -file "$ROOT_DIR/../gf12_libs/sc7p5mcpp84_12lp_base_slvt_c14_tt_nominal_max_0p90v_25c_dc_smooth.lib" \
+            -file [machine_path GF12_CATAPULT_LIB isfile] \
             -- -rtlsyntool DesignCompiler -vendor GlobalFoundries -technology 012nm
 
     } elseif {$tech_type eq "saed32"} {
         # add custom dc script path
         set custom_dc_script_path [file normalize "$ROOT_DIR/dc_custom_scripts"]
         options set Flows/DesignCompiler/CustomScriptDirPath "$custom_dc_script_path"
-        # it prob just needs some of these paths, but linking all for now just to be safe 
-        options set ComponentLibs/TechLibSearchPath "/ip/synopsys/saed32/v02_2024/" -append
-        options set ComponentLibs/TechLibSearchPath "/ip/synopsys/saed32/v02_2024/tech/tf" -append
-        options set ComponentLibs/TechLibSearchPath "/ip/synopsys/saed32/v02_2024/lib/stdcell_lvt/lef" -append
-        options set ComponentLibs/TechLibSearchPath "/ip/synopsys/saed32/v02_2024/lib/stdcell_lvt/db_nldm" -append
-        options set ComponentLibs/TechLibSearchPath "/ip/synopsys/saed32/v02_2024/lib/stdcell_lvt/db_ccs" -append
+        set saed_root [machine_path SAED32_ROOT]
+        foreach subdir {. tech/tf lib/stdcell_lvt/lef lib/stdcell_lvt/db_nldm lib/stdcell_lvt/db_ccs} {
+            options set ComponentLibs/TechLibSearchPath [file join $saed_root $subdir] -append
+        }
 
         solution library add saed32lvt_tt0p78v125c_beh \
             -- -rtlsyntool DesignCompiler -vendor SAED32 -technology {lvt tt0p78v125c}        
@@ -93,21 +114,21 @@ proc set_tech_lib {tech_type} {
         # "*_custom" denotes a custom library file
         # Top of the line Versal HBM
         solution library add mgc_Xilinx-VERSAL-hbm-3HP_beh \
-            -file "$ROOT_DIR/../custom_fpga_catapult_libs/mgc_Xilinx-VERSAL-hbm-3HP_beh.lib" \
+            -file "[machine_path CUSTOM_FPGA_LIB_DIR]/mgc_Xilinx-VERSAL-hbm-3HP_beh.lib" \
             -- -rtlsyntool Vivado -manufacturer Xilinx \
             -family VERSAL-hbm -speed -3HP \
             -part xcvh1782-lsva4737-3HP-e-S
     } elseif {$tech_type eq "fpga_hbmvh1582_custom"} {
         # Versal HBM used in evaluation kit
         solution library add mgc_Xilinx-VERSAL-hbm-2MP_beh \
-            -file "$ROOT_DIR/../custom_fpga_catapult_libs/mgc_Xilinx-VERSAL-hbm-2MP_beh.lib" \
+            -file "[machine_path CUSTOM_FPGA_LIB_DIR]/mgc_Xilinx-VERSAL-hbm-2MP_beh.lib" \
             -- -rtlsyntool Vivado -manufacturer Xilinx \
             -family VERSAL-hbm -speed -2MP \
             -part xcvh1582-vsva3697-2MP-e-S
     } elseif {$tech_type eq "fpga_vu9p_custom"} {
         # Virtex UltraScale+ used by other papers
         solution library add mgc_Xilinx-VIRTEX-uplus-2_beh \
-            -file "$ROOT_DIR/../custom_fpga_catapult_libs/mgc_Xilinx-VIRTEX-uplus-2_beh.lib" \
+            -file "[machine_path CUSTOM_FPGA_LIB_DIR]/mgc_Xilinx-VIRTEX-uplus-2_beh.lib" \
             -- -rtlsyntool Vivado -manufacturer Xilinx \
             -family VIRTEX-uplus -speed -2 \
             -part xcvu9p-flga2104-2-i
@@ -184,7 +205,7 @@ proc gen_field_consts {{FIELD_A "A0"}} {
     set gen_field_const_py [file join $ROOT_DIR utils gen_field_const.py]
     set cmd [list $py_exec $gen_field_const_py --bitwidth $BITWIDTH --json-file $json_file --field-a $FIELD_A]
 
-    exec tcsh -c "$cmd"
+    exec {*}$cmd
     return $json_file
 }
 
@@ -221,12 +242,13 @@ proc gen_tmp_params_h {config_params {json_file ""} {CURVE_TYPE ""}} {
     # Add runtime params
     lappend cmd --params {*}$param_args
 
-    exec tcsh -c "$cmd"
+    exec {*}$cmd
     return $tmp_params_dir
 }
 
 proc run_osci_test {{CURVE_TYPE ""} {MODMUL_TYPE ""} {BITSHIFT_DIRECTION ""}} {
-    global TEST BITWIDTH KERNEL_DIR ROOT_DIR NUM_TEST_SAMPLES MUL_SQ
+    global TEST BITWIDTH KERNEL_DIR ROOT_DIR NUM_TEST_SAMPLES MUL_SQ KERNEL_NAME NTT_LEN \
+           NTT_IMPL NTT_STANDARD_VARIANT NTT_CONSTANT_GEOMETRY_VARIANT NTT_STOCKHAM_VARIANT
     # generate samples csv file and run initial C++ tests
     if {$TEST} {
         set proj_dir [project get /PROJECT_DIR]
@@ -264,13 +286,47 @@ proc run_osci_test {{CURVE_TYPE ""} {MODMUL_TYPE ""} {BITSHIFT_DIRECTION ""}} {
         if {$BITSHIFT_DIRECTION ne ""} {
             lappend cmd --bitshift-direction $BITSHIFT_DIRECTION
         }
+
+        if {[info exists KERNEL_NAME] && $KERNEL_NAME eq "ntt"} {
+            if {[info exists NTT_LEN]} {
+                lappend cmd --ntt-size $NTT_LEN
+            }
+
+            if {[info exists NTT_IMPL] && $NTT_IMPL eq "NTT_IMPL_STANDARD" && [info exists NTT_STANDARD_VARIANT]} {
+                if {$NTT_STANDARD_VARIANT eq "NTT_STANDARD_DIF_NR"} {
+                    lappend cmd --algorithm dif_nr
+                } elseif {$NTT_STANDARD_VARIANT eq "NTT_STANDARD_DIF_RN"} {
+                    lappend cmd --algorithm dif_rn
+                } elseif {$NTT_STANDARD_VARIANT eq "NTT_STANDARD_DIT_NR"} {
+                    lappend cmd --algorithm dit_nr
+                } elseif {$NTT_STANDARD_VARIANT eq "NTT_STANDARD_DIT_RN"} {
+                    lappend cmd --algorithm dit_rn
+                }
+            } elseif {[info exists NTT_IMPL] && $NTT_IMPL eq "NTT_IMPL_CONSTANT_GEOMETRY" && [info exists NTT_CONSTANT_GEOMETRY_VARIANT]} {
+                if {$NTT_CONSTANT_GEOMETRY_VARIANT eq "NTT_PEASE_DIF"} {
+                    lappend cmd --algorithm pease_dif
+                } elseif {$NTT_CONSTANT_GEOMETRY_VARIANT eq "NTT_PEASE_DIT"} {
+                    lappend cmd --algorithm pease_dit
+                } elseif {$NTT_CONSTANT_GEOMETRY_VARIANT eq "NTT_KORN_LAMBIOTTE_DIF"} {
+                    lappend cmd --algorithm korn_lambiotte_dif
+                } elseif {$NTT_CONSTANT_GEOMETRY_VARIANT eq "NTT_KORN_LAMBIOTTE_DIT"} {
+                    lappend cmd --algorithm korn_lambiotte_dit
+                }
+            } elseif {[info exists NTT_IMPL] && $NTT_IMPL eq "NTT_IMPL_STOCKHAM" && [info exists NTT_STOCKHAM_VARIANT]} {
+                if {$NTT_STOCKHAM_VARIANT eq "NTT_STOCKHAM_DIF"} {
+                    lappend cmd --algorithm stockham_dif
+                } elseif {$NTT_STOCKHAM_VARIANT eq "NTT_STOCKHAM_DIT"} {
+                    lappend cmd --algorithm stockham_dit
+                }
+            }
+        }
         
         if {[info exists MUL_SQ] && $MUL_SQ == 1} {
             lappend cmd --mul-sq
         }
 
         puts "running cmd: $cmd"
-        exec tcsh -c "$cmd"
+        exec {*}$cmd
 
         flow package require /SCVerify
         flow package option set /SCVerify/INVOKE_ARGS "$sample_fp $output_fp"
@@ -286,7 +342,7 @@ proc run_osci_test {{CURVE_TYPE ""} {MODMUL_TYPE ""} {BITSHIFT_DIRECTION ""}} {
     }
 }
 
-# This logic is because if we make CCORE_TOP we cannot do verify
+# SCVerify cannot run on a ccore top, so verify a non-ccore solution first
 proc extract_verify_syn_save {} {
     global WORK_DIR KERNEL_NAME sol_name table_name \
             SIM CCORE_TOP TECH_TYPE PROCESS_LVL_HANDSHAKE
@@ -337,7 +393,7 @@ proc run_scverify {} {
     global BITWIDTH SIM
 
     if {$SIM} {
-        options set Flows/QuestaSIM/Path /eda/mentor/questasim/linux_x86_64
+        options set Flows/QuestaSIM/Path [machine_path QUESTASIM_PATH]
         # If MGLS_LICENSE_FILE is set, copy it to SALT_LICENSE_SERVER
         if { [info exists ::env(MGLS_LICENSE_FILE)] } {
             set ::env(SALT_LICENSE_SERVER) $::env(MGLS_LICENSE_FILE)
@@ -394,11 +450,11 @@ proc run_syn {tech_type} {
     global SYN RTL_FILE
 
     if {$SYN} {
-        if {$tech_type eq "fpga" || $tech_type eq "fpgahbm" || $tech_type eq "fpgahbmvhk158"} {
+        if {[is_fpga $tech_type]} {
             puts "Syn: Running FPGA Vivado synthesis"
 
             # Fixes issue with running Vivado for Versal HBM fpga
-            set ::env(LD_LIBRARY_PATH) "/eda/xilinx/Vivado/2024.2/lib/lnx64.o"
+            set ::env(LD_LIBRARY_PATH) [file join [machine_path VIVADO_ROOT] lib lnx64.o]
             catch {unset ::env(LD_PRELOAD)}
             puts "LD_LIBRARY_PATH is now: $::env(LD_LIBRARY_PATH)"
 
@@ -458,11 +514,18 @@ proc get_field_const {curve_type const root_dir} {
     return [exec python3 -c "import json;print(json.load(open('$json_fp'))\['$curve_type'\]\['$const'\])"]
 }
 
+# Certain mgc_mul and mgc_mul_pipe implementations have characterization errors
+# in Catapult at large multiplier bitwidths. The delay interpolation formula
+# breaks for larger bitwidths used in Cryptographic kernels, 
+# where as the bitwidth increases: the predicted delay decreases toward zero
+# and, beyond a certain width, becomes negative. These values do not reflect
+# the multiplier's actual delay. Using them breaks Catapult's timing estimation
+# and leads to incorrect scheduling. We therefore filter out the
+# affected library implementations.
 proc remove_broken_mul_libs { tech_type } {
-    # Make sure mgc_mul's with blank MinClkPrd are not used
 
     if {![is_fpga $tech_type]} {
-        # Don't use mgc_mul or mgc_sqr > 64b, up till 2999b
+        # Exclude matching resources with first width 70-99, then 100-2999.
         for {set i 7} {$i <= 9} {incr i 1} {
             for {set j 0} {$j <= 9} {incr j 1} {
                 directive set "/.../*mgc_mul(${i}${j},*)" -match glob -QUANTITY 0
@@ -577,4 +640,3 @@ proc replace_compile_with_ultra {file_path} {
     puts "Successfully replaced compile commands with compile_ultra in $file_path"
     return 1
 }
-

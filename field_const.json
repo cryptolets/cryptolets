@@ -185,5 +185,21 @@
     "k": "af1697b8fe1b5e33e49e718526e745995a8c2ae4854a1e6f01363b47825425cf399939024c99fd35a10132e0b1f6c3884879865b7542ad73",
     "q": "fffffffffffffffffffffffffffffffffffffffffffffffffffffffeffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
     "bitwidth": 448
+  },
+  "PALLAS": {
+    "form": "Weierstrass",
+    "desc": "https://github.com/zcash/pasta_curves/blob/main/README.md",
+    "a": "0",
+    "b": "5",
+    "q": "0x40000000000000000000000000000000224698fc094cf91b992d30ed00000001",
+    "bitwidth": 255
+  },
+  "VESTA": {
+    "form": "Weierstrass",
+    "desc": "https://github.com/zcash/pasta_curves/blob/main/README.md",
+    "a": "0",
+    "b": "5",
+    "q": "0x40000000000000000000000000000000224698fc0994a8dd8c46eb2100000001",
+    "bitwidth": 255
   }
 }

@@ -63,6 +63,12 @@ struct ModOps {
         }
     #endif
 
+    #ifdef FIELD_B3_MONT_HEX
+        inline wide_t cmodmul_b3(wide_t x) const {
+            return cmodmul_b3_mont_core(x, q, q_prime);
+        }
+    #endif
+
 #elif MODMUL_TYPE == MODMUL_TYPE_BARRETT
 
     #ifdef FIELD_A_HEX
@@ -80,6 +86,12 @@ struct ModOps {
     #ifdef FIELD_K_HEX
         inline wide_t cmodmul_k(wide_t x) const {
             return cmodmul_k_barrett_core(x, q, mu);
+        }
+    #endif
+
+    #ifdef FIELD_B3_HEX
+        inline wide_t cmodmul_b3(wide_t x) const {
+            return cmodmul_b3_barrett_core(x, q, mu);
         }
     #endif
 
