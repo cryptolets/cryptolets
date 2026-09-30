@@ -2,7 +2,7 @@
 
 Cryptolets is a framework for generating and exploring cryptographic hardware. It builds from arithmetic primitives to modular operations, elliptic-curve point operations, and number theoretic transforms (NTTs). Each kernel can be configured, tested, and synthesized independently using Catapult HLS.
 
-Link to [Tessera](https://github.com/cryptolets/cryptolets/tree/tessera).
+Link to newer version of this framework: [Tessera](https://github.com/cryptolets/cryptolets/tree/tessera)
 
 ## Setup
 
