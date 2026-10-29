@@ -1,0 +1,36 @@
+{
+  "name": "Jubjub",
+  "definition": "a = -1; d = -(10240/10241) in the base field",
+  "base_modulus": "52435875175126190479447740508185965837690552500527637822603658699938581184513",
+  "scalar_modulus": "6554484396890773809930967563523245729705921265872317281365359162392183254199",
+  "generator": [
+    "8076246640662884909881801758704306714034609987455869804520522091855516602923",
+    "13262374693698910701929044844600465831413122818447359594527400194675274060458"
+  ],
+  "provenance": {
+    "repository": "https://github.com/arkworks-rs/curves",
+    "commit": "e2d16a27e2cfa9f972ae9772df827a22730011b4",
+    "sources": [
+      {
+        "path": "ed_on_bls12_381/src/curves/mod.rs",
+        "url": "https://github.com/arkworks-rs/curves/blob/e2d16a27e2cfa9f972ae9772df827a22730011b4/ed_on_bls12_381/src/curves/mod.rs",
+        "sha256": "06a6a999a0fd194088b81ffe030940dea41e199389f58bf29b2f03f6815bb220"
+      },
+      {
+        "path": "ed_on_bls12_381/src/fields/fq.rs",
+        "url": "https://github.com/arkworks-rs/curves/blob/e2d16a27e2cfa9f972ae9772df827a22730011b4/ed_on_bls12_381/src/fields/fq.rs",
+        "sha256": "c7367b63493f3161076efdfeedfad7a1e6f0999b5472d32d5a184884e5c76d6d"
+      },
+      {
+        "path": "ed_on_bls12_381/src/fields/fr.rs",
+        "url": "https://github.com/arkworks-rs/curves/blob/e2d16a27e2cfa9f972ae9772df827a22730011b4/ed_on_bls12_381/src/fields/fr.rs",
+        "sha256": "c8a5a8cf83428f11370ecdb0143216b3cbfca095d5e2f53502bfbb540b2fa976"
+      },
+      {
+        "path": "bls12_381/src/fields/fr.rs",
+        "url": "https://github.com/arkworks-rs/curves/blob/e2d16a27e2cfa9f972ae9772df827a22730011b4/bls12_381/src/fields/fr.rs",
+        "sha256": "cdd0a1c361f8b300fb2e32907aaea64603d9df0eba6f2492237d3cf308eb8342"
+      }
+    ]
+  }
+}

@@ -84,9 +84,9 @@ bls12_377_ed:
 bls12_381_ed:
   desc: "https://docs.rs/ark-ed-on-bls12-381/latest/ark_ed_on_bls12_381/"
   form: TwistedEdwards
-  a: "12ab655e9a2ca55660b44d1e5c37b00159aa76fed00000010a11800000000000"
-  d: "73eda753299d7d483339d80809a1d80553bda402fffe5bfeffffffff00000000"
-  k: "2a9318e74bfa2b48f5fd9207e6bd7fd4292d7f6d37579d2601065fd6d6343eb1"
+  a: "73eda753299d7d483339d80809a1d80553bda402fffe5bfeffffffff00000000"
+  d: "2a9318e74bfa2b48f5fd9207e6bd7fd4292d7f6d37579d2601065fd6d6343eb1"
+  k: "552631ce97f45691ebfb240fcd7affa8525afeda6eaf3a4c020cbfadac687d62"
   base:
     bitwidth: 255
     q: "73eda753299d7d483339d80809a1d80553bda402fffe5bfeffffffff00000001"
